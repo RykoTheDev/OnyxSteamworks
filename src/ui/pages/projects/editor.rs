@@ -1,0 +1,182 @@
+use eframe::egui::{self, Pos2, Rect, Sense, UiBuilder, Vec2};
+
+use super::state::PickField;
+use crate::app::App;
+use crate::ui::kit;
+use crate::ui::kit::{Button, ButtonKind, Input};
+use crate::ui::theme;
+
+pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egui::Context) -> bool {
+    let px = |v: f32| theme::px(v, s);
+
+    kit::hero(&ui.painter().clone(), rect, "PROJECTS", s);
+    if app.projects_ui.dirty() {
+        ui.painter().circle_filled(
+            Pos2::new(rect.right() - px(14.0), rect.top() + px(14.0)),
+            px(4.0),
+            theme::WARNING,
+        );
+    }
+
+    let tab_rect = Rect::from_min_size(
+        Pos2::new(rect.left(), rect.top() + px(92.0)),
+        Vec2::new(px(240.0), px(32.0)),
+    );
+    kit::tabs(ui, tab_rect, &["EDITOR", "VDF PREVIEW"], &mut app.projects_ui.editor_tab, s);
+
+    let save_h = px(66.0);
+    let content = Rect::from_min_max(
+        Pos2::new(rect.left(), tab_rect.bottom() + px(18.0)),
+        Pos2::new(rect.right(), rect.bottom() - save_h),
+    );
+
+    if app.projects_ui.editor_tab == 1 {
+        super::preview::show(app, ui, content, s, ctx);
+    } else {
+        let mut changed = false;
+        let mut cui = ui.new_child(UiBuilder::new().max_rect(content));
+        egui::ScrollArea::vertical()
+            .auto_shrink([false, false])
+            .show(&mut cui, |ui| {
+                ui.set_width(content.width());
+                changed |= basic_fields(app, ui, s, ctx);
+                super::depots::sections(app, ui, s, ctx);
+                ui.add_space(px(8.0));
+            });
+        if changed {
+            app.projects_ui.revalidate();
+        }
+    }
+
+    let valid = app.projects_ui.valid();
+    let dirty = app.projects_ui.dirty();
+    let reason = app.projects_ui.first_error().unwrap_or_default();
+    let save_rect = Rect::from_min_size(
+        Pos2::new(rect.right() - px(150.0), rect.bottom() - px(44.0)),
+        Vec2::new(px(150.0), px(44.0)),
+    );
+    let mut btn = Button::new("SAVE PROJECT", ButtonKind::Primary)
+        .icon(theme::icon::CHECK)
+        .enabled(valid && dirty);
+    if !valid {
+        btn = btn.disabled_reason(&reason);
+    }
+    btn.show(ui, save_rect, s).clicked() && valid && dirty
+}
+
+fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -> bool {
+    let px = |v: f32| theme::px(v, s);
+    let mut changed = false;
+
+    let r = row(ui, s, 64.0);
+    let gap = px(18.0);
+    let left_w = (r.width() - gap) * 0.42;
+    let right_w = r.width() - gap - left_w;
+    let left = Rect::from_min_size(r.min, Vec2::new(left_w, r.height()));
+    let right = Rect::from_min_size(Pos2::new(r.left() + left_w + gap, r.top()), Vec2::new(right_w, r.height()));
+    changed |= labelled_text(app, ui, left, "APP ID", None, false, s);
+    changed |= labelled_text(app, ui, right, "DISPLAY NAME", Some("(Optional)"), false, s);
+    ui.add_space(px(6.0));
+
+    changed |= labelled_path(app, ui, "CONTENT ROOT", PickField::ContentRoot, s, ctx);
+    changed |= labelled_path(app, ui, "BUILD OUTPUT", PickField::BuildOutput, s, ctx);
+    changed |= labelled_path(app, ui, "STEAMCMD PATH", PickField::SteamCmd, s, ctx);
+
+    let r = row(ui, s, 64.0);
+    let uw = (r.width() - gap) * 0.5;
+    let uleft = Rect::from_min_size(r.min, Vec2::new(uw, r.height()));
+    changed |= labelled_text(app, ui, uleft, "STEAM USERNAME", None, false, s);
+
+    labelled_path(app, ui, "KEY ART", PickField::KeyArt, s, ctx);
+    let art = app.projects_ui.form.key_art.clone();
+    let uri = (!art.is_empty()).then(|| format!("file://{art}"));
+    let preview = row(ui, s, 108.0);
+    let box_rect = Rect::from_min_size(preview.min, Vec2::splat(px(108.0)));
+    kit::image_or_placeholder(ui, box_rect, uri.as_deref(), 'K', px(theme::RADIUS_CARD), s);
+    ui.add_space(px(14.0));
+    changed
+}
+
+pub(super) fn row(ui: &mut egui::Ui, s: f32, h: f32) -> Rect {
+    let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), theme::px(h, s)), Sense::hover());
+    rect
+}
+
+pub(super) fn label(ui: &mut egui::Ui, text: &str, s: f32) {
+    let r = row(ui, s, 20.0);
+    kit::label(&ui.painter().clone(), r.left_top(), text, s);
+}
+
+fn key_for(label: &str) -> &'static str {
+    match label {
+        "DISPLAY NAME" => "name",
+        "APP ID" => "app_id",
+        "CONTENT ROOT" => "content_root",
+        "BUILD OUTPUT" => "build_output_dir",
+        "STEAMCMD PATH" => "steamcmd_path",
+        _ => "",
+    }
+}
+
+fn value_mut<'a>(app: &'a mut App, label: &str) -> &'a mut String {
+    match label {
+        "DISPLAY NAME" => &mut app.projects_ui.form.name,
+        "APP ID" => &mut app.projects_ui.form.app_id,
+        "CONTENT ROOT" => &mut app.projects_ui.form.content_root,
+        "BUILD OUTPUT" => &mut app.projects_ui.form.build_output,
+        "STEAMCMD PATH" => &mut app.projects_ui.form.steamcmd,
+        "STEAM USERNAME" => &mut app.projects_ui.form.username,
+        _ => &mut app.projects_ui.form.key_art,
+    }
+}
+
+fn labelled_text(
+    app: &mut App,
+    ui: &mut egui::Ui,
+    rect: Rect,
+    lbl: &str,
+    suffix: Option<&str>,
+    mask: bool,
+    s: f32,
+) -> bool {
+    let px = |v: f32| theme::px(v, s);
+    let painter = ui.painter().clone();
+    match suffix {
+        Some(suf) => kit::label_optional(&painter, rect.left_top(), lbl, suf, s),
+        None => kit::label(&painter, rect.left_top(), lbl, s),
+    }
+    let field = Rect::from_min_size(Pos2::new(rect.left(), rect.top() + px(24.0)), Vec2::new(rect.width(), px(40.0)));
+    let err = app.projects_ui.error_for(key_for(lbl));
+    let value = value_mut(app, lbl);
+    let mut ti = Input::new(value).mask(mask);
+    if let Some(e) = &err {
+        ti = ti.error(true).helper(e);
+    }
+    ti.show(ui, field, s).changed()
+}
+
+fn labelled_path(app: &mut App, ui: &mut egui::Ui, lbl: &str, field: PickField, s: f32, ctx: &egui::Context) -> bool {
+    let px = |v: f32| theme::px(v, s);
+    label(ui, lbl, s);
+    let r = row(ui, s, 48.0);
+    let browse_w = px(104.0);
+    let gap = px(8.0);
+    let input = Rect::from_min_size(r.min, Vec2::new(r.width() - browse_w - gap, px(40.0)));
+    let err = app.projects_ui.error_for(key_for(lbl));
+    let value = value_mut(app, lbl);
+    let mut ti = Input::new(value);
+    if let Some(e) = &err {
+        ti = ti.error(true).helper(e);
+    }
+    let changed = ti.show(ui, input, s).changed();
+    let browse = Rect::from_min_size(Pos2::new(input.right() + gap, input.top()), Vec2::new(browse_w, px(40.0)));
+    if Button::new("BROWSE", ButtonKind::Secondary)
+        .icon(theme::icon::FOLDER)
+        .show(ui, browse, s)
+        .clicked()
+    {
+        app.projects_ui.spawn_pick(ctx, field, 0);
+    }
+    ui.add_space(px(22.0));
+    changed
+}

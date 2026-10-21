@@ -2,19 +2,21 @@ use eframe::egui;
 
 use crate::app::{App, Page};
 use crate::ui::layout::Layout;
-use crate::ui::{nav, theme};
+use crate::ui::{nav, pages, theme};
 
 pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     let idx = nav::index(Page::History);
     let tabs = nav::ITEMS[idx].sub_tabs;
-    if let Some(t) = super::header(ui, layout, "HISTORY", tabs, app.sub_tabs[idx]) {
-        app.sub_tabs[idx] = t;
-    }
-    super::empty_state(
+    let mut active = app.sub_tabs[idx];
+    pages::simple_page(
         ui,
-        layout.content,
-        theme::icon::IMAGE,
+        layout,
+        "HISTORY",
+        tabs,
+        &mut active,
+        theme::icon::HISTORY,
         "No builds yet",
-        layout.scale,
+        "Finished builds and their logs will appear here.",
     );
+    app.sub_tabs[idx] = active;
 }

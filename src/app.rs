@@ -1,9 +1,8 @@
 use std::sync::mpsc::{Receiver, Sender};
 
-use eframe::egui::{self, UiBuilder, Vec2};
+use eframe::egui::{self, Pos2, Rect, Stroke, UiBuilder, Vec2};
 
 use crate::model::Project;
-use crate::ui::bento::rail;
 use crate::ui::layout::{self, Layout};
 use crate::ui::{anim, nav, pages, theme};
 
@@ -24,15 +23,9 @@ pub struct App {
     prev_page: Option<Page>,
     transition: Option<anim::Transition>,
     pub projects: Vec<Project>,
-    pub(crate) build_desc: String,
-    pub(crate) search: String,
-    pub(crate) branch_sel: Vec<usize>,
     pub(crate) sub_tabs: [usize; 5],
     pub(crate) home_gen: u32,
-    #[cfg(debug_assertions)]
-    show_anim_lab: bool,
-    #[cfg(debug_assertions)]
-    pub(crate) lab: pages::anim_lab::LabState,
+    pub(crate) projects_ui: pages::projects::ProjectsState,
     #[allow(dead_code)]
     event_tx: Sender<AppEvent>,
     event_rx: Receiver<AppEvent>,
@@ -57,15 +50,9 @@ impl App {
             prev_page: None,
             transition: None,
             projects,
-            build_desc: String::new(),
-            search: String::new(),
-            branch_sel: vec![0],
             sub_tabs: [0; 5],
             home_gen: 0,
-            #[cfg(debug_assertions)]
-            show_anim_lab: std::env::var_os("ONYX_ANIM_LAB").is_some(),
-            #[cfg(debug_assertions)]
-            lab: pages::anim_lab::LabState::default(),
+            projects_ui: pages::projects::ProjectsState::new(),
             event_tx,
             event_rx,
         }
@@ -77,15 +64,16 @@ impl App {
         }
         self.prev_page = Some(self.page);
         self.page = page;
-        self.transition = Some(anim::Transition::new(ctx, 0.28, anim::ease_in_out_cubic));
+        self.transition = Some(anim::Transition::new(ctx, 0.26, anim::ease_in_out_cubic));
         if page == Page::Home {
             self.home_gen = self.home_gen.wrapping_add(1);
         }
     }
 
-    fn render_page(&mut self, ui: &mut egui::Ui, page: Page, lay: &Layout, opacity: f32) {
+    fn render_page(&mut self, ui: &mut egui::Ui, page: Page, lay: &Layout, clip: egui::Rect, opacity: f32) {
         let mut cu = ui.new_child(UiBuilder::new().max_rect(ui.max_rect()));
         cu.set_opacity(opacity);
+        cu.set_clip_rect(clip);
         pages::render(self, &mut cu, page, lay);
     }
 
@@ -105,19 +93,16 @@ impl eframe::App for App {
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
         let ctx = ui.ctx().clone();
         egui::CentralPanel::default().show(ui, |ui| {
-            #[cfg(debug_assertions)]
-            if self.show_anim_lab {
-                pages::anim_lab::show(self, ui);
-                return;
-            }
-
             let lay = layout::compute(ui.max_rect());
+            let s = lay.scale;
 
-            if let Some(rail::RailAction::Navigate(page)) =
-                rail::rail(ui, lay.rail, self.page, lay.scale)
-            {
-                self.goto(&ctx, page);
-            }
+            ui.painter().line_segment(
+                [
+                    Pos2::new(lay.rail.right(), lay.frame.top() + theme::px(14.0, s)),
+                    Pos2::new(lay.rail.right(), lay.frame.bottom() - theme::px(14.0, s)),
+                ],
+                Stroke::new(1.0, theme::LINE),
+            );
 
             let mut nav_to = None;
             for item in nav::ITEMS.iter() {
@@ -129,22 +114,27 @@ impl eframe::App for App {
                 self.goto(&ctx, page);
             }
 
-            let slide = theme::px(12.0, lay.scale);
+            let clip = Rect::from_min_max(
+                Pos2::new(lay.rail.right(), lay.frame.top()),
+                lay.frame.max,
+            );
+            let slide = theme::px(14.0, s);
             if let Some(tr) = self.transition {
                 let t = tr.progress(&ctx);
                 if let Some(prev) = self.prev_page {
                     let l = lay.translated(Vec2::new(-slide * t, 0.0));
-                    self.render_page(ui, prev, &l, 1.0 - t);
+                    self.render_page(ui, prev, &l, clip, 1.0 - t);
                 }
                 let l = lay.translated(Vec2::new(slide * (1.0 - t), 0.0));
-                self.render_page(ui, self.page, &l, t);
+                self.render_page(ui, self.page, &l, clip, t);
                 if tr.is_done(&ctx) {
                     self.transition = None;
                     self.prev_page = None;
                 }
             } else {
-                self.render_page(ui, self.page, &lay, 1.0);
+                self.render_page(ui, self.page, &lay, clip, 1.0);
             }
+
         });
     }
 }

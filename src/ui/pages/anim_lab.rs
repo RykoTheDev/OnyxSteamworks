@@ -1,5 +1,6 @@
 use eframe::egui::{self, Align2, FontId, Pos2, Rect, Sense, Vec2};
 
+mod feedback;
 mod forms;
 mod widgets;
 
@@ -21,6 +22,11 @@ pub struct LabState {
     pub secret: String,
     pub error_text: String,
     pub view: usize,
+    pub dropdown_sel: usize,
+    pub tab_active: usize,
+    pub progress: f32,
+    pub modal_open: bool,
+    pub toasts: crate::ui::bento::toast::Toasts,
 }
 
 pub fn show(app: &mut App, ui: &mut egui::Ui) {
@@ -41,7 +47,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
         );
     }
 
-    let tabs = ["PRIMITIVES", "FORMS"];
+    let tabs = ["PRIMITIVES", "FORMS", "FEEDBACK"];
     for (i, name) in tabs.iter().enumerate() {
         let tab = Rect::from_min_size(
             Pos2::new(
@@ -89,8 +95,17 @@ pub fn show(app: &mut App, ui: &mut egui::Ui) {
         widgets::primitive_demos(app, ui, s, c2, top, px(300.0));
         widgets::primitives_u5(app, ui, s, c3, top, w3);
         rail_demo(app, ui, s, area);
-    } else {
+    } else if app.lab.view == 1 {
         forms::form_demos(
+            app,
+            ui,
+            s,
+            c1,
+            top,
+            (area.width() - pad * 2.0).max(px(320.0)),
+        );
+    } else {
+        feedback::feedback_demos(
             app,
             ui,
             s,
