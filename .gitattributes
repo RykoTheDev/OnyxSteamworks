@@ -1,0 +1,4 @@
+# Keep shell scripts on LF line endings, even on Windows checkouts.
+.githooks/* text eol=lf
+*.sh text eol=lf
+* text=auto

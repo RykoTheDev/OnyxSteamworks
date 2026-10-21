@@ -1,0 +1,30 @@
+#!/usr/bin/env sh
+
+EM_DASH=$(printf '\342\200\224')
+
+OFFENDERS=$(git diff --cached --no-color --unified=0 --diff-filter=ACMR \
+    | awk -v dash="$EM_DASH" '
+        /^\+\+\+ b\// { file = substr($0, 7); next }
+        /^\+\+\+ /    { next }
+        /^@@ /        {
+            split($3, pos, ",")
+            line = substr(pos[1], 2) + 0
+            next
+        }
+        /^\+/ {
+            if (index($0, dash) > 0) {
+                printf "  %s:%d: %s\n", file, line, substr($0, 2)
+            }
+            line++
+        }
+    ')
+
+if [ -n "$OFFENDERS" ]; then
+    echo "pre-commit: No em-dash is allowed across the project. This is to prevent AI code"
+    echo "Replace each with a comma, colon, parentheses, or a plain hyphen (-):"
+    echo
+    echo "$OFFENDERS"
+    exit 1
+fi
+
+exit 0
