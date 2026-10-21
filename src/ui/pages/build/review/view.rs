@@ -30,23 +30,54 @@ pub(super) fn progress(ui: &mut egui::Ui, d: Rect, done: usize, total: usize, s:
         FontId::new(px(13.0), theme::family_medium()),
         theme::INK_DIM,
     );
-    let bar = Rect::from_min_size(Pos2::new(x, d.center().y + px(6.0)), Vec2::new(d.width() - px(48.0), px(5.0)));
-    let frac = if total > 0 { done as f32 / total as f32 } else { 0.0 };
+    let bar = Rect::from_min_size(
+        Pos2::new(x, d.center().y + px(6.0)),
+        Vec2::new(d.width() - px(48.0), px(5.0)),
+    );
+    let frac = if total > 0 {
+        done as f32 / total as f32
+    } else {
+        0.0
+    };
     kit::progress_bar(ui, bar, frac, s);
 }
 
 pub(super) fn summary_row(ui: &egui::Ui, pos: Pos2, w: f32, summary: &DiffSummary, s: f32) {
     let px = |v: f32| theme::px(v, s);
     let items = [
-        ("Added", summary.added, summary.added_bytes, DiffStatus::Added),
-        ("Modified", summary.modified, summary.modified_bytes, DiffStatus::Modified),
-        ("Removed", summary.removed, summary.removed_bytes, DiffStatus::Removed),
-        ("Unchanged", summary.unchanged, summary.unchanged_bytes, DiffStatus::Unchanged),
+        (
+            "Added",
+            summary.added,
+            summary.added_bytes,
+            DiffStatus::Added,
+        ),
+        (
+            "Modified",
+            summary.modified,
+            summary.modified_bytes,
+            DiffStatus::Modified,
+        ),
+        (
+            "Removed",
+            summary.removed,
+            summary.removed_bytes,
+            DiffStatus::Removed,
+        ),
+        (
+            "Unchanged",
+            summary.unchanged,
+            summary.unchanged_bytes,
+            DiffStatus::Unchanged,
+        ),
     ];
     let step = w / 4.0;
     for (i, (label, count, bytes, status)) in items.iter().enumerate() {
         let cx = pos.x + i as f32 * step;
-        ui.painter().circle_filled(Pos2::new(cx + px(4.0), pos.y + px(2.0)), px(4.0), status_color(*status));
+        ui.painter().circle_filled(
+            Pos2::new(cx + px(4.0), pos.y + px(2.0)),
+            px(4.0),
+            status_color(*status),
+        );
         ui.painter().text(
             Pos2::new(cx + px(16.0), pos.y),
             Align2::LEFT_CENTER,
@@ -65,19 +96,38 @@ pub(super) fn summary_row(ui: &egui::Ui, pos: Pos2, w: f32, summary: &DiffSummar
     ui.painter().text(
         Pos2::new(pos.x + w, pos.y + px(40.0)),
         Align2::RIGHT_CENTER,
-        format!("{} changed · ~{} to upload (estimate)", summary.changed(), human_size(summary.estimated_upload())),
+        format!(
+            "{} changed · ~{} to upload (estimate)",
+            summary.changed(),
+            human_size(summary.estimated_upload())
+        ),
         FontId::new(px(12.5), theme::family_medium()),
         theme::INK_DIM,
     );
 }
 
 #[allow(clippy::too_many_arguments)]
-pub(super) fn controls(ui: &mut egui::Ui, x: f32, y: f32, w: f32, search: &mut String, filter: Filter, sort_size: bool, act: &mut Act, s: f32) {
+pub(super) fn controls(
+    ui: &mut egui::Ui,
+    x: f32,
+    y: f32,
+    w: f32,
+    search: &mut String,
+    filter: Filter,
+    sort_size: bool,
+    act: &mut Act,
+    s: f32,
+) {
     let px = |v: f32| theme::px(v, s);
     let field = Rect::from_min_size(Pos2::new(x, y), Vec2::new(w * 0.4, px(34.0)));
     Input::new(search).hint("Search files").show(ui, field, s);
     let mut cx = field.right() + px(10.0);
-    for (label, f) in [("ALL", Filter::All), ("ADD", Filter::Added), ("MOD", Filter::Modified), ("REM", Filter::Removed)] {
+    for (label, f) in [
+        ("ALL", Filter::All),
+        ("ADD", Filter::Added),
+        ("MOD", Filter::Modified),
+        ("REM", Filter::Removed),
+    ] {
         let size = kit::chip_size(ui, label, s);
         let r = Rect::from_min_size(Pos2::new(cx, y + px(2.0)), size);
         if kit::chip(ui, r, label, filter == f, s).clicked() {
@@ -92,7 +142,15 @@ pub(super) fn controls(ui: &mut egui::Ui, x: f32, y: f32, w: f32, search: &mut S
     }
 }
 
-pub(super) fn file_list(ui: &mut egui::Ui, rect: Rect, summary: &DiffSummary, search: &str, filter: Filter, sort_size: bool, s: f32) {
+pub(super) fn file_list(
+    ui: &mut egui::Ui,
+    rect: Rect,
+    summary: &DiffSummary,
+    search: &str,
+    filter: Filter,
+    sort_size: bool,
+    s: f32,
+) {
     let px = |v: f32| theme::px(v, s);
     let needle = search.to_ascii_lowercase();
     let mut rows: Vec<&DiffEntry> = summary
@@ -111,32 +169,44 @@ pub(super) fn file_list(ui: &mut egui::Ui, rect: Rect, summary: &DiffSummary, se
     }
 
     let mut cui = ui.new_child(UiBuilder::new().max_rect(rect));
-    egui::ScrollArea::vertical().id_salt("review_files").auto_shrink([false, false]).show(&mut cui, |ui| {
-        ui.set_width(rect.width() - px(14.0));
-        let largest = summary.largest(10);
-        if !largest.is_empty() && filter == Filter::All && search.is_empty() {
-            section(ui, "TOP 10 LARGEST CHANGES", s);
-            for entry in largest {
+    egui::ScrollArea::vertical()
+        .id_salt("review_files")
+        .auto_shrink([false, false])
+        .show(&mut cui, |ui| {
+            ui.set_width(rect.width() - px(14.0));
+            let largest = summary.largest(10);
+            if !largest.is_empty() && filter == Filter::All && search.is_empty() {
+                section(ui, "TOP 10 LARGEST CHANGES", s);
+                for entry in largest {
+                    row(ui, entry, s);
+                }
+                section(ui, &format!("ALL FILES  {}", rows.len()), s);
+            }
+            for entry in rows {
                 row(ui, entry, s);
             }
-            section(ui, &format!("ALL FILES  {}", rows.len()), s);
-        }
-        for entry in rows {
-            row(ui, entry, s);
-        }
-    });
+        });
 }
 
 fn section(ui: &mut egui::Ui, text: &str, s: f32) {
     let px = |v: f32| theme::px(v, s);
     let (r, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), px(26.0)), Sense::hover());
-    kit::label(&ui.painter().clone(), Pos2::new(r.left(), r.top() + px(8.0)), text, s);
+    kit::label(
+        &ui.painter().clone(),
+        Pos2::new(r.left(), r.top() + px(8.0)),
+        text,
+        s,
+    );
 }
 
 fn row(ui: &mut egui::Ui, entry: &manifest::DiffEntry, s: f32) {
     let px = |v: f32| theme::px(v, s);
     let (r, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), px(26.0)), Sense::hover());
-    ui.painter().circle_filled(Pos2::new(r.left() + px(5.0), r.center().y), px(4.0), status_color(entry.status));
+    ui.painter().circle_filled(
+        Pos2::new(r.left() + px(5.0), r.center().y),
+        px(4.0),
+        status_color(entry.status),
+    );
     ui.painter().text(
         Pos2::new(r.left() + px(18.0), r.center().y),
         Align2::LEFT_CENTER,

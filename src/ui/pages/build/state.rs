@@ -99,14 +99,21 @@ impl BuildState {
     }
 
     pub fn push_log(&mut self, text: impl Into<String>, error: bool) {
-        self.log.push_back(LogLine { text: text.into(), error });
+        self.log.push_back(LogLine {
+            text: text.into(),
+            error,
+        });
         while self.log.len() > MAX_LINES {
             self.log.pop_front();
         }
     }
 
     pub fn log_text(&self) -> String {
-        self.log.iter().map(|l| l.text.as_str()).collect::<Vec<_>>().join("\n")
+        self.log
+            .iter()
+            .map(|l| l.text.as_str())
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 
     pub fn elapsed(&self) -> Duration {
@@ -154,7 +161,10 @@ impl BuildState {
                     if self.interactive {
                         self.pending_prompt = Some(kind);
                     } else {
-                        self.push_log("Non-interactive run needs a login. Run Authorize first.", true);
+                        self.push_log(
+                            "Non-interactive run needs a login. Run Authorize first.",
+                            true,
+                        );
                         self.cancel();
                     }
                 }
@@ -166,15 +176,16 @@ impl BuildState {
                     self.prompt_input.clear();
                     self.finished_elapsed = self.started.map(|t| t.elapsed());
                     self.handle = None;
-                    if !was_auth
-                        && let Some(project) = self.run_project.clone()
-                    {
+                    if !was_auth && let Some(project) = self.run_project.clone() {
                         let status = match &res {
                             BuildResult::Success { .. } => BuildStatus::Success,
                             BuildResult::Failure { .. } => BuildStatus::Failed,
                             BuildResult::Cancelled => BuildStatus::Cancelled,
                         };
-                        let duration_ms = self.finished_elapsed.map(|d| d.as_millis() as u64).unwrap_or(0);
+                        let duration_ms = self
+                            .finished_elapsed
+                            .map(|d| d.as_millis() as u64)
+                            .unwrap_or(0);
                         let log = self.log_path.clone().unwrap_or_default();
                         let mut record = history::make_record(
                             &project,
@@ -214,7 +225,12 @@ impl BuildState {
         finished
     }
 
-    pub fn start(&mut self, project: &Project, branch: &str, ctx: &egui::Context) -> Result<(), String> {
+    pub fn start(
+        &mut self,
+        project: &Project,
+        branch: &str,
+        ctx: &egui::Context,
+    ) -> Result<(), String> {
         let work = crate::config::build_dir().map_err(|e| e.to_string())?;
         let options = BuildOptions {
             preview: self.preview_only,
@@ -258,7 +274,8 @@ impl BuildState {
         let (tx, rx) = channel();
         self.tx = tx;
         self.rx = rx;
-        let handle = steamcmd::start_login(project, ctx, self.tx.clone()).map_err(|e| e.to_string())?;
+        let handle =
+            steamcmd::start_login(project, ctx, self.tx.clone()).map_err(|e| e.to_string())?;
         self.begin(handle);
         self.authorizing = true;
         self.push_log("Authorizing account. Answer any prompt below...", false);

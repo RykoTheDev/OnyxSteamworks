@@ -20,7 +20,14 @@ pub struct PreflightState {
 impl PreflightState {
     pub fn new() -> Self {
         let (tx, rx) = channel();
-        Self { open: false, running: false, branch: String::new(), results: Vec::new(), tx, rx }
+        Self {
+            open: false,
+            running: false,
+            branch: String::new(),
+            results: Vec::new(),
+            tx,
+            rx,
+        }
     }
 
     pub fn request(&mut self, project: &Project, branch: &str, ctx: &egui::Context) {
@@ -80,70 +87,103 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
     let results = app.build_ui.preflight.results.clone();
     let running = app.build_ui.preflight.running;
     let blocking = app.build_ui.preflight.blocking();
-    let errors = results.iter().filter(|i| i.severity == Severity::Error).count();
-    let warnings = results.iter().filter(|i| i.severity == Severity::Warning).count();
+    let errors = results
+        .iter()
+        .filter(|i| i.severity == Severity::Error)
+        .count();
+    let warnings = results
+        .iter()
+        .filter(|i| i.severity == Severity::Warning)
+        .count();
     let mut act = Act::None;
 
-    kit::modal(ui, id, &mut open, Vec2::new(px(560.0), px(466.0)), s, |ui| {
-        let d = ui.max_rect();
-        let pad = px(24.0);
-        let x = d.left() + pad;
-        kit::label(&ui.painter().clone(), Pos2::new(x, d.top() + pad), "PRE-FLIGHT", s);
+    kit::modal(
+        ui,
+        id,
+        &mut open,
+        Vec2::new(px(560.0), px(466.0)),
+        s,
+        |ui| {
+            let d = ui.max_rect();
+            let pad = px(24.0);
+            let x = d.left() + pad;
+            kit::label(
+                &ui.painter().clone(),
+                Pos2::new(x, d.top() + pad),
+                "PRE-FLIGHT",
+                s,
+            );
 
-        let summary = if running {
-            "Checking files...".to_string()
-        } else if results.is_empty() {
-            "No problems found.".to_string()
-        } else {
-            format!("{errors} errors · {warnings} warnings")
-        };
-        ui.painter().text(
-            Pos2::new(x, d.top() + px(50.0)),
-            Align2::LEFT_TOP,
-            summary,
-            FontId::new(px(13.0), theme::family_medium()),
-            theme::INK_DIM,
-        );
+            let summary = if running {
+                "Checking files...".to_string()
+            } else if results.is_empty() {
+                "No problems found.".to_string()
+            } else {
+                format!("{errors} errors · {warnings} warnings")
+            };
+            ui.painter().text(
+                Pos2::new(x, d.top() + px(50.0)),
+                Align2::LEFT_TOP,
+                summary,
+                FontId::new(px(13.0), theme::family_medium()),
+                theme::INK_DIM,
+            );
 
-        let list = Rect::from_min_max(
-            Pos2::new(x, d.top() + px(80.0)),
-            Pos2::new(d.right() - pad, d.bottom() - px(84.0)),
-        );
-        let mut lui = ui.new_child(UiBuilder::new().max_rect(list));
-        egui::ScrollArea::vertical()
-            .id_salt("preflight_list")
-            .auto_shrink([false, false])
-            .show(&mut lui, |ui| {
-                if let Some(a) = rows(ui, &results, s) {
-                    act = a;
-                }
-            });
+            let list = Rect::from_min_max(
+                Pos2::new(x, d.top() + px(80.0)),
+                Pos2::new(d.right() - pad, d.bottom() - px(84.0)),
+            );
+            let mut lui = ui.new_child(UiBuilder::new().max_rect(list));
+            egui::ScrollArea::vertical()
+                .id_salt("preflight_list")
+                .auto_shrink([false, false])
+                .show(&mut lui, |ui| {
+                    if let Some(a) = rows(ui, &results, s) {
+                        act = a;
+                    }
+                });
 
-        let by = d.bottom() - pad - px(40.0);
-        let bw = px(150.0);
-        if Button::new("CANCEL", ButtonKind::Secondary)
-            .show(ui, Rect::from_min_size(Pos2::new(x, by), Vec2::new(bw, px(40.0))), s)
-            .clicked()
-        {
-            act = Act::Close;
-        }
-        let label = if results.iter().any(|i| i.severity != Severity::Info) { "BUILD ANYWAY" } else { "START BUILD" };
-        let mut go = Button::new(label, ButtonKind::Primary)
-            .icon(theme::icon::ROCKET)
-            .enabled(!running && !blocking);
-        if blocking {
-            go = go.disabled_reason("Fix the errors above first");
-        }
-        if go
-            .show(ui, Rect::from_min_size(Pos2::new(d.right() - pad - bw, by), Vec2::new(bw, px(40.0))), s)
-            .clicked()
-            && !running
-            && !blocking
-        {
-            act = Act::Proceed;
-        }
-        false
-    });
+            let by = d.bottom() - pad - px(40.0);
+            let bw = px(150.0);
+            if Button::new("CANCEL", ButtonKind::Secondary)
+                .show(
+                    ui,
+                    Rect::from_min_size(Pos2::new(x, by), Vec2::new(bw, px(40.0))),
+                    s,
+                )
+                .clicked()
+            {
+                act = Act::Close;
+            }
+            let label = if results.iter().any(|i| i.severity != Severity::Info) {
+                "BUILD ANYWAY"
+            } else {
+                "START BUILD"
+            };
+            let mut go = Button::new(label, ButtonKind::Primary)
+                .icon(theme::icon::ROCKET)
+                .enabled(!running && !blocking);
+            if blocking {
+                go = go.disabled_reason("Fix the errors above first");
+            }
+            if go
+                .show(
+                    ui,
+                    Rect::from_min_size(
+                        Pos2::new(d.right() - pad - bw, by),
+                        Vec2::new(bw, px(40.0)),
+                    ),
+                    s,
+                )
+                .clicked()
+                && !running
+                && !blocking
+            {
+                act = Act::Proceed;
+            }
+            false
+        },
+    );
 
     app.build_ui.preflight.open = open;
     apply(app, act, ctx);
@@ -170,7 +210,9 @@ fn rows(ui: &mut egui::Ui, results: &[Issue], s: f32) -> Option<Act> {
         }
         let text_w = (avail - px(26.0) - controls).max(px(80.0));
         let font = FontId::new(px(12.5), theme::family_medium());
-        let galley = ui.painter().layout(issue.message.clone(), font, theme::INK, text_w);
+        let galley = ui
+            .painter()
+            .layout(issue.message.clone(), font, theme::INK, text_w);
         let row_h = galley.size().y.max(px(22.0)) + px(16.0);
         let (rr, _) = ui.allocate_exact_size(Vec2::new(avail, row_h), Sense::hover());
 
@@ -179,13 +221,21 @@ fn rows(ui: &mut egui::Ui, results: &[Issue], s: f32) -> Option<Act> {
             px(4.0),
             dot_color(issue.severity),
         );
-        ui.painter().galley(Pos2::new(rr.left() + px(22.0), rr.top() + px(8.0)), galley, theme::INK);
+        ui.painter().galley(
+            Pos2::new(rr.left() + px(22.0), rr.top() + px(8.0)),
+            galley,
+            theme::INK,
+        );
 
         let mut bx = rr.right() - btn_w;
         let by = rr.top() + (row_h - px(30.0)) * 0.5;
         if can_ignore
             && Button::new("IGNORE", ButtonKind::Secondary)
-                .show(ui, Rect::from_min_size(Pos2::new(bx, by), Vec2::new(btn_w, px(30.0))), s)
+                .show(
+                    ui,
+                    Rect::from_min_size(Pos2::new(bx, by), Vec2::new(btn_w, px(30.0))),
+                    s,
+                )
                 .clicked()
         {
             act = Some(Act::Ignore(i));
@@ -196,12 +246,20 @@ fn rows(ui: &mut egui::Ui, results: &[Issue], s: f32) -> Option<Act> {
         if has_fix
             && Button::new("EXCLUDE", ButtonKind::Secondary)
                 .icon(theme::icon::X)
-                .show(ui, Rect::from_min_size(Pos2::new(bx, by), Vec2::new(btn_w, px(30.0))), s)
+                .show(
+                    ui,
+                    Rect::from_min_size(Pos2::new(bx, by), Vec2::new(btn_w, px(30.0))),
+                    s,
+                )
                 .clicked()
         {
             act = Some(Act::Fix(i));
         }
-        ui.painter().hline(rr.left()..=rr.right(), rr.bottom(), egui::Stroke::new(1.0, theme::LINE));
+        ui.painter().hline(
+            rr.left()..=rr.right(),
+            rr.bottom(),
+            egui::Stroke::new(1.0, theme::LINE),
+        );
     }
     act
 }
@@ -219,14 +277,20 @@ fn apply(app: &mut App, act: Act, ctx: &egui::Context) {
                     app.pipeline_ui.select(&project);
                     app.pipeline_ui.start(ctx, 0);
                     app.nav_request = Some(crate::app::Page::Pipelines);
-                    app.toasts.push(kit::ToastLevel::Success, "Running pipeline");
+                    app.toasts
+                        .push(kit::ToastLevel::Success, "Running pipeline");
                 } else {
                     super::review::begin(app, &project, &branch, ctx);
                 }
             }
         }
         Act::Fix(i) => {
-            let fix = app.build_ui.preflight.results.get(i).and_then(|x| x.fix.clone());
+            let fix = app
+                .build_ui
+                .preflight
+                .results
+                .get(i)
+                .and_then(|x| x.fix.clone());
             let Some(Fix::AddExclusion(pattern)) = fix else {
                 return;
             };
@@ -242,7 +306,13 @@ fn apply(app: &mut App, act: Act, ctx: &egui::Context) {
             app.toasts.push(kit::ToastLevel::Success, "Exclusion added");
         }
         Act::Ignore(i) => {
-            let Some(message) = app.build_ui.preflight.results.get(i).map(|x| x.message.clone()) else {
+            let Some(message) = app
+                .build_ui
+                .preflight
+                .results
+                .get(i)
+                .map(|x| x.message.clone())
+            else {
                 return;
             };
             let sel = app.build_ui.project_sel;

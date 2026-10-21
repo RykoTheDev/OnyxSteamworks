@@ -6,7 +6,10 @@ use crate::model::Project;
 use exec::{FAILURE, SUCCESS, VALIDATION};
 
 #[derive(Parser)]
-#[command(name = "onyx", about = "Headless build and upload for SteamPipe GUI projects")]
+#[command(
+    name = "onyx",
+    about = "Headless build and upload for SteamPipe GUI projects"
+)]
 pub struct Cli {
     #[command(subcommand)]
     pub command: Command,
@@ -69,10 +72,11 @@ pub fn run() -> i32 {
 }
 
 fn find_project<'a>(projects: &'a [Project], reference: &str) -> Option<&'a Project> {
-    projects
-        .iter()
-        .find(|p| p.id == reference)
-        .or_else(|| projects.iter().find(|p| p.name.eq_ignore_ascii_case(reference)))
+    projects.iter().find(|p| p.id == reference).or_else(|| {
+        projects
+            .iter()
+            .find(|p| p.name.eq_ignore_ascii_case(reference))
+    })
 }
 
 fn load_projects() -> Result<Vec<Project>, i32> {
@@ -100,7 +104,11 @@ fn list_projects() -> i32 {
     match load_projects() {
         Ok(projects) => {
             for p in &projects {
-                let app = if p.app_id.is_empty() { "-" } else { p.app_id.as_str() };
+                let app = if p.app_id.is_empty() {
+                    "-"
+                } else {
+                    p.app_id.as_str()
+                };
                 println!("{}\t{}\tapp {}", p.name, p.id, app);
             }
             SUCCESS
@@ -139,8 +147,16 @@ fn doctor() -> i32 {
     let projects = crate::config::list_projects().unwrap_or_default();
     println!("projects: {}", projects.len());
     for p in &projects {
-        let steam = if p.steamcmd_path.is_file() { "ok" } else { "missing" };
-        let content = if p.content_root.is_dir() { "ok" } else { "missing" };
+        let steam = if p.steamcmd_path.is_file() {
+            "ok"
+        } else {
+            "missing"
+        };
+        let content = if p.content_root.is_dir() {
+            "ok"
+        } else {
+            "missing"
+        };
         println!("  {} — steamcmd: {steam}, content root: {content}", p.name);
     }
     SUCCESS
@@ -154,9 +170,24 @@ fn quote(value: &str) -> String {
     }
 }
 
-pub fn build_command_string(project: &Project, branch: &str, desc: &str, preview: bool, no_diff: bool) -> String {
-    let reference = if project.name.is_empty() { project.id.as_str() } else { project.name.as_str() };
-    let mut parts = vec!["onyx".to_string(), "build".to_string(), "--project".to_string(), quote(reference)];
+pub fn build_command_string(
+    project: &Project,
+    branch: &str,
+    desc: &str,
+    preview: bool,
+    no_diff: bool,
+) -> String {
+    let reference = if project.name.is_empty() {
+        project.id.as_str()
+    } else {
+        project.name.as_str()
+    };
+    let mut parts = vec![
+        "onyx".to_string(),
+        "build".to_string(),
+        "--project".to_string(),
+        quote(reference),
+    ];
     if !branch.is_empty() {
         parts.push("--branch".to_string());
         parts.push(quote(branch));
@@ -175,7 +206,11 @@ pub fn build_command_string(project: &Project, branch: &str, desc: &str, preview
 }
 
 pub fn ci_workflow_yaml(project: &Project) -> String {
-    let reference = if project.name.is_empty() { project.id.as_str() } else { project.name.as_str() };
+    let reference = if project.name.is_empty() {
+        project.id.as_str()
+    } else {
+        project.name.as_str()
+    };
     let branch = project
         .branches
         .first()
@@ -218,7 +253,16 @@ mod tests {
     #[test]
     fn parses_build_with_all_flags() {
         let cli = Cli::try_parse_from([
-            "onyx", "build", "--project", "Game", "--branch", "beta", "--desc", "notes", "--preview", "--no-diff",
+            "onyx",
+            "build",
+            "--project",
+            "Game",
+            "--branch",
+            "beta",
+            "--desc",
+            "notes",
+            "--preview",
+            "--no-diff",
         ])
         .expect("parse");
         match cli.command {
@@ -235,9 +279,22 @@ mod tests {
 
     #[test]
     fn parses_other_subcommands() {
-        assert!(matches!(Cli::try_parse_from(["onyx", "list-projects"]).unwrap().command, Command::ListProjects));
-        assert!(matches!(Cli::try_parse_from(["onyx", "doctor"]).unwrap().command, Command::Doctor));
-        assert!(matches!(Cli::try_parse_from(["onyx", "validate", "--project", "G"]).unwrap().command, Command::Validate(_)));
+        assert!(matches!(
+            Cli::try_parse_from(["onyx", "list-projects"])
+                .unwrap()
+                .command,
+            Command::ListProjects
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["onyx", "doctor"]).unwrap().command,
+            Command::Doctor
+        ));
+        assert!(matches!(
+            Cli::try_parse_from(["onyx", "validate", "--project", "G"])
+                .unwrap()
+                .command,
+            Command::Validate(_)
+        ));
     }
 
     #[test]
@@ -247,14 +304,23 @@ mod tests {
 
     #[test]
     fn command_string_includes_set_flags_only() {
-        let project = Project { name: "My Game".into(), ..Default::default() };
+        let project = Project {
+            name: "My Game".into(),
+            ..Default::default()
+        };
         let cmd = build_command_string(&project, "beta", "", true, false);
-        assert_eq!(cmd, "onyx build --project \"My Game\" --branch beta --preview");
+        assert_eq!(
+            cmd,
+            "onyx build --project \"My Game\" --branch beta --preview"
+        );
     }
 
     #[test]
     fn ci_yaml_warns_about_login_and_cites_reference() {
-        let project = Project { name: "Game".into(), ..Default::default() };
+        let project = Project {
+            name: "Game".into(),
+            ..Default::default()
+        };
         let yaml = ci_workflow_yaml(&project);
         assert!(yaml.contains("game-ci/steam-deploy"));
         assert!(yaml.contains("secrets.STEAM_CONFIG_VDF"));

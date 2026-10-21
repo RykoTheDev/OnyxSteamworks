@@ -65,9 +65,13 @@ fn drive_pipeline(rx: Receiver<PipelineEvent>, handle: &PipelineHandle) -> i32 {
         match event {
             PipelineEvent::StepStarted(i) => println!("» step {}", i + 1),
             PipelineEvent::StepLog(_, line, _) => println!("{line}"),
-            PipelineEvent::StepFinished(i, status) => println!("  step {} {}", i + 1, step_label(status)),
+            PipelineEvent::StepFinished(i, status) => {
+                println!("  step {} {}", i + 1, step_label(status))
+            }
             PipelineEvent::AwaitConfirm(_, message) => {
-                eprintln!("Confirmation step '{message}' needs interaction; not available in CLI mode.");
+                eprintln!(
+                    "Confirmation step '{message}' needs interaction; not available in CLI mode."
+                );
                 handle.cancel();
             }
             PipelineEvent::Notify(line) => println!("{line}"),
@@ -112,7 +116,13 @@ fn print_diff(project: &Project, branch: &str) {
     );
 }
 
-pub fn execute_build(project: &Project, branch: &str, desc: &str, preview: bool, no_diff: bool) -> i32 {
+pub fn execute_build(
+    project: &Project,
+    branch: &str,
+    desc: &str,
+    preview: bool,
+    no_diff: bool,
+) -> i32 {
     let errors = validate_project(project);
     if !errors.is_empty() {
         for e in &errors {
@@ -144,7 +154,10 @@ pub fn execute_build(project: &Project, branch: &str, desc: &str, preview: bool,
             return FAILURE;
         }
     };
-    let options = BuildOptions { preview, local: None };
+    let options = BuildOptions {
+        preview,
+        local: None,
+    };
     let paths = match vdf::write_vdfs(project, &options, &work) {
         Ok(p) => p,
         Err(e) => {
@@ -152,13 +165,20 @@ pub fn execute_build(project: &Project, branch: &str, desc: &str, preview: bool,
             return FAILURE;
         }
     };
-    let Some(app_build) = paths.into_iter().find(|p| p.file_name().and_then(|n| n.to_str()) == Some("appbuild.vdf")) else {
+    let Some(app_build) = paths
+        .into_iter()
+        .find(|p| p.file_name().and_then(|n| n.to_str()) == Some("appbuild.vdf"))
+    else {
         eprintln!("no appbuild.vdf was generated");
         return FAILURE;
     };
 
     let (tx, rx) = channel();
-    let opts = steamcmd::RunOptions { app_build_vdf: app_build, log_path: None, interactive: false };
+    let opts = steamcmd::RunOptions {
+        app_build_vdf: app_build,
+        log_path: None,
+        interactive: false,
+    };
     let handle = match steamcmd::start_build(project, &opts, &ctx, tx) {
         Ok(h) => h,
         Err(e) => {
@@ -201,8 +221,18 @@ mod tests {
     #[test]
     fn drive_maps_outcomes_and_prompt() {
         for (event, code) in [
-            (BuildEvent::Finished(BuildResult::Success { app_id: "480".into() }), SUCCESS),
-            (BuildEvent::Finished(BuildResult::Failure { message: "x".into() }), FAILURE),
+            (
+                BuildEvent::Finished(BuildResult::Success {
+                    app_id: "480".into(),
+                }),
+                SUCCESS,
+            ),
+            (
+                BuildEvent::Finished(BuildResult::Failure {
+                    message: "x".into(),
+                }),
+                FAILURE,
+            ),
             (BuildEvent::Finished(BuildResult::Cancelled), CANCELLED),
         ] {
             let (tx, rx) = channel();
@@ -211,7 +241,8 @@ mod tests {
             assert_eq!(drive(rx, || {}), code);
         }
         let (tx, rx) = channel();
-        tx.send(BuildEvent::Prompt(steamcmd::PromptKind::SteamGuard)).unwrap();
+        tx.send(BuildEvent::Prompt(steamcmd::PromptKind::SteamGuard))
+            .unwrap();
         drop(tx);
         let mut cancelled = false;
         assert_eq!(drive(rx, || cancelled = true), LOGIN);
@@ -221,12 +252,18 @@ mod tests {
     #[test]
     fn execute_build_against_fake_succeeds() {
         let project = valid_project(fake_bin());
-        assert_eq!(execute_build(&project, "", "from test", false, true), SUCCESS);
+        assert_eq!(
+            execute_build(&project, "", "from test", false, true),
+            SUCCESS
+        );
     }
 
     #[test]
     fn execute_build_reports_validation_errors() {
-        let project = Project { steamcmd_path: fake_bin(), ..Default::default() };
+        let project = Project {
+            steamcmd_path: fake_bin(),
+            ..Default::default()
+        };
         assert_eq!(execute_build(&project, "", "", false, true), VALIDATION);
     }
 

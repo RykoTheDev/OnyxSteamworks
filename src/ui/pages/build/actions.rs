@@ -10,7 +10,10 @@ pub(super) fn cli_actions(app: &mut App, ui: &mut egui::Ui, rect: Rect, project:
     let gap = px(10.0);
     let bw = (rect.width() - gap) * 0.5;
     let copy = Rect::from_min_size(rect.min, Vec2::new(bw, rect.height()));
-    let export = Rect::from_min_size(Pos2::new(copy.right() + gap, rect.top()), Vec2::new(bw, rect.height()));
+    let export = Rect::from_min_size(
+        Pos2::new(copy.right() + gap, rect.top()),
+        Vec2::new(bw, rect.height()),
+    );
 
     if Button::new("COPY CLI", ButtonKind::Secondary)
         .icon(theme::icon::COPY)
@@ -22,9 +25,16 @@ pub(super) fn cli_actions(app: &mut App, ui: &mut egui::Ui, rect: Rect, project:
             .get(app.build_ui.branch_sel)
             .map(|b| b.name.clone())
             .unwrap_or_default();
-        let command = crate::cli::build_command_string(project, &branch, &app.build_ui.description, app.build_ui.preview_only, false);
+        let command = crate::cli::build_command_string(
+            project,
+            &branch,
+            &app.build_ui.description,
+            app.build_ui.preview_only,
+            false,
+        );
         ui.ctx().copy_text(command);
-        app.toasts.push(kit::ToastLevel::Success, "CLI command copied");
+        app.toasts
+            .push(kit::ToastLevel::Success, "CLI command copied");
     }
 
     if Button::new("EXPORT CI", ButtonKind::Secondary)
@@ -34,10 +44,14 @@ pub(super) fn cli_actions(app: &mut App, ui: &mut egui::Ui, rect: Rect, project:
     {
         let yaml = crate::cli::ci_workflow_yaml(project);
         std::thread::spawn(move || {
-            if let Some(path) = rfd::FileDialog::new().set_file_name("steam-deploy.yml").save_file() {
+            if let Some(path) = rfd::FileDialog::new()
+                .set_file_name("steam-deploy.yml")
+                .save_file()
+            {
                 let _ = std::fs::write(path, yaml);
             }
         });
-        app.toasts.push(kit::ToastLevel::Success, "Exporting CI workflow");
+        app.toasts
+            .push(kit::ToastLevel::Success, "Exporting CI workflow");
     }
 }

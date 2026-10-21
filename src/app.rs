@@ -85,7 +85,14 @@ impl App {
         }
     }
 
-    fn render_page(&mut self, ui: &mut egui::Ui, page: Page, lay: &Layout, clip: egui::Rect, opacity: f32) {
+    fn render_page(
+        &mut self,
+        ui: &mut egui::Ui,
+        page: Page,
+        lay: &Layout,
+        clip: egui::Rect,
+        opacity: f32,
+    ) {
         let mut cu = ui.new_child(UiBuilder::new().max_rect(ui.max_rect()));
         cu.set_opacity(opacity);
         cu.set_clip_rect(clip);
@@ -111,7 +118,13 @@ impl eframe::App for App {
             let lay = layout::compute(ui.max_rect());
             let s = lay.scale;
 
-            kit::bordered(ui.painter(), lay.frame, theme::SURFACE, theme::LINE, theme::px(theme::RADIUS_APP, s));
+            kit::bordered(
+                ui.painter(),
+                lay.frame,
+                theme::SURFACE,
+                theme::LINE,
+                theme::px(theme::RADIUS_APP, s),
+            );
             ui.painter().line_segment(
                 [
                     Pos2::new(lay.rail.right(), lay.frame.top() + theme::px(14.0, s)),
@@ -134,10 +147,8 @@ impl eframe::App for App {
                 self.goto(&ctx, page);
             }
 
-            let clip = Rect::from_min_max(
-                Pos2::new(lay.rail.right(), lay.frame.top()),
-                lay.frame.max,
-            );
+            let clip =
+                Rect::from_min_max(Pos2::new(lay.rail.right(), lay.frame.top()), lay.frame.max);
             let slide = theme::px(14.0, s);
             if let Some(tr) = self.transition {
                 let t = tr.progress(&ctx);

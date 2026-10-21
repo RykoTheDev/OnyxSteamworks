@@ -40,8 +40,11 @@ impl DiffSummary {
     }
 
     pub fn largest(&self, n: usize) -> Vec<&DiffEntry> {
-        let mut changed: Vec<&DiffEntry> =
-            self.entries.iter().filter(|e| e.status != DiffStatus::Unchanged).collect();
+        let mut changed: Vec<&DiffEntry> = self
+            .entries
+            .iter()
+            .filter(|e| e.status != DiffStatus::Unchanged)
+            .collect();
         changed.sort_by_key(|e| std::cmp::Reverse(e.size));
         changed.truncate(n);
         changed
@@ -81,13 +84,21 @@ pub fn diff(current: &Manifest, previous: Option<&Manifest>) -> DiffSummary {
                 DiffStatus::Unchanged
             }
         };
-        summary.entries.push(DiffEntry { path: key.clone(), status, size: cf.size });
+        summary.entries.push(DiffEntry {
+            path: key.clone(),
+            status,
+            size: cf.size,
+        });
     }
     for (key, pf) in &prev {
         if !cur.contains_key(key) {
             summary.removed += 1;
             summary.removed_bytes += pf.size;
-            summary.entries.push(DiffEntry { path: key.clone(), status: DiffStatus::Removed, size: pf.size });
+            summary.entries.push(DiffEntry {
+                path: key.clone(),
+                status: DiffStatus::Removed,
+                size: pf.size,
+            });
         }
     }
     summary
@@ -99,11 +110,21 @@ mod tests {
     use crate::features::manifest::{DepotManifest, Manifest};
 
     fn file(path: &str, size: u64, hash: &str) -> FileEntry {
-        FileEntry { path: path.to_string(), size, hash: hash.to_string() }
+        FileEntry {
+            path: path.to_string(),
+            size,
+            hash: hash.to_string(),
+        }
     }
 
     fn manifest(files: Vec<FileEntry>) -> Manifest {
-        Manifest { created_ms: 0, depots: vec![DepotManifest { depot_id: "1001".into(), files }] }
+        Manifest {
+            created_ms: 0,
+            depots: vec![DepotManifest {
+                depot_id: "1001".into(),
+                files,
+            }],
+        }
     }
 
     #[test]
@@ -118,8 +139,16 @@ mod tests {
 
     #[test]
     fn detects_added_modified_removed_unchanged() {
-        let prev = manifest(vec![file("keep", 5, "h"), file("change", 8, "old"), file("gone", 4, "g")]);
-        let cur = manifest(vec![file("keep", 5, "h"), file("change", 9, "new"), file("fresh", 7, "f")]);
+        let prev = manifest(vec![
+            file("keep", 5, "h"),
+            file("change", 8, "old"),
+            file("gone", 4, "g"),
+        ]);
+        let cur = manifest(vec![
+            file("keep", 5, "h"),
+            file("change", 9, "new"),
+            file("fresh", 7, "f"),
+        ]);
         let d = diff(&cur, Some(&prev));
         assert_eq!(d.unchanged, 1);
         assert_eq!(d.modified, 1);
@@ -135,7 +164,11 @@ mod tests {
     #[test]
     fn largest_orders_changed_by_size_and_skips_unchanged() {
         let prev = manifest(vec![file("big", 100, "a")]);
-        let cur = manifest(vec![file("big", 100, "a"), file("mid", 50, "m"), file("small", 5, "s")]);
+        let cur = manifest(vec![
+            file("big", 100, "a"),
+            file("mid", 50, "m"),
+            file("small", 5, "s"),
+        ]);
         let d = diff(&cur, Some(&prev));
         let top = d.largest(10);
         assert_eq!(top.len(), 2);

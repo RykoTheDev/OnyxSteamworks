@@ -146,7 +146,12 @@ impl PipelineState {
                 }
             })
             .collect();
-        self.handle = Some(pipeline::start(&self.draft, start_index, ctx, self.tx.clone()));
+        self.handle = Some(pipeline::start(
+            &self.draft,
+            start_index,
+            ctx,
+            self.tx.clone(),
+        ));
         self.running = true;
     }
 
@@ -170,7 +175,12 @@ impl PipelineState {
             match ev {
                 PipelineEvent::StepStarted(i) => self.set_status(i, StepRunStatus::Running),
                 PipelineEvent::StepLog(i, line, _) => {
-                    let name = self.draft.pipeline.get(i).map(|s| s.name.as_str()).unwrap_or("step");
+                    let name = self
+                        .draft
+                        .pipeline
+                        .get(i)
+                        .map(|s| s.name.as_str())
+                        .unwrap_or("step");
                     self.logs.push(format!("[{name}] {line}"));
                     if self.logs.len() > 2000 {
                         self.logs.remove(0);

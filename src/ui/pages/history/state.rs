@@ -94,7 +94,10 @@ impl HistoryState {
     }
 
     pub fn for_project<'a>(&'a self, project_id: &str) -> Vec<&'a BuildRecord> {
-        self.records.iter().filter(|r| r.project_id == project_id).collect()
+        self.records
+            .iter()
+            .filter(|r| r.project_id == project_id)
+            .collect()
     }
 
     pub fn last_manifest(&self, project_id: &str, branch: &str) -> Option<std::path::PathBuf> {

@@ -53,7 +53,10 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
         let ui = &mut cu;
         left_main(app, ui, left, &project, s, &ctx);
         let choose = Rect::from_min_size(right.min, Vec2::new(right_w, px(236.0)));
-        let notes = Rect::from_min_max(Pos2::new(right.left(), choose.bottom() + px(18.0)), right.max);
+        let notes = Rect::from_min_max(
+            Pos2::new(right.left(), choose.bottom() + px(18.0)),
+            right.max,
+        );
         cards::choose_branch(app, ui, choose, &project, s);
         cards::patch_notes(app, ui, notes, &project, s);
     }
@@ -62,12 +65,23 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     crate::ui::pages::build::review::show(app, ui, s, &ctx);
 }
 
-fn left_main(app: &mut App, ui: &mut egui::Ui, rect: Rect, project: &Project, s: f32, ctx: &egui::Context) {
+fn left_main(
+    app: &mut App,
+    ui: &mut egui::Ui,
+    rect: Rect,
+    project: &Project,
+    s: f32,
+    ctx: &egui::Context,
+) {
     let px = |v: f32| theme::px(v, s);
     let x = rect.left();
     let w = rect.width();
 
-    let name = if project.name.is_empty() { "Untitled project".to_string() } else { project.name.clone() };
+    let name = if project.name.is_empty() {
+        "Untitled project".to_string()
+    } else {
+        project.name.clone()
+    };
     ui.painter().text(
         Pos2::new(x, rect.top()),
         Align2::LEFT_TOP,
@@ -75,7 +89,11 @@ fn left_main(app: &mut App, ui: &mut egui::Ui, rect: Rect, project: &Project, s:
         FontId::new(px(20.0), theme::family_semibold()),
         theme::INK,
     );
-    let sub = if project.app_id.is_empty() { "No app id set".to_string() } else { format!("App {}", project.app_id) };
+    let sub = if project.app_id.is_empty() {
+        "No app id set".to_string()
+    } else {
+        format!("App {}", project.app_id)
+    };
     ui.painter().text(
         Pos2::new(x, rect.top() + px(28.0)),
         Align2::LEFT_TOP,
@@ -90,11 +108,22 @@ fn left_main(app: &mut App, ui: &mut egui::Ui, rect: Rect, project: &Project, s:
     let letter = name.chars().next().unwrap_or('S');
     kit::image_or_placeholder(ui, art, uri.as_deref(), letter, px(theme::RADIUS_CARD), s);
 
-    let pb = Rect::from_min_size(Pos2::new(x, art.bottom() + px(18.0)), Vec2::new(w, px(50.0)));
+    let pb = Rect::from_min_size(
+        Pos2::new(x, art.bottom() + px(18.0)),
+        Vec2::new(w, px(50.0)),
+    );
     prompt_bar(app, ui, pb, project, s, ctx);
 
-    kit::label(&ui.painter().clone(), Pos2::new(x, pb.bottom() + px(20.0)), "RECENT BUILDS", s);
-    let list = Rect::from_min_max(Pos2::new(x, pb.bottom() + px(46.0)), Pos2::new(rect.right(), rect.bottom()));
+    kit::label(
+        &ui.painter().clone(),
+        Pos2::new(x, pb.bottom() + px(20.0)),
+        "RECENT BUILDS",
+        s,
+    );
+    let list = Rect::from_min_max(
+        Pos2::new(x, pb.bottom() + px(46.0)),
+        Pos2::new(rect.right(), rect.bottom()),
+    );
 
     let records = app.history_ui.for_project(&project.id);
     let total = records.len();
@@ -114,7 +143,14 @@ fn left_main(app: &mut App, ui: &mut egui::Ui, rect: Rect, project: &Project, s:
     }
 }
 
-fn prompt_bar(app: &mut App, ui: &mut egui::Ui, rect: Rect, project: &Project, s: f32, ctx: &egui::Context) {
+fn prompt_bar(
+    app: &mut App,
+    ui: &mut egui::Ui,
+    rect: Rect,
+    project: &Project,
+    s: f32,
+    ctx: &egui::Context,
+) {
     let px = |v: f32| theme::px(v, s);
     let h = rect.height();
     let sparkle = Rect::from_min_size(rect.min, Vec2::splat(h));
@@ -124,7 +160,9 @@ fn prompt_bar(app: &mut App, ui: &mut egui::Ui, rect: Rect, project: &Project, s
         Pos2::new(notch.left() - px(12.0), rect.bottom() - px(5.0)),
     );
 
-    Input::new(&mut app.build_ui.description).hint("Describe this build...").show(ui, field, s);
+    Input::new(&mut app.build_ui.description)
+        .hint("Describe this build...")
+        .show(ui, field, s);
 
     if circle_button(ui, sparkle, theme::icon::SPARKLE, false, s).clicked() {
         app.toasts.push(kit::ToastLevel::Warning, "Coming soon");
@@ -148,17 +186,35 @@ fn run_from_home(app: &mut App, project: &Project, ctx: &egui::Context) {
     app.build_ui.preflight.request(project, &branch, ctx);
 }
 
-pub(super) fn circle_button(ui: &mut egui::Ui, rect: Rect, glyph: char, primary: bool, s: f32) -> egui::Response {
+pub(super) fn circle_button(
+    ui: &mut egui::Ui,
+    rect: Rect,
+    glyph: char,
+    primary: bool,
+    s: f32,
+) -> egui::Response {
     let id = ui.make_persistent_id(("circlebtn", glyph, rect.left() as i32, rect.top() as i32));
     let resp = ui.interact(rect, id, Sense::click());
     let ctx = ui.ctx().clone();
-    let hover = crate::ui::anim::anim_bool(&ctx, id.with("h"), resp.hovered(), 0.12, crate::ui::anim::ease_out_cubic);
+    let hover = crate::ui::anim::anim_bool(
+        &ctx,
+        id.with("h"),
+        resp.hovered(),
+        0.12,
+        crate::ui::anim::ease_out_cubic,
+    );
     let center = rect.center();
     let radius = rect.width().min(rect.height()) * 0.5;
     let (fill, ink) = if primary {
-        (theme::lerp_color(theme::PRIMARY, theme::INK, hover * 0.4), theme::PRIMARY_INK)
+        (
+            theme::lerp_color(theme::PRIMARY, theme::INK, hover * 0.4),
+            theme::PRIMARY_INK,
+        )
     } else {
-        (theme::lerp_color(theme::FIELD, theme::FIELD_HI, hover), theme::lerp_color(theme::INK_DIM, theme::INK, hover))
+        (
+            theme::lerp_color(theme::FIELD, theme::FIELD_HI, hover),
+            theme::lerp_color(theme::INK_DIM, theme::INK, hover),
+        )
     };
     let painter = ui.painter();
     painter.circle_filled(center, radius, fill);

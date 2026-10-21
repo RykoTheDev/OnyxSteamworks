@@ -104,7 +104,11 @@ fn collect(project: &Project) -> Vec<Candidate> {
         patterns.extend(project.ignore_patterns.iter().cloned());
         let excluded = exclusion_set(&patterns);
         let depth = if depot.recursive { usize::MAX } else { 1 };
-        for entry in WalkDir::new(&depot.local_path).max_depth(depth).into_iter().filter_map(|e| e.ok()) {
+        for entry in WalkDir::new(&depot.local_path)
+            .max_depth(depth)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
             if !entry.file_type().is_file() {
                 continue;
             }
@@ -127,7 +131,13 @@ fn collect(project: &Project) -> Vec<Candidate> {
                 .and_then(|t| t.duration_since(std::time::UNIX_EPOCH).ok())
                 .map(|d| d.as_millis() as i64)
                 .unwrap_or(0);
-            out.push(Candidate { depot_idx: di, abs: entry.path().to_path_buf(), rel, size: md.len(), mtime });
+            out.push(Candidate {
+                depot_idx: di,
+                abs: entry.path().to_path_buf(),
+                rel,
+                size: md.len(),
+                mtime,
+            });
         }
     }
     out
@@ -141,7 +151,9 @@ fn hash_file(path: &Path) -> std::io::Result<String> {
 }
 
 fn cache_path() -> Option<PathBuf> {
-    crate::config::data_dir().ok().map(|d| d.join("hash_cache.json"))
+    crate::config::data_dir()
+        .ok()
+        .map(|d| d.join("hash_cache.json"))
 }
 
 fn load_cache() -> Cache {
@@ -180,15 +192,30 @@ pub fn build_manifest(project: &Project, progress: Option<&Progress>) -> Manifes
             if let Some(p) = progress {
                 p.done.store(n, Ordering::Relaxed);
             }
-            let entry = FileEntry { path: c.rel.clone(), size: c.size, hash: hash.clone() };
-            (c.depot_idx, entry, CacheEntry { size: c.size, mtime: c.mtime, hash })
+            let entry = FileEntry {
+                path: c.rel.clone(),
+                size: c.size,
+                hash: hash.clone(),
+            };
+            (
+                c.depot_idx,
+                entry,
+                CacheEntry {
+                    size: c.size,
+                    mtime: c.mtime,
+                    hash,
+                },
+            )
         })
         .collect();
 
     let mut new_cache = Cache::new();
     let mut grouped: Vec<Vec<FileEntry>> = vec![Vec::new(); project.depots.len()];
     for (di, entry, ce) in hashed {
-        if let Some(c) = candidates.iter().find(|c| c.rel == entry.path && c.depot_idx == di) {
+        if let Some(c) = candidates
+            .iter()
+            .find(|c| c.rel == entry.path && c.depot_idx == di)
+        {
             new_cache.insert(c.abs.to_string_lossy().to_string(), ce);
         }
         if di < grouped.len() {
@@ -204,15 +231,23 @@ pub fn build_manifest(project: &Project, progress: Option<&Progress>) -> Manifes
         .map(|(i, d)| {
             let mut files = std::mem::take(&mut grouped[i]);
             files.sort_by(|a, b| a.path.cmp(&b.path));
-            DepotManifest { depot_id: d.depot_id.clone(), files }
+            DepotManifest {
+                depot_id: d.depot_id.clone(),
+                files,
+            }
         })
         .collect();
 
-    Manifest { created_ms: now_ms(), depots }
+    Manifest {
+        created_ms: now_ms(),
+        depots,
+    }
 }
 
 pub fn save_manifest(manifest: &Manifest) -> Result<PathBuf, ManifestError> {
-    let dir = crate::config::data_dir().map_err(|_| ManifestError::DataDir)?.join("manifests");
+    let dir = crate::config::data_dir()
+        .map_err(|_| ManifestError::DataDir)?
+        .join("manifests");
     std::fs::create_dir_all(&dir)?;
     let path = dir.join(format!("{}.mf.gz", uuid::Uuid::new_v4()));
     let json = serde_json::to_vec(manifest)?;
@@ -270,13 +305,18 @@ mod tests {
             created_ms: 42,
             depots: vec![DepotManifest {
                 depot_id: "1001".into(),
-                files: vec![FileEntry { path: "a.txt".into(), size: 3, hash: "deadbeef".into() }],
+                files: vec![FileEntry {
+                    path: "a.txt".into(),
+                    size: 3,
+                    hash: "deadbeef".into(),
+                }],
             }],
         };
         let path = std::env::temp_dir().join(format!("onyx_mf_{}.mf.gz", uuid::Uuid::new_v4()));
         let file = std::fs::File::create(&path).expect("create");
         let mut enc = flate2::write::GzEncoder::new(file, flate2::Compression::default());
-        enc.write_all(&serde_json::to_vec(&manifest).unwrap()).unwrap();
+        enc.write_all(&serde_json::to_vec(&manifest).unwrap())
+            .unwrap();
         enc.finish().unwrap();
         let loaded = load_manifest(&path).expect("load");
         assert_eq!(loaded, manifest);

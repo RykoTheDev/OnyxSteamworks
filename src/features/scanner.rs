@@ -13,10 +13,25 @@ use crate::validate::{Fix, Issue, human_size, preflight_checks};
 const MAX_TEXT: u64 = 2 * 1024 * 1024;
 const OVERSIZE: u64 = 2 * 1024 * 1024 * 1024;
 
-const SECRET_GLOBS: [&str; 8] =
-    [".env", "id_rsa", ".pem", ".pfx", ".key", "credentials.json", "secrets.*", ".keystore"];
-const JUNK_GLOBS: [&str; 7] =
-    ["steam_appid.txt", ".pdb", ".ilk", ".exp", ".log", "Thumbs.db", ".DS_Store"];
+const SECRET_GLOBS: [&str; 8] = [
+    ".env",
+    "id_rsa",
+    ".pem",
+    ".pfx",
+    ".key",
+    "credentials.json",
+    "secrets.*",
+    ".keystore",
+];
+const JUNK_GLOBS: [&str; 7] = [
+    "steam_appid.txt",
+    ".pdb",
+    ".ilk",
+    ".exp",
+    ".log",
+    "Thumbs.db",
+    ".DS_Store",
+];
 const JUNK_DIRS: [&str; 4] = [".git", ".vs", ".idea", "__MACOSX"];
 
 fn normalize(pattern: &str) -> String {
@@ -60,7 +75,9 @@ pub fn has_aws_key(line: &str) -> bool {
     b.windows(4).enumerate().any(|(i, w)| {
         w == b"AKIA"
             && b.len() >= i + 20
-            && b[i + 4..i + 20].iter().all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
+            && b[i + 4..i + 20]
+                .iter()
+                .all(|c| c.is_ascii_uppercase() || c.is_ascii_digit())
     })
 }
 
@@ -69,9 +86,15 @@ pub fn has_discord_webhook(line: &str) -> bool {
 }
 
 pub fn has_secret_assignment(line: &str) -> bool {
-    const KEYS: [&str; 6] = ["api_key", "apikey", "api-key", "secret", "token", "password"];
+    const KEYS: [&str; 6] = [
+        "api_key", "apikey", "api-key", "secret", "token", "password",
+    ];
     let lower = line.to_ascii_lowercase();
-    let Some(after_key) = KEYS.iter().filter_map(|k| lower.find(k).map(|p| p + k.len())).min() else {
+    let Some(after_key) = KEYS
+        .iter()
+        .filter_map(|k| lower.find(k).map(|p| p + k.len()))
+        .min()
+    else {
         return false;
     };
     let rest = &line[after_key.min(line.len())..];
@@ -130,7 +153,11 @@ pub fn scan(project: &Project) -> Vec<Issue> {
         let excluded = build_exclusions(&patterns);
         let depth = if depot.recursive { usize::MAX } else { 1 };
 
-        for entry in WalkDir::new(&depot.local_path).max_depth(depth).into_iter().filter_map(|e| e.ok()) {
+        for entry in WalkDir::new(&depot.local_path)
+            .max_depth(depth)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
             if !entry.file_type().is_file() {
                 continue;
             }
@@ -163,7 +190,10 @@ pub fn scan(project: &Project) -> Vec<Issue> {
 
             let len = entry.metadata().map(|m| m.len()).unwrap_or(0);
             if len > OVERSIZE {
-                issues.push(Issue::warning(format!("{rel} — large file ({})", human_size(len))));
+                issues.push(Issue::warning(format!(
+                    "{rel} — large file ({})",
+                    human_size(len)
+                )));
             }
             if len <= MAX_TEXT {
                 scan_text(path, &rel, &mut issues);
@@ -206,15 +236,23 @@ mod tests {
 
     #[test]
     fn detects_discord_webhook() {
-        assert!(has_discord_webhook("https://discord.com/api/webhooks/123/abc"));
-        assert!(has_discord_webhook("https://discordapp.com/api/webhooks/1/x"));
+        assert!(has_discord_webhook(
+            "https://discord.com/api/webhooks/123/abc"
+        ));
+        assert!(has_discord_webhook(
+            "https://discordapp.com/api/webhooks/1/x"
+        ));
         assert!(!has_discord_webhook("https://example.com/webhooks/1"));
     }
 
     #[test]
     fn detects_secret_assignment_with_long_value() {
-        assert!(has_secret_assignment("api_key = \"abcdefghijklmnopqrstuvwxyz\""));
-        assert!(has_secret_assignment("password: superlongsecretvalue123456"));
+        assert!(has_secret_assignment(
+            "api_key = \"abcdefghijklmnopqrstuvwxyz\""
+        ));
+        assert!(has_secret_assignment(
+            "password: superlongsecretvalue123456"
+        ));
         assert!(!has_secret_assignment("password: short"));
         assert!(!has_secret_assignment("the token is somewhere"));
     }
@@ -241,7 +279,11 @@ mod tests {
         let dir = tempdir();
         write(&dir, ".env", b"SECRET=1\n");
         let issues = scan(&depot_project(&dir));
-        assert!(issues.iter().any(|i| i.severity == Severity::Error && i.message.contains(".env")));
+        assert!(
+            issues
+                .iter()
+                .any(|i| i.severity == Severity::Error && i.message.contains(".env"))
+        );
     }
 
     #[test]
@@ -249,7 +291,10 @@ mod tests {
         let dir = tempdir();
         write(&dir, "Thumbs.db", b"junk");
         let issues = scan(&depot_project(&dir));
-        let junk = issues.iter().find(|i| i.message.contains("Thumbs.db")).expect("junk issue");
+        let junk = issues
+            .iter()
+            .find(|i| i.message.contains("Thumbs.db"))
+            .expect("junk issue");
         assert_eq!(junk.severity, Severity::Warning);
         assert!(matches!(junk.fix, Some(Fix::AddExclusion(_))));
     }
@@ -259,7 +304,10 @@ mod tests {
         let dir = tempdir();
         write(&dir, "config.txt", b"aws = AKIAIOSFODNN7EXAMPLE\n");
         let issues = scan(&depot_project(&dir));
-        let hit = issues.iter().find(|i| i.message.contains("AWS access key")).expect("aws issue");
+        let hit = issues
+            .iter()
+            .find(|i| i.message.contains("AWS access key"))
+            .expect("aws issue");
         assert!(!hit.message.contains("AKIA"));
     }
 

@@ -46,10 +46,16 @@ pub fn validate_project(project: &Project) -> Vec<FieldError> {
         errors.push(FieldError::new("content_root", "Content root is required"));
     }
     if project.build_output_dir.as_os_str().is_empty() {
-        errors.push(FieldError::new("build_output_dir", "Build output is required"));
+        errors.push(FieldError::new(
+            "build_output_dir",
+            "Build output is required",
+        ));
     }
     if project.steamcmd_path.as_os_str().is_empty() {
-        errors.push(FieldError::new("steamcmd_path", "SteamCMD path is required"));
+        errors.push(FieldError::new(
+            "steamcmd_path",
+            "SteamCMD path is required",
+        ));
     }
 
     let mut seen = HashSet::new();
@@ -96,15 +102,27 @@ pub struct Issue {
 
 impl Issue {
     pub fn error(message: impl Into<String>) -> Self {
-        Self { severity: Severity::Error, message: message.into(), fix: None }
+        Self {
+            severity: Severity::Error,
+            message: message.into(),
+            fix: None,
+        }
     }
 
     pub fn warning(message: impl Into<String>) -> Self {
-        Self { severity: Severity::Warning, message: message.into(), fix: None }
+        Self {
+            severity: Severity::Warning,
+            message: message.into(),
+            fix: None,
+        }
     }
 
     pub fn info(message: impl Into<String>) -> Self {
-        Self { severity: Severity::Info, message: message.into(), fix: None }
+        Self {
+            severity: Severity::Info,
+            message: message.into(),
+            fix: None,
+        }
     }
 
     pub fn with_fix(mut self, fix: Fix) -> Self {
@@ -137,7 +155,11 @@ fn dir_totals(root: &Path, recursive: bool) -> (u64, u64) {
     let depth = if recursive { usize::MAX } else { 1 };
     let mut files = 0u64;
     let mut bytes = 0u64;
-    for entry in WalkDir::new(root).max_depth(depth).into_iter().filter_map(|e| e.ok()) {
+    for entry in WalkDir::new(root)
+        .max_depth(depth)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
         if entry.file_type().is_file() {
             files += 1;
             bytes += entry.metadata().map(|m| m.len()).unwrap_or(0);
@@ -166,7 +188,9 @@ pub fn preflight_checks(project: &Project) -> Vec<Issue> {
     let mut issues = Vec::new();
 
     if !project.steamcmd_path.is_file() {
-        issues.push(Issue::error("SteamCMD executable was not found at the configured path"));
+        issues.push(Issue::error(
+            "SteamCMD executable was not found at the configured path",
+        ));
     }
 
     if project.content_root.as_os_str().is_empty() || !project.content_root.is_dir() {
@@ -178,11 +202,17 @@ pub fn preflight_checks(project: &Project) -> Vec<Issue> {
     let mut seen = HashSet::new();
     let mut total = 0u64;
     for depot in &project.depots {
-        let id = if depot.depot_id.is_empty() { "?".to_string() } else { depot.depot_id.clone() };
+        let id = if depot.depot_id.is_empty() {
+            "?".to_string()
+        } else {
+            depot.depot_id.clone()
+        };
         if !is_numeric(&depot.depot_id) {
             issues.push(Issue::error(format!("Depot {id} id must be a number")));
         } else if !seen.insert(depot.depot_id.clone()) {
-            issues.push(Issue::error(format!("Depot {id} id is used by more than one depot")));
+            issues.push(Issue::error(format!(
+                "Depot {id} id is used by more than one depot"
+            )));
         }
         if depot.local_path.as_os_str().is_empty() || !depot.local_path.is_dir() {
             issues.push(Issue::error(format!("Depot {id} folder does not exist")));
@@ -200,12 +230,17 @@ pub fn preflight_checks(project: &Project) -> Vec<Issue> {
     }
 
     if total > 0 {
-        issues.push(Issue::info(format!("Estimated upload size is {}", human_size(total))));
+        issues.push(Issue::info(format!(
+            "Estimated upload size is {}",
+            human_size(total)
+        )));
     }
 
     let branch = project.set_live_branch.trim();
     if branch.is_empty() || branch.eq_ignore_ascii_case("default") {
-        issues.push(Issue::warning("The default branch cannot be set live through SteamCMD"));
+        issues.push(Issue::warning(
+            "The default branch cannot be set live through SteamCMD",
+        ));
     }
 
     issues
@@ -275,8 +310,16 @@ mod tests {
     fn preflight_flags_missing_paths_as_errors() {
         let p = valid_project();
         let issues = preflight_checks(&p);
-        assert!(issues.iter().any(|i| i.is_blocking() && i.message.contains("SteamCMD")));
-        assert!(issues.iter().any(|i| i.is_blocking() && i.message.contains("Content root")));
+        assert!(
+            issues
+                .iter()
+                .any(|i| i.is_blocking() && i.message.contains("SteamCMD"))
+        );
+        assert!(
+            issues
+                .iter()
+                .any(|i| i.is_blocking() && i.message.contains("Content root"))
+        );
     }
 
     #[test]
@@ -286,6 +329,10 @@ mod tests {
         p.steamcmd_path = dir.join("nope.exe");
         p.set_live_branch = "default".into();
         let issues = preflight_checks(&p);
-        assert!(issues.iter().any(|i| i.severity == Severity::Warning && i.message.contains("default branch")));
+        assert!(
+            issues
+                .iter()
+                .any(|i| i.severity == Severity::Warning && i.message.contains("default branch"))
+        );
     }
 }

@@ -16,7 +16,12 @@ pub struct HomeState {
 impl HomeState {
     pub fn new() -> Self {
         let (tx, rx) = channel();
-        Self { sizes: HashMap::new(), requested: HashSet::new(), tx, rx }
+        Self {
+            sizes: HashMap::new(),
+            requested: HashSet::new(),
+            tx,
+            rx,
+        }
     }
 
     pub fn size_label(&self, id: &str) -> Option<String> {
@@ -54,7 +59,11 @@ fn upload_size(json: &str) -> u64 {
             continue;
         }
         let depth = if depot.recursive { usize::MAX } else { 1 };
-        for entry in WalkDir::new(&depot.local_path).max_depth(depth).into_iter().filter_map(|e| e.ok()) {
+        for entry in WalkDir::new(&depot.local_path)
+            .max_depth(depth)
+            .into_iter()
+            .filter_map(|e| e.ok())
+        {
             if entry.file_type().is_file() {
                 total += entry.metadata().map(|m| m.len()).unwrap_or(0);
             }

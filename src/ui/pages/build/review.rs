@@ -107,7 +107,8 @@ fn start_build(app: &mut App, project: &Project, branch: &str, ctx: &egui::Conte
         Ok(()) => app.toasts.push(kit::ToastLevel::Success, "Build started"),
         Err(e) => {
             app.build_ui.push_log(format!("Could not start: {e}"), true);
-            app.toasts.push(kit::ToastLevel::Error, "Could not start build");
+            app.toasts
+                .push(kit::ToastLevel::Error, "Could not start build");
         }
     }
 }
@@ -143,7 +144,10 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
     let running = app.build_ui.review.running;
     let (done, total) = {
         let p = &app.build_ui.review.progress;
-        (p.done.load(Ordering::Relaxed), p.total.load(Ordering::Relaxed))
+        (
+            p.done.load(Ordering::Relaxed),
+            p.total.load(Ordering::Relaxed),
+        )
     };
     let summary = app.build_ui.review.result.as_ref().map(|(_, d)| d.clone());
     let filter = app.build_ui.review.filter;
@@ -152,44 +156,90 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
     let mut act = Act::None;
     let search = &mut app.build_ui.review.search;
 
-    kit::modal(ui, id, &mut open, Vec2::new(px(700.0), px(580.0)), s, |ui| {
-        let d = ui.max_rect();
-        let pad = px(24.0);
-        let x = d.left() + pad;
-        kit::label(&ui.painter().clone(), Pos2::new(x, d.top() + pad), "REVIEW CHANGES", s);
+    kit::modal(
+        ui,
+        id,
+        &mut open,
+        Vec2::new(px(700.0), px(580.0)),
+        s,
+        |ui| {
+            let d = ui.max_rect();
+            let pad = px(24.0);
+            let x = d.left() + pad;
+            kit::label(
+                &ui.painter().clone(),
+                Pos2::new(x, d.top() + pad),
+                "REVIEW CHANGES",
+                s,
+            );
 
-        if running || summary.is_none() {
-            view::progress(ui, d, done, total, s);
-        } else if let Some(summary) = &summary {
-            view::summary_row(ui, Pos2::new(x, d.top() + px(52.0)), d.width() - pad * 2.0, summary, s);
-            let cy = d.top() + px(108.0);
-            view::controls(ui, x, cy, d.width() - pad * 2.0, search, filter, sort_size, &mut act, s);
-            let list = Rect::from_min_max(Pos2::new(x, cy + px(44.0)), Pos2::new(d.right() - pad, d.bottom() - px(84.0)));
-            view::file_list(ui, list, summary, search, filter, sort_size, s);
-        }
+            if running || summary.is_none() {
+                view::progress(ui, d, done, total, s);
+            } else if let Some(summary) = &summary {
+                view::summary_row(
+                    ui,
+                    Pos2::new(x, d.top() + px(52.0)),
+                    d.width() - pad * 2.0,
+                    summary,
+                    s,
+                );
+                let cy = d.top() + px(108.0);
+                view::controls(
+                    ui,
+                    x,
+                    cy,
+                    d.width() - pad * 2.0,
+                    search,
+                    filter,
+                    sort_size,
+                    &mut act,
+                    s,
+                );
+                let list = Rect::from_min_max(
+                    Pos2::new(x, cy + px(44.0)),
+                    Pos2::new(d.right() - pad, d.bottom() - px(84.0)),
+                );
+                view::file_list(ui, list, summary, search, filter, sort_size, s);
+            }
 
-        let by = d.bottom() - pad - px(40.0);
-        let mut skip_val = skip;
-        let cb = Rect::from_min_size(Pos2::new(x, by + px(2.0)), Vec2::new(px(240.0), px(36.0)));
-        if kit::checkbox(ui, cb, &mut skip_val, "Skip this review next time", s).clicked() {
-            act = Act::ToggleSkip;
-        }
-        let bw = px(140.0);
-        if Button::new("CANCEL", ButtonKind::Secondary)
-            .show(ui, Rect::from_min_size(Pos2::new(d.right() - pad - bw * 2.0 - px(10.0), by), Vec2::new(bw, px(40.0))), s)
-            .clicked()
-        {
-            act = Act::Cancel;
-        }
-        let go = Button::new("BUILD", ButtonKind::Primary)
-            .icon(theme::icon::ROCKET)
-            .enabled(!running)
-            .show(ui, Rect::from_min_size(Pos2::new(d.right() - pad - bw, by), Vec2::new(bw, px(40.0))), s);
-        if go.clicked() && !running {
-            act = Act::Build;
-        }
-        false
-    });
+            let by = d.bottom() - pad - px(40.0);
+            let mut skip_val = skip;
+            let cb =
+                Rect::from_min_size(Pos2::new(x, by + px(2.0)), Vec2::new(px(240.0), px(36.0)));
+            if kit::checkbox(ui, cb, &mut skip_val, "Skip this review next time", s).clicked() {
+                act = Act::ToggleSkip;
+            }
+            let bw = px(140.0);
+            if Button::new("CANCEL", ButtonKind::Secondary)
+                .show(
+                    ui,
+                    Rect::from_min_size(
+                        Pos2::new(d.right() - pad - bw * 2.0 - px(10.0), by),
+                        Vec2::new(bw, px(40.0)),
+                    ),
+                    s,
+                )
+                .clicked()
+            {
+                act = Act::Cancel;
+            }
+            let go = Button::new("BUILD", ButtonKind::Primary)
+                .icon(theme::icon::ROCKET)
+                .enabled(!running)
+                .show(
+                    ui,
+                    Rect::from_min_size(
+                        Pos2::new(d.right() - pad - bw, by),
+                        Vec2::new(bw, px(40.0)),
+                    ),
+                    s,
+                );
+            if go.clicked() && !running {
+                act = Act::Build;
+            }
+            false
+        },
+    );
 
     app.build_ui.review.open = open;
     apply(app, act, ctx);
