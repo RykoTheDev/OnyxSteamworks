@@ -43,6 +43,9 @@ impl BuildState {
         self.authorizing = false;
         self.run_project = Some(project.clone());
         self.run_branch = branch.to_string();
+        if crate::features::accounts::cached_login_for_project(project).is_some() {
+            self.push_log("Using cached Steam login.", false);
+        }
         let note = if self.preview_only {
             "Starting preview build..."
         } else {

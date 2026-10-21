@@ -99,6 +99,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             let mut cu = ui.new_child(egui::UiBuilder::new().max_rect(inner));
             cu.set_clip_rect(inner);
             egui::ScrollArea::vertical()
+                .id_salt("history_detail_scroll")
                 .auto_shrink([false, false])
                 .show(&mut cu, |ui| {
                     if log.is_empty() {
@@ -193,7 +194,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             .push(kit::ToastLevel::Success, "History entry deleted");
     } else if folder {
         open_log_folder(&rec.log_path);
-    } else if close {
+    } else if close || !open {
         app.history_ui.close_detail();
     }
 }

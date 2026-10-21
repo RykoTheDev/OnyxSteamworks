@@ -8,8 +8,6 @@ pub const BUILD_ACCOUNT_NOTE: &str = "Use a dedicated build account with only th
 
 pub const MASK: &str = "********";
 
-/// Keyring account name for a Steam login password, namespaced so it never
-/// collides with other stored secrets.
 pub fn login_key(username: &str) -> String {
     format!("login:{username}")
 }

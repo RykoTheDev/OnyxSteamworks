@@ -114,8 +114,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, s: f32) {
     let id = ui.make_persistent_id("setup_wizard");
     let px = |v: f32| theme::px(v, s);
     let size = Vec2::new(px(624.0), px(508.0));
+    let busy = view.downloading || view.extracting || view.detecting;
 
-    kit::modal(ui, id, &mut app.wizard.open, size, s, |ui| {
+    kit::modal_with(ui, id, &mut app.wizard.open, size, s, !busy, |ui| {
         let d = ui.max_rect();
         chrome::chrome(ui, d, &view, &mut intent, s);
         let body = Rect::from_min_max(

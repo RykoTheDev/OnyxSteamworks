@@ -4,7 +4,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use eframe::egui::{self, Color32, Id, Rect};
 
-// --- Reduce motion --------------------------------------------------------
 static REDUCE_MOTION: AtomicBool = AtomicBool::new(false);
 
 pub fn set_reduce_motion(on: bool) {
@@ -19,15 +18,11 @@ pub fn dur(seconds: f32) -> f32 {
     if reduce_motion() { 0.0 } else { seconds }
 }
 
-// --- Easings (plain fns, usable as egui easing callbacks) ------------------
-
-/// Decelerating cubic. <https://easings.net/#easeOutCubic>
 pub fn ease_out_cubic(t: f32) -> f32 {
     let f = t - 1.0;
     f * f * f + 1.0
 }
 
-/// Accelerate then decelerate. <https://easings.net/#easeInOutCubic>
 pub fn ease_in_out_cubic(t: f32) -> f32 {
     if t < 0.5 {
         4.0 * t * t * t
@@ -37,7 +32,6 @@ pub fn ease_in_out_cubic(t: f32) -> f32 {
     }
 }
 
-/// Decelerating with a small overshoot past 1.0. <https://easings.net/#easeOutBack>
 pub fn ease_out_back(t: f32) -> f32 {
     const C1: f32 = 1.701_58;
     const C3: f32 = C1 + 1.0;
@@ -53,7 +47,6 @@ pub fn spring(t: f32, omega: f32) -> f32 {
     1.0 - (1.0 + omega * t) * e
 }
 
-// --- egui-backed animation ------------------------------------------------
 pub fn anim_bool(
     ctx: &egui::Context,
     id: Id,
@@ -67,8 +60,6 @@ pub fn anim_bool(
 pub fn anim_value(ctx: &egui::Context, id: Id, target: f32, duration: f32) -> f32 {
     ctx.animate_value_with_time(id, target, dur(duration))
 }
-
-// --- One-shot transition --------------------------------------------------
 #[derive(Clone, Copy)]
 pub struct Transition {
     start: f64,
@@ -106,8 +97,6 @@ impl Transition {
     }
 }
 
-// --- Staggered entrance ----------------------------------------------------
-
 pub const STAGGER_ENTER: f32 = 0.26;
 pub const STAGGER_SLIDE: f32 = 12.0;
 
@@ -134,7 +123,6 @@ pub fn reset_stagger(ctx: &egui::Context, id: Id) {
     ctx.data_mut(|d| d.remove::<f64>(id));
 }
 
-// --- Painting utilities ----------------------------------------------------
 pub fn scale_rect(rect: Rect, factor: f32) -> Rect {
     Rect::from_center_size(rect.center(), rect.size() * factor)
 }

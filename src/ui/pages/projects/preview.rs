@@ -46,6 +46,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &e
     let inner = block.shrink(px(16.0));
     let mut cui = ui.new_child(egui::UiBuilder::new().max_rect(inner));
     egui::ScrollArea::both()
+        .id_salt("vdf_preview_scroll")
         .auto_shrink([false, false])
         .show(&mut cui, |ui| {
             for line in content.lines() {

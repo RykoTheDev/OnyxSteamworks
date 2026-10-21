@@ -130,6 +130,8 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, s: f32) {
             inner,
             TextEdit::singleline(&mut pal.query)
                 .frame(Frame::NONE)
+                .margin(egui::Margin::ZERO)
+                .align(Align2::LEFT_CENTER)
                 .hint_text("Type a command or page...")
                 .text_color(theme::INK)
                 .desired_width(f32::INFINITY),
@@ -234,8 +236,8 @@ fn execute(app: &mut App, cmd: &Command, ctx: &egui::Context) {
                     .push(kit::ToastLevel::Success, format!("Switched to {name}"));
             }
         }
-        Command::StartBuild => start(app, false, ctx),
-        Command::PreviewBuild => start(app, true, ctx),
+        Command::StartBuild => start_build(app, false, ctx),
+        Command::PreviewBuild => start_build(app, true, ctx),
         Command::CancelBuild => {
             if app.build_ui.running {
                 app.build_ui.cancel();
@@ -275,7 +277,7 @@ fn execute(app: &mut App, cmd: &Command, ctx: &egui::Context) {
     }
 }
 
-fn start(app: &mut App, preview: bool, ctx: &egui::Context) {
+pub fn start_build(app: &mut App, preview: bool, ctx: &egui::Context) {
     let Some(project) = app.projects.get(app.build_ui.project_sel).cloned() else {
         app.toasts
             .push(kit::ToastLevel::Warning, "No project to build");

@@ -106,7 +106,7 @@ impl DoctorState {
                 row.result = Some(result);
             }
         }
-        if self.rows.iter().any(|r| r.result.is_none()) {
+        if !crate::ui::anim::reduce_motion() && self.rows.iter().any(|r| r.result.is_none()) {
             ctx.request_repaint();
         }
     }
@@ -133,7 +133,11 @@ fn status_glyph(status: Status) -> char {
 }
 
 fn spinner(painter: &egui::Painter, center: Pos2, radius: f32, s: f32, time: f64) {
-    let a = (time * 4.0) as f32 % std::f32::consts::TAU;
+    let a = if crate::ui::anim::reduce_motion() {
+        -std::f32::consts::FRAC_PI_2
+    } else {
+        (time * 4.0) as f32 % std::f32::consts::TAU
+    };
     let steps = 16;
     let sweep = std::f32::consts::TAU * 0.72;
     let points: Vec<Pos2> = (0..=steps)

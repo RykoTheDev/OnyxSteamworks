@@ -3,13 +3,13 @@ mod state;
 
 pub use state::HomeState;
 
-use eframe::egui::{self, Align2, FontId, Pos2, Rect, Sense, UiBuilder, Vec2};
+use eframe::egui::{self, Align2, FontId, Pos2, Rect, Sense, Vec2};
 
 use crate::app::{App, Page};
 use crate::model::Project;
 use crate::ui::kit::{self, Input};
 use crate::ui::layout::Layout;
-use crate::ui::{anim, nav, theme};
+use crate::ui::{nav, theme};
 
 pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     let s = layout.scale;
@@ -46,20 +46,14 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     );
     let right = Rect::from_min_max(Pos2::new(content.right() - right_w, body_top), content.max);
 
-    let (op, _) = anim::stagger_in(&ctx, ui.make_persistent_id(("home", app.home_gen)), 0, 0.0);
-    let mut cu = ui.new_child(UiBuilder::new().max_rect(content));
-    cu.set_opacity(op);
-    {
-        let ui = &mut cu;
-        left_main(app, ui, left, &project, s, &ctx);
-        let choose = Rect::from_min_size(right.min, Vec2::new(right_w, px(236.0)));
-        let notes = Rect::from_min_max(
-            Pos2::new(right.left(), choose.bottom() + px(18.0)),
-            right.max,
-        );
-        cards::choose_branch(app, ui, choose, &project, s);
-        cards::patch_notes(app, ui, notes, &project, s);
-    }
+    left_main(app, ui, left, &project, s, &ctx);
+    let choose = Rect::from_min_size(right.min, Vec2::new(right_w, px(236.0)));
+    let notes = Rect::from_min_max(
+        Pos2::new(right.left(), choose.bottom() + px(18.0)),
+        right.max,
+    );
+    cards::choose_branch(app, ui, choose, &project, s);
+    cards::patch_notes(app, ui, notes, &project, s);
 
     crate::ui::pages::build::preflight::show(app, ui, s, &ctx);
     crate::ui::pages::build::review::show(app, ui, s, &ctx);
@@ -102,16 +96,7 @@ fn left_main(
         theme::INK_MUTED,
     );
 
-    let art = Rect::from_min_size(Pos2::new(x, rect.top() + px(52.0)), Vec2::new(w, px(130.0)));
-    let key_art = project.key_art_path.to_string_lossy();
-    let uri = (!key_art.is_empty()).then(|| kit::file_uri(&key_art));
-    let letter = name.chars().next().unwrap_or('S');
-    kit::image_or_placeholder(ui, art, uri.as_deref(), letter, px(theme::RADIUS_CARD), s);
-
-    let pb = Rect::from_min_size(
-        Pos2::new(x, art.bottom() + px(18.0)),
-        Vec2::new(w, px(50.0)),
-    );
+    let pb = Rect::from_min_size(Pos2::new(x, rect.top() + px(52.0)), Vec2::new(w, px(50.0)));
     prompt_bar(app, ui, pb, project, s, ctx);
 
     kit::label(

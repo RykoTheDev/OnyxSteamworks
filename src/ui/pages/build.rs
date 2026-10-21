@@ -16,6 +16,7 @@ pub use state::BuildState;
 use eframe::egui::{self, Align2, FontId, Pos2, Rect, UiBuilder, Vec2};
 
 use crate::app::{App, Page};
+use crate::features::accounts;
 use crate::model::{BranchLevel, Project};
 use crate::steamcmd::BuildResult;
 use crate::ui::kit;
@@ -30,11 +31,23 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     let px = |v: f32| theme::px(v, s);
     let content = layout.content;
 
+    let was_authorizing = app.build_ui.authorizing;
     if let Some(res) = app.build_ui.drain(&ctx) {
-        let (level, msg) = match res {
-            BuildResult::Success { .. } => (kit::ToastLevel::Success, "Build finished"),
-            BuildResult::Failure { .. } => (kit::ToastLevel::Error, "Build failed"),
-            BuildResult::Cancelled => (kit::ToastLevel::Warning, "Build cancelled"),
+        let (level, msg) = if was_authorizing {
+            match res {
+                BuildResult::Success { .. } => (
+                    kit::ToastLevel::Success,
+                    "Account authorized; Steam Guard is cached",
+                ),
+                BuildResult::Failure { .. } => (kit::ToastLevel::Error, "Authorization failed"),
+                BuildResult::Cancelled => (kit::ToastLevel::Warning, "Authorization cancelled"),
+            }
+        } else {
+            match res {
+                BuildResult::Success { .. } => (kit::ToastLevel::Success, "Build finished"),
+                BuildResult::Failure { .. } => (kit::ToastLevel::Error, "Build failed"),
+                BuildResult::Cancelled => (kit::ToastLevel::Warning, "Build cancelled"),
+            }
         };
         app.toasts.push(level, msg);
     }
@@ -161,9 +174,11 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, project: &Project, s
                 app.build_ui.branch_sel = i;
             }
             if b.level == BranchLevel::Live {
-                ui.painter().circle_filled(
-                    Pos2::new(r.right() - px(3.0), r.top() + px(3.0)),
-                    px(3.5),
+                ui.painter().text(
+                    Pos2::new(r.right() - px(5.0), r.top() + px(6.0)),
+                    Align2::CENTER_CENTER,
+                    theme::icon::WARNING.to_string(),
+                    theme::icon_font(px(11.0), true),
                     theme::DANGER,
                 );
             }
@@ -274,21 +289,41 @@ fn run_panel(
         Pos2::new(x, rect.bottom() - pad - px(94.0)),
         Vec2::new(w, px(40.0)),
     );
-    let auth_ok = !running && !project.steam_username.trim().is_empty();
-    if Button::new("AUTHORIZE ACCOUNT", ButtonKind::Secondary)
-        .enabled(auth_ok)
-        .show(ui, auth_rect, s)
-        .clicked()
-        && auth_ok
-    {
-        if let Err(e) = app.build_ui.authorize(project, ctx) {
-            app.build_ui
-                .push_log(format!("Could not authorize: {e}"), true);
-            app.toasts
-                .push(kit::ToastLevel::Error, "Could not authorize");
-        } else {
-            app.toasts
-                .push(kit::ToastLevel::Success, "Authorizing account");
+    let cached = !running && accounts::cached_login_for_project(project).is_some();
+    if !running && cached {
+        ui.painter().circle_filled(
+            Pos2::new(x + px(5.0), auth_rect.center().y),
+            px(4.0),
+            theme::SUCCESS,
+        );
+        ui.painter().text(
+            Pos2::new(x + px(16.0), auth_rect.center().y),
+            Align2::LEFT_CENTER,
+            "Steam login cached",
+            FontId::new(px(12.5), theme::family_medium()),
+            theme::INK_DIM,
+        );
+        let rw = px(112.0);
+        let reauth = Rect::from_min_size(
+            Pos2::new(auth_rect.right() - rw, auth_rect.top() + px(4.0)),
+            Vec2::new(rw, px(32.0)),
+        );
+        if Button::new("RE-AUTHORIZE", ButtonKind::Secondary)
+            .enabled(!project.steam_username.trim().is_empty())
+            .show(ui, reauth, s)
+            .clicked()
+        {
+            authorize(app, project, ctx);
+        }
+    } else if !running {
+        let auth_ok = !project.steam_username.trim().is_empty();
+        if Button::new("AUTHORIZE ACCOUNT", ButtonKind::Secondary)
+            .enabled(auth_ok)
+            .show(ui, auth_rect, s)
+            .clicked()
+            && auth_ok
+        {
+            authorize(app, project, ctx);
         }
     }
 
@@ -353,6 +388,18 @@ fn run_panel(
         {
             app.build_ui.cancel();
         }
+    }
+}
+
+fn authorize(app: &mut App, project: &Project, ctx: &egui::Context) {
+    if let Err(e) = app.build_ui.authorize(project, ctx) {
+        app.build_ui
+            .push_log(format!("Could not authorize: {e}"), true);
+        app.toasts
+            .push(kit::ToastLevel::Error, "Could not authorize");
+    } else {
+        app.toasts
+            .push(kit::ToastLevel::Success, "Authorizing account");
     }
 }
 

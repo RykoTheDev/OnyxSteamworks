@@ -13,7 +13,7 @@ pub mod toggles;
 pub use button::{Button, ButtonKind, icon_button};
 pub use chip::{chip, chip_size};
 pub use input::Input;
-pub use overlay::{ToastLevel, Toasts, modal, tooltip};
+pub use overlay::{ToastLevel, Toasts, modal, modal_with, tooltip};
 pub use progress::{line_chart, progress_bar, progress_ring, segment_progress};
 pub use rail::{RailAction, rail};
 pub use select::{dropdown, tabs};
@@ -53,11 +53,12 @@ pub fn separator(painter: &egui::Painter, a: Pos2, b: Pos2) {
 
 pub fn hero(painter: &egui::Painter, clip: Rect, text: &str, s: f32) {
     let size = theme::px(104.0, s);
-    let pos = Pos2::new(
-        clip.left() - theme::px(4.0, s),
-        clip.top() - theme::px(18.0, s),
+    let pos = Pos2::new(clip.left(), clip.top() - theme::px(18.0, s));
+    let safe = Rect::from_min_max(
+        Pos2::new(clip.left() - theme::px(10.0, s), clip.top()),
+        clip.max,
     );
-    let p = painter.with_clip_rect(clip);
+    let p = painter.with_clip_rect(safe);
     p.text(
         pos,
         Align2::LEFT_TOP,
@@ -212,7 +213,7 @@ fn friendly_image_error(raw: &str) -> String {
     let l = raw.to_ascii_lowercase();
     let hint = if l.contains("no such file") || l.contains("not found") || l.contains("cannot find")
     {
-        "Key art file not found — check the path."
+        "Image file not found — check the path."
     } else if l.contains("format")
         || l.contains("unsupported")
         || l.contains("decode")
@@ -222,7 +223,7 @@ fn friendly_image_error(raw: &str) -> String {
     } else if l.contains("no loader") || l.contains("not supported") {
         "No loader is registered for this image."
     } else {
-        "Couldn't load key art."
+        "Couldn't load image."
     };
     format!("{hint}\n{raw}")
 }

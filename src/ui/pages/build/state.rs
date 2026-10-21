@@ -222,7 +222,12 @@ impl BuildState {
                             self.push_log(format!("Build finished for app {app_id}."), false)
                         }
                         BuildResult::Failure { message } => {
-                            self.push_log(format!("Build failed: {message}"), true)
+                            let prefix = if was_auth {
+                                "Authorization failed"
+                            } else {
+                                "Build failed"
+                            };
+                            self.push_log(format!("{prefix}: {message}"), true)
                         }
                         BuildResult::Cancelled => self.push_log("Cancelled.", false),
                     }

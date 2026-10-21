@@ -28,12 +28,13 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, s: f32) {
     let mut cancel = false;
     let input = &mut app.build_ui.prompt_input;
 
-    kit::modal(
+    kit::modal_with(
         ui,
         id,
         &mut open,
         Vec2::new(px(440.0), px(258.0)),
         s,
+        false,
         |ui| {
             let d = ui.max_rect();
             let x = d.left() + px(26.0);

@@ -1,9 +1,22 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
+
+use crate::model::Project;
 
 pub fn config_vdf(steamcmd_path: &Path) -> Option<std::path::PathBuf> {
     steamcmd_path
         .parent()
         .map(|d| d.join("config").join("config.vdf"))
+}
+
+pub fn resolve_steamcmd(override_path: &str, projects: &[Project]) -> Option<PathBuf> {
+    let over = override_path.trim();
+    if !over.is_empty() {
+        return Some(PathBuf::from(over));
+    }
+    projects
+        .iter()
+        .map(|p| p.steamcmd_path.clone())
+        .find(|p| !p.as_os_str().is_empty())
 }
 
 pub fn is_authorized(steamcmd_path: &Path, account: &str) -> bool {
@@ -20,6 +33,15 @@ pub fn is_authorized(steamcmd_path: &Path, account: &str) -> bool {
             .contains(&account.to_ascii_lowercase()),
         Err(_) => false,
     }
+}
+
+pub fn cached_login(steamcmd_path: &Path, account: &str) -> Option<()> {
+    is_authorized(steamcmd_path, account).then_some(())
+}
+
+pub fn cached_login_for_project(project: &Project) -> Option<()> {
+    let exe = crate::features::maintenance::effective_steamcmd(project);
+    cached_login(&exe, project.steam_username.trim())
 }
 
 pub fn add(accounts: &mut Vec<String>, name: &str) -> bool {
@@ -48,6 +70,26 @@ mod tests {
         assert_eq!(accounts, vec!["Builder"]);
         remove(&mut accounts, "BUILDER");
         assert!(accounts.is_empty());
+    }
+
+    #[test]
+    fn resolve_prefers_override_then_project() {
+        assert_eq!(
+            resolve_steamcmd("D:/scmd/steamcmd.exe", &[]),
+            Some(PathBuf::from("D:/scmd/steamcmd.exe"))
+        );
+        let projects = vec![
+            Project::default(),
+            Project {
+                steamcmd_path: PathBuf::from("C:/a/steamcmd.exe"),
+                ..Default::default()
+            },
+        ];
+        assert_eq!(
+            resolve_steamcmd("", &projects),
+            Some(PathBuf::from("C:/a/steamcmd.exe"))
+        );
+        assert_eq!(resolve_steamcmd("  ", &[Project::default()]), None);
     }
 
     #[test]

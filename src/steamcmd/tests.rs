@@ -103,6 +103,13 @@ fn finished(events: &[BuildEvent]) -> Option<BuildResult> {
 }
 
 #[test]
+fn steamcmd_runs_from_its_install_directory() {
+    let exe = fake_bin();
+    let cmd = super::command_for(&exe);
+    assert_eq!(cmd.get_current_dir(), exe.parent());
+}
+
+#[test]
 fn success_reports_app_id_and_logs() {
     let (events, log) = run("success");
     assert_eq!(

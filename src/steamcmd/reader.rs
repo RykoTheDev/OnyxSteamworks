@@ -14,10 +14,7 @@ pub(super) struct Parsed {
     pub(super) logged_in: bool,
 }
 
-pub(super) fn finish(
-    parsed: &Arc<Mutex<Parsed>>,
-    status: std::io::Result<std::process::ExitStatus>,
-) -> BuildResult {
+pub(super) fn finish(parsed: &Arc<Mutex<Parsed>>, code: Option<i32>) -> BuildResult {
     let (app_id, failure, logged_in) = {
         let p = parsed.lock().unwrap_or_else(|e| e.into_inner());
         (p.app_id.clone(), p.failure.clone(), p.logged_in)
@@ -28,7 +25,6 @@ pub(super) fn finish(
     if let Some(message) = failure {
         return BuildResult::Failure { message };
     }
-    let code = status.ok().and_then(|s| s.code());
     if logged_in && code == Some(0) {
         return BuildResult::Success {
             app_id: String::new(),
@@ -91,14 +87,56 @@ pub(super) fn spawn_reader<R: Read + Send + 'static>(
     })
 }
 
+fn strip_ansi(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '\u{1b}' {
+            match chars.peek() {
+                Some('[') => {
+                    chars.next();
+                    while let Some(&n) = chars.peek() {
+                        chars.next();
+                        if ('@'..='~').contains(&n) {
+                            break;
+                        }
+                    }
+                }
+                Some(']') => {
+                    chars.next();
+                    while let Some(&n) = chars.peek() {
+                        chars.next();
+                        if n == '\u{07}' || n == '\u{1b}' {
+                            break;
+                        }
+                    }
+                }
+                Some(_) => {
+                    chars.next();
+                }
+                None => {}
+            }
+        } else if c.is_control() && c != '\t' {
+        } else {
+            out.push(c);
+        }
+    }
+    out
+}
+
 fn handle_line(
-    line: &str,
+    raw: &str,
     tx: &Sender<BuildEvent>,
     ctx: &egui::Context,
     log: &Arc<Mutex<std::fs::File>>,
     parsed: &Arc<Mutex<Parsed>>,
     stdout: bool,
 ) {
+    let cleaned = strip_ansi(raw);
+    let line = cleaned.trim_end();
+    if line.is_empty() {
+        return;
+    }
     if let Ok(mut f) = log.lock() {
         let _ = writeln!(f, "{line}");
     }

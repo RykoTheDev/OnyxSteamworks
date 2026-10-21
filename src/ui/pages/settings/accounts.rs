@@ -8,6 +8,7 @@ use crate::ui::theme;
 #[derive(Default)]
 pub struct AccountsState {
     pub input: String,
+    pub pass: String,
 }
 
 fn settings() -> crate::config::Settings {
@@ -34,21 +35,27 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     ui.painter().text(
         Pos2::new(rect.left(), rect.top() + px(24.0)),
         Align2::LEFT_TOP,
-        "Store build-account usernames here. Passwords are never saved unless you opt in to the keyring.",
+        "Add a build account and authorize it once. SteamCMD caches the login, so later builds skip the Steam Guard prompt.",
         FontId::new(px(12.0), theme::family_medium()),
         theme::INK_MUTED,
     );
 
-    let field = Rect::from_min_size(
-        Pos2::new(rect.left(), rect.top() + px(48.0)),
-        Vec2::new(px(300.0), px(36.0)),
-    );
+    let yf = rect.top() + px(48.0);
+    let field = Rect::from_min_size(Pos2::new(rect.left(), yf), Vec2::new(px(236.0), px(36.0)));
     Input::new(&mut app.accounts_ui.input)
-        .hint("Add a Steam username")
+        .hint("Steam username")
         .show(ui, field, s);
+    let pf = Rect::from_min_size(
+        Pos2::new(field.right() + px(10.0), yf),
+        Vec2::new(px(200.0), px(36.0)),
+    );
+    Input::new(&mut app.accounts_ui.pass)
+        .hint("Password (optional)")
+        .mask(true)
+        .show(ui, pf, s);
     let add = Rect::from_min_size(
-        Pos2::new(field.right() + px(10.0), field.top()),
-        Vec2::new(px(110.0), px(36.0)),
+        Pos2::new(pf.right() + px(10.0), yf),
+        Vec2::new(px(96.0), px(36.0)),
     );
     if Button::new("ADD", ButtonKind::Primary)
         .icon(theme::icon::PLUS)
@@ -57,16 +64,21 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     {
         let name = app.accounts_ui.input.trim().to_string();
         if accounts::add(&mut cfg.accounts, &name) {
+            if !app.accounts_ui.pass.is_empty() {
+                let _ = crate::secrets::set_password(
+                    &crate::secrets::login_key(&name),
+                    &app.accounts_ui.pass,
+                );
+                cfg.remember_password = true;
+            }
             save(&cfg);
             app.accounts_ui.input.clear();
+            app.accounts_ui.pass.clear();
             app.toasts.push(kit::ToastLevel::Success, "Account added");
         }
     }
 
-    let steamcmd = app
-        .projects
-        .get(app.build_ui.project_sel)
-        .map(|p| p.steamcmd_path.clone());
+    let steamcmd = accounts::resolve_steamcmd(&cfg.steamcmd_override, &app.projects);
     let default_acct = app
         .projects
         .get(app.build_ui.project_sel)
@@ -162,7 +174,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                         let can = steamcmd.is_some();
                         if Button::new("AUTHORIZE", ButtonKind::Secondary)
                             .enabled(can)
-                            .disabled_reason("Select a project first")
+                            .disabled_reason("Install SteamCMD first (run the setup wizard)")
                             .show(ui, az, s)
                             .clicked()
                         {
@@ -203,22 +215,27 @@ fn remember_toggle(ui: &mut egui::Ui, rect: Rect, cfg: &mut crate::config::Setti
 }
 
 fn start_authorize(app: &mut App, account: &str, ctx: &egui::Context) {
-    let sel = app.build_ui.project_sel;
-    let Some(mut project) = app.projects.get(sel).cloned() else {
+    let cfg = settings();
+    let Some(steamcmd) = accounts::resolve_steamcmd(&cfg.steamcmd_override, &app.projects) else {
+        app.toasts.push(
+            kit::ToastLevel::Warning,
+            "Set up SteamCMD first (run the setup wizard)",
+        );
         return;
     };
-    project.steam_username = account.to_string();
-    project.default_account = account.to_string();
-    if let Some(p) = app.projects.get_mut(sel) {
-        p.steam_username = account.to_string();
-        p.default_account = account.to_string();
-    }
-    let _ = crate::config::save_project(&project);
+    let project = crate::model::Project {
+        steam_username: account.to_string(),
+        default_account: account.to_string(),
+        steamcmd_path: steamcmd,
+        ..Default::default()
+    };
     match app.build_ui.authorize(&project, ctx) {
         Ok(()) => {
             app.nav_request = Some(Page::Build);
-            app.toasts
-                .push(kit::ToastLevel::Success, format!("Authorizing {account}"));
+            app.toasts.push(
+                kit::ToastLevel::Success,
+                format!("Authorizing {account} — answer any prompt on the Build page"),
+            );
         }
         Err(e) => {
             app.build_ui

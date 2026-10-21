@@ -78,7 +78,7 @@ pub fn check_steamcmd(project: Option<Project>) -> CheckResult {
     let Some(project) = project else {
         return CheckResult::new("SteamCMD", Status::Warn, "No project selected");
     };
-    let path = &project.steamcmd_path;
+    let path = crate::features::maintenance::effective_steamcmd(&project);
     if path.as_os_str().is_empty() || !path.is_file() {
         return CheckResult::new(
             "SteamCMD",
@@ -87,7 +87,7 @@ pub fn check_steamcmd(project: Option<Project>) -> CheckResult {
         )
         .with_fix(Fix::OpenUrl(STEAMCMD_HELP.to_string()));
     }
-    let mut cmd = Command::new(path);
+    let mut cmd = crate::steamcmd::command_for(&path);
     cmd.arg("+quit");
     match sys::run_capture(cmd, 60) {
         Some((0, out)) => {
@@ -207,24 +207,22 @@ pub fn check_cached_login(project: Option<Project>) -> CheckResult {
     if user.is_empty() {
         return CheckResult::new("Cached login", Status::Warn, "No Steam username configured");
     }
-    let config = project
-        .steamcmd_path
-        .parent()
-        .map(|d| d.join("config").join("config.vdf"));
-    match config {
-        Some(path) if path.is_file() => CheckResult::new(
+    let exe = crate::features::maintenance::effective_steamcmd(&project);
+    if crate::features::accounts::is_authorized(&exe, user) {
+        CheckResult::new(
             "Cached login",
             Status::Ok,
             format!("Cached SteamCMD login present for {}", mask_username(user)),
-        ),
-        _ => CheckResult::new(
+        )
+    } else {
+        CheckResult::new(
             "Cached login",
             Status::Warn,
             format!(
                 "No cached login for {}; run Authorize once",
                 mask_username(user)
             ),
-        ),
+        )
     }
 }
 

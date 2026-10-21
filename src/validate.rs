@@ -1,6 +1,3 @@
-//! Field-level validation and pre-flight checks before saving or building.
-//!
-//! Called by the editor and the pre-flight step (U, K); defined ahead of them.
 #![allow(dead_code)]
 
 use std::collections::HashSet;
@@ -10,7 +7,6 @@ use walkdir::WalkDir;
 
 use crate::model::Project;
 
-/// A single validation failure tied to a named field.
 #[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
 #[error("{field}: {message}")]
 pub struct FieldError {
@@ -31,8 +27,6 @@ fn is_numeric(s: &str) -> bool {
     !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit())
 }
 
-/// Validate a project, returning every field error found. An empty vec means
-/// the project is valid.
 pub fn validate_project(project: &Project) -> Vec<FieldError> {
     let mut errors = Vec::new();
 
@@ -76,8 +70,6 @@ pub fn validate_project(project: &Project) -> Vec<FieldError> {
     errors
 }
 
-/// Severity of a pre-flight issue. Errors block the build; warnings and info
-/// let the build proceed anyway.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Severity {
     Error,
@@ -85,14 +77,11 @@ pub enum Severity {
     Info,
 }
 
-/// A one-click remedy the results modal can apply.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Fix {
     AddExclusion(String),
 }
 
-/// A single pre-flight finding. The message never contains a matched secret
-/// value: only the file, line and rule name.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Issue {
     pub severity: Severity,
@@ -135,7 +124,6 @@ impl Issue {
     }
 }
 
-/// Human-readable byte size, e.g. "2.4 GB".
 pub fn human_size(bytes: u64) -> String {
     const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
     let mut value = bytes as f64;
@@ -182,8 +170,6 @@ fn dir_writable(dir: &Path) -> bool {
     }
 }
 
-/// Basic environment checks run before a build. Errors block; warnings and info
-/// let the build proceed. The scanner adds file-content findings on top.
 pub fn preflight_checks(project: &Project) -> Vec<Issue> {
     let mut issues = Vec::new();
 

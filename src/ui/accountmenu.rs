@@ -99,7 +99,18 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rail: Rect, s: f32) {
                 manage = true;
             }
         });
-    if area.response.clicked_elsewhere() {
+    // The avatar in the rail toggles this menu. Its opening click lands outside
+    // the menu's Area, so a bare `clicked_elsewhere()` would fire on the very
+    // frame the menu appears and close it again — making the button look dead.
+    // Ignore clicks that land on the avatar; the rail already toggles those.
+    let on_avatar = ctx
+        .input(|i| i.pointer.interact_pos())
+        .map(|p| {
+            let avatar_c = Pos2::new(rail.center().x, rail.bottom() - px(26.0));
+            Rect::from_center_size(avatar_c, Vec2::splat(px(40.0))).contains(p)
+        })
+        .unwrap_or(false);
+    if area.response.clicked_elsewhere() && !on_avatar {
         app.account_menu = false;
     }
     if let Some(name) = pick {

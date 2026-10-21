@@ -5,6 +5,10 @@ use crate::ui::kit;
 use crate::ui::kit::{Button, ButtonKind, Input};
 use crate::ui::theme;
 
+fn jump_offset(row_height: f32, row_spacing: f32, rows: usize) -> f32 {
+    rows.max(1) as f32 * (row_height + row_spacing)
+}
+
 pub fn show(state: &mut BuildState, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egui::Context) {
     let px = |v: f32| theme::px(v, s);
     kit::bordered(
@@ -61,10 +65,12 @@ pub fn show(state: &mut BuildState, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: 
     let mut cui = ui.new_child(egui::UiBuilder::new().max_rect(log_rect));
     cui.set_clip_rect(log_rect);
     let mut sa = egui::ScrollArea::vertical()
+        .id_salt("build_console_scroll")
         .auto_shrink([false, false])
         .stick_to_bottom(true);
     if jump {
-        sa = sa.vertical_scroll_offset(f32::INFINITY);
+        let content_height = jump_offset(row_h, cui.spacing().item_spacing.y, rows.len());
+        sa = sa.vertical_scroll_offset(content_height);
         ctx.data_mut(|d| d.insert_temp(id.with("jump"), false));
     }
     let mut last_visible = 0usize;
@@ -109,5 +115,17 @@ pub fn show(state: &mut BuildState, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: 
         {
             ctx.data_mut(|d| d.insert_temp(id.with("jump"), true));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::jump_offset;
+
+    #[test]
+    fn jump_offset_is_finite() {
+        assert!(jump_offset(16.0, 4.0, 0).is_finite());
+        assert!(jump_offset(16.0, 4.0, 10_000).is_finite());
+        assert_eq!(jump_offset(16.0, 4.0, 3), 60.0);
     }
 }

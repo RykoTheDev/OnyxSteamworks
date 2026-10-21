@@ -2,6 +2,7 @@
 
 use eframe::egui::{self, Order, Rect, UiBuilder, Vec2};
 
+use crate::ui::kit::overlay::should_dismiss;
 use crate::ui::{anim, theme};
 
 pub fn modal(
@@ -10,6 +11,18 @@ pub fn modal(
     open: &mut bool,
     size: Vec2,
     s: f32,
+    add: impl FnOnce(&mut egui::Ui) -> bool,
+) -> egui::Response {
+    modal_with(ui, id, open, size, s, true, add)
+}
+
+pub fn modal_with(
+    ui: &mut egui::Ui,
+    id: egui::Id,
+    open: &mut bool,
+    size: Vec2,
+    s: f32,
+    dismissible: bool,
     add: impl FnOnce(&mut egui::Ui) -> bool,
 ) -> egui::Response {
     let ctx = ui.ctx().clone();
@@ -23,16 +36,17 @@ pub fn modal(
         .order(Order::Foreground)
         .fixed_pos(screen.min)
         .show(&ctx, |ui| {
-            let dim = theme::with_alpha(theme::BG, (153.0 * t.clamp(0.0, 1.0)) as u8);
-            ui.painter().rect_filled(screen, theme::corner(0.0), dim);
-            if ui
-                .interact(screen, id.with("dim"), egui::Sense::click())
-                .clicked()
-            {
-                *open = false;
-            }
             let scale = 0.92 + 0.08 * t;
             let prect = Rect::from_center_size(screen.center(), size * scale);
+            let dim = theme::with_alpha(theme::BG, (153.0 * t.clamp(0.0, 1.0)) as u8);
+            ui.painter().rect_filled(screen, theme::corner(0.0), dim);
+            let clicked = ui
+                .interact(screen, id.with("dim"), egui::Sense::click())
+                .clicked();
+            let pointer = ui.input(|i| i.pointer.interact_pos());
+            if should_dismiss(dismissible, clicked, prect, pointer) {
+                *open = false;
+            }
             ui.painter().rect_filled(
                 prect,
                 theme::corner(theme::px(theme::RADIUS_PANEL_MIN, s)),

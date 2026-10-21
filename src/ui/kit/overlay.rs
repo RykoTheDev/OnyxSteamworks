@@ -1,8 +1,18 @@
 use eframe::egui::{
-    self, Align2, Color32, FontId, Order, Pos2, Rect, Sense, Stroke, StrokeKind, UiBuilder, Vec2,
+    self, Align2, Color32, FontId, Key, Order, Pos2, Rect, Sense, Stroke, StrokeKind, UiBuilder,
+    Vec2,
 };
 
 use crate::ui::{anim, theme};
+
+pub(crate) fn should_dismiss(
+    dismissible: bool,
+    clicked: bool,
+    panel: Rect,
+    pointer: Option<Pos2>,
+) -> bool {
+    dismissible && clicked && pointer.is_some_and(|p| !panel.contains(p))
+}
 
 pub fn modal(
     ui: &mut egui::Ui,
@@ -12,7 +22,22 @@ pub fn modal(
     s: f32,
     add: impl FnOnce(&mut egui::Ui) -> bool,
 ) -> egui::Response {
+    modal_with(ui, id, open, size, s, true, add)
+}
+
+pub fn modal_with(
+    ui: &mut egui::Ui,
+    id: egui::Id,
+    open: &mut bool,
+    size: Vec2,
+    s: f32,
+    dismissible: bool,
+    add: impl FnOnce(&mut egui::Ui) -> bool,
+) -> egui::Response {
     let ctx = ui.ctx().clone();
+    if *open && dismissible && ctx.input(|i| i.key_pressed(Key::Escape)) {
+        *open = false;
+    }
     let t = anim::anim_bool(&ctx, id.with("m"), *open, 0.2, anim::ease_out_back);
     if !*open && t <= 0.001 {
         return ui.interact(Rect::ZERO, id.with("closed"), Sense::hover());
@@ -22,16 +47,18 @@ pub fn modal(
         .order(Order::Foreground)
         .fixed_pos(screen.min)
         .show(&ctx, |ui| {
-            let dim = theme::with_alpha(Color32::BLACK, (150.0 * t.clamp(0.0, 1.0)) as u8);
-            ui.painter().rect_filled(screen, theme::corner(0.0), dim);
-            if ui
-                .interact(screen, id.with("dim"), Sense::click())
-                .clicked()
-            {
-                *open = false;
-            }
             let scale = 0.94 + 0.06 * t;
             let prect = Rect::from_center_size(screen.center(), size * scale);
+            let dim = theme::with_alpha(Color32::BLACK, (150.0 * t.clamp(0.0, 1.0)) as u8);
+            ui.painter().rect_filled(screen, theme::corner(0.0), dim);
+            let clicked = ui
+                .interact(screen, id.with("dim"), Sense::click())
+                .clicked();
+            let pointer = ui.input(|i| i.pointer.interact_pos());
+            if should_dismiss(dismissible, clicked, prect, pointer) {
+                *open = false;
+            }
+            ui.expand_to_include_rect(screen);
             ui.painter().rect_filled(
                 prect,
                 theme::corner(theme::px(theme::RADIUS_PANEL_MIN, s)),
@@ -160,5 +187,33 @@ impl Toasts {
                 let _ = Sense::hover();
             });
         area.response
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn panel() -> Rect {
+        Rect::from_min_size(Pos2::new(100.0, 100.0), Vec2::new(400.0, 300.0))
+    }
+
+    #[test]
+    fn clicks_inside_the_panel_do_not_dismiss() {
+        assert!(!should_dismiss(
+            true,
+            true,
+            panel(),
+            Some(Pos2::new(300.0, 250.0))
+        ));
+    }
+
+    #[test]
+    fn clicks_outside_dismiss_only_when_allowed() {
+        let outside = Some(Pos2::new(50.0, 50.0));
+        assert!(should_dismiss(true, true, panel(), outside));
+        assert!(!should_dismiss(false, true, panel(), outside));
+        assert!(!should_dismiss(true, false, panel(), outside));
+        assert!(!should_dismiss(true, true, panel(), None));
     }
 }

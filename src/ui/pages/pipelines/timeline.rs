@@ -41,7 +41,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &e
         .show(ui, |ui| {
             let count = app.pipeline_ui.draft.pipeline.len();
             for i in 0..count {
-                if let Some(a) = card_row(app, ui, i, count, s, ctx) {
+                if let Some(a) = card_row(app, ui, i, count, s) {
                     action = Some(a);
                 }
                 ui.add_space(px(10.0));
@@ -69,14 +69,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &e
     }
 }
 
-fn card_row(
-    app: &mut App,
-    ui: &mut egui::Ui,
-    i: usize,
-    count: usize,
-    s: f32,
-    ctx: &egui::Context,
-) -> Option<Action> {
+fn card_row(app: &mut App, ui: &mut egui::Ui, i: usize, count: usize, s: f32) -> Option<Action> {
     let px = |v: f32| theme::px(v, s);
     let expanded = app.pipeline_ui.expanded == Some(i);
     let status = app.pipeline_ui.statuses.get(i).copied().unwrap_or_default();
@@ -99,7 +92,7 @@ fn card_row(
     );
 
     let icon_c = Pos2::new(rect.left() + px(26.0), rect.top() + px(27.0));
-    status_icon(ui, icon_c, px(9.0), status, i, ctx, s);
+    status_icon(ui, icon_c, px(9.0), status);
     if i + 1 < count {
         ui.painter().line_segment(
             [
@@ -213,37 +206,25 @@ fn card_row(
     action
 }
 
-fn status_icon(
-    ui: &mut egui::Ui,
-    c: Pos2,
-    r: f32,
-    status: StepRunStatus,
-    i: usize,
-    ctx: &egui::Context,
-    s: f32,
-) {
+fn status_icon(ui: &mut egui::Ui, c: Pos2, r: f32, status: StepRunStatus) {
     let painter = ui.painter();
     match status {
         StepRunStatus::Idle | StepRunStatus::Pending => {
             painter.circle_stroke(c, r, Stroke::new(1.5, theme::INK_MUTED));
         }
         StepRunStatus::Running => {
-            let t = ctx.input(|i| i.time) as f32;
-            let p = (t * 4.0).sin() * 0.5 + 0.5;
-            painter.circle_filled(
+            painter.circle_filled(c, r, theme::INK);
+            painter.circle_stroke(
                 c,
-                r,
-                theme::with_alpha(theme::INK, (90.0 + 165.0 * p) as u8),
+                r + 2.5,
+                Stroke::new(1.0, theme::with_alpha(theme::INK, 80)),
             );
-            ctx.request_repaint();
         }
         StepRunStatus::Success => {
             painter.circle_filled(c, r, theme::SUCCESS);
             check(painter, c, r, theme::PRIMARY_INK);
         }
         StepRunStatus::Failed => {
-            let off = fail_shake(ctx, i);
-            let c = Pos2::new(c.x + off, c.y);
             painter.circle_filled(c, r, theme::DANGER);
             cross(painter, c, r * 0.5, theme::PRIMARY_INK);
         }
@@ -253,20 +234,6 @@ fn status_icon(
                 Stroke::new(1.5, theme::INK_MUTED),
             );
         }
-    }
-    let _ = s;
-}
-
-fn fail_shake(ctx: &egui::Context, i: usize) -> f32 {
-    let id = egui::Id::NULL.with(("failshake", i));
-    let now = ctx.input(|r| r.time);
-    let start = ctx.data_mut(|d| *d.get_temp_mut_or_insert_with(id, || now));
-    let e = (now - start) as f32;
-    if e < 0.5 {
-        ctx.request_repaint();
-        (-e * 9.0).exp() * (e * 46.0).sin() * 3.0
-    } else {
-        0.0
     }
 }
 

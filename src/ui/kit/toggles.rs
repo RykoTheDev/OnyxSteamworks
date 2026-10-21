@@ -16,9 +16,10 @@ pub fn checkbox(
         Vec2::splat(box_size),
     );
     let id = ui.make_persistent_id(("checkbox", rect.left() as i32, rect.top() as i32));
-    let resp = ui.interact(rect, id, Sense::click());
+    let mut resp = ui.interact(rect, id, Sense::click());
     if resp.clicked() {
         *checked = !*checked;
+        resp.mark_changed();
     }
     let ctx = ui.ctx().clone();
     let t = anim::anim_bool(&ctx, id.with("c"), *checked, 0.18, anim::ease_out_cubic);
@@ -77,12 +78,13 @@ fn draw_check(painter: &egui::Painter, rect: Rect, t: f32, color: egui::Color32,
 pub fn toggle(ui: &mut egui::Ui, rect: Rect, on: &mut bool, s: f32) -> Response {
     let px = |v: f32| theme::px(v, s);
     let id = ui.make_persistent_id(("toggle", rect.left() as i32, rect.top() as i32));
-    let resp = ui.interact(rect, id, Sense::click());
+    let mut resp = ui.interact(rect, id, Sense::click());
     if resp.clicked() {
         *on = !*on;
+        resp.mark_changed();
     }
     let ctx = ui.ctx().clone();
-    let t = anim::anim_bool(&ctx, id.with("on"), *on, 0.2, anim::ease_out_back);
+    let t = anim::anim_bool(&ctx, id.with("on"), *on, 0.18, anim::ease_out_cubic);
     let track = theme::lerp_color(theme::FIELD, theme::INK, t.clamp(0.0, 1.0));
     let painter = ui.painter();
     painter.rect_filled(rect, theme::corner(rect.height() / 2.0), track);

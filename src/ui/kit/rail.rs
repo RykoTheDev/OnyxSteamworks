@@ -10,13 +10,7 @@ pub enum RailAction {
     Avatar,
 }
 
-pub fn rail(
-    ui: &mut egui::Ui,
-    rect: Rect,
-    active: Page,
-    avatar: char,
-    s: f32,
-) -> Option<RailAction> {
+pub fn rail(ui: &mut egui::Ui, rect: Rect, active: Page, avatar: char, s: f32) -> Option<RailAction> {
     let px = |v: f32| theme::px(v, s);
     let ctx = ui.ctx().clone();
     let mut action = None;
@@ -25,13 +19,7 @@ pub fn rail(
     let logo_c = Pos2::new(cx, rect.top() + px(30.0));
     let logo_hit = Rect::from_center_size(logo_c, Vec2::splat(px(36.0)));
     let logo_resp = ui.interact(logo_hit, ui.make_persistent_id("rail_logo"), Sense::click());
-    let logo_hover = anim::anim_bool(
-        &ctx,
-        ui.make_persistent_id("rail_logo"),
-        logo_resp.hovered(),
-        0.14,
-        anim::ease_out_cubic,
-    );
+    let logo_hover = anim::anim_bool(&ctx, ui.make_persistent_id("rail_logo"), logo_resp.hovered(), 0.14, anim::ease_out_cubic);
     ui.painter().text(
         logo_c,
         Align2::CENTER_CENTER,
@@ -53,25 +41,11 @@ pub fn rail(
         if resp.clicked() {
             action = Some(RailAction::Navigate(item.page));
         }
-        let t = anim::anim_bool(
-            &ctx,
-            id.with("active"),
-            item.page == active,
-            0.18,
-            anim::ease_out_cubic,
-        );
-        let hover = anim::anim_bool(
-            &ctx,
-            id.with("hover"),
-            resp.hovered(),
-            0.12,
-            anim::ease_out_cubic,
-        );
+        let t = anim::anim_bool(&ctx, id.with("active"), item.page == active, 0.18, anim::ease_out_cubic);
+        let hover = anim::anim_bool(&ctx, id.with("hover"), resp.hovered(), 0.12, anim::ease_out_cubic);
         if t > 0.01 || hover > 0.01 {
-            let hi =
-                theme::lerp_color(theme::SURFACE, theme::SURFACE_2, (t + hover * 0.5).min(1.0));
-            ui.painter()
-                .rect_filled(slot, theme::corner(px(theme::RADIUS_FIELD)), hi);
+            let hi = theme::lerp_color(theme::SURFACE, theme::SURFACE_2, (t + hover * 0.5).min(1.0));
+            ui.painter().rect_filled(slot, theme::corner(px(theme::RADIUS_FIELD)), hi);
         }
         let col = theme::lerp_color(
             theme::lerp_color(theme::INK_MUTED, theme::INK_DIM, hover),
@@ -98,32 +72,18 @@ pub fn rail(
     let avatar_c = Pos2::new(cx, rect.bottom() - px(26.0));
     let avatar_hit = Rect::from_center_size(avatar_c, Vec2::splat(avatar_r * 2.0));
     crate::ui::kit::image_or_placeholder(ui, avatar_hit, None, avatar, avatar_r, s);
-    let avatar_resp = ui.interact(
-        avatar_hit,
-        ui.make_persistent_id("rail_avatar"),
-        Sense::click(),
-    );
+    let avatar_resp = ui.interact(avatar_hit, ui.make_persistent_id("rail_avatar"), Sense::click());
     if avatar_resp.clicked() {
         action = Some(RailAction::Avatar);
     }
 
     let logout_c = Pos2::new(cx, avatar_c.y - px(44.0));
     let logout_hit = Rect::from_center_size(logout_c, Vec2::splat(px(40.0)));
-    let logout_resp = ui.interact(
-        logout_hit,
-        ui.make_persistent_id("rail_logout"),
-        Sense::click(),
-    );
+    let logout_resp = ui.interact(logout_hit, ui.make_persistent_id("rail_logout"), Sense::click());
     if logout_resp.clicked() {
         action = Some(RailAction::Logout);
     }
-    let logout_hover = anim::anim_bool(
-        &ctx,
-        ui.make_persistent_id("rail_logout"),
-        logout_resp.hovered(),
-        0.14,
-        anim::ease_out_cubic,
-    );
+    let logout_hover = anim::anim_bool(&ctx, ui.make_persistent_id("rail_logout"), logout_resp.hovered(), 0.14, anim::ease_out_cubic);
     ui.painter().text(
         logout_c,
         Align2::CENTER_CENTER,

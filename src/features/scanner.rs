@@ -1,6 +1,3 @@
-//! Secret scanner over the files a build would upload. Returns `Issue`s that
-//! name the file, line and rule only, never a matched value.
-
 use std::collections::HashSet;
 use std::path::Path;
 
@@ -138,7 +135,6 @@ fn in_junk_dir(path: &Path) -> bool {
         .any(|c| JUNK_DIRS.contains(&c.as_os_str().to_string_lossy().as_ref()))
 }
 
-/// Scan every file a build would upload across all depots.
 pub fn scan(project: &Project) -> Vec<Issue> {
     let secret_set = build_set(&SECRET_GLOBS);
     let junk_set = build_set(&JUNK_GLOBS);
@@ -204,8 +200,6 @@ pub fn scan(project: &Project) -> Vec<Issue> {
     issues
 }
 
-/// Full pre-flight: environment checks plus the file scan, with findings the
-/// project has chosen to ignore removed.
 pub fn preflight(project: &Project) -> Vec<Issue> {
     let mut issues = preflight_checks(project);
     issues.extend(scan(project));

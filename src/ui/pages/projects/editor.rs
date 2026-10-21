@@ -43,6 +43,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egui::Co
         let mut changed = false;
         let mut cui = ui.new_child(UiBuilder::new().max_rect(content));
         egui::ScrollArea::vertical()
+            .id_salt("editor_scroll")
             .auto_shrink([false, false])
             .show(&mut cui, |ui| {
                 ui.set_width(content.width() - px(16.0));
@@ -92,6 +93,7 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
     changed |= labelled_path(app, ui, "CONTENT ROOT", PickField::ContentRoot, s, ctx);
     changed |= labelled_path(app, ui, "BUILD OUTPUT", PickField::BuildOutput, s, ctx);
     changed |= labelled_path(app, ui, "STEAMCMD PATH", PickField::SteamCmd, s, ctx);
+    changed |= labelled_path(app, ui, "KEY ART", PickField::KeyArt, s, ctx);
 
     let r = row(ui, s, 64.0);
     let uw = (r.width() - gap) * 0.5;
@@ -106,19 +108,12 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
     ui.painter().text(
         hint.left_top(),
         Align2::LEFT_TOP,
-        "Password is stored in your OS keyring and used to sign in. Leave blank to be prompted; Steam Guard is always asked on the Build page.",
+        "Password is stored in your OS keyring and used to sign in. Leave blank to be prompted; Steam Guard is only asked if the cached sign-in expires.",
         FontId::new(px(11.0), theme::family_medium()),
         theme::INK_MUTED,
     );
     ui.add_space(px(8.0));
 
-    labelled_path(app, ui, "KEY ART", PickField::KeyArt, s, ctx);
-    let art = app.projects_ui.form.key_art.clone();
-    let uri = (!art.is_empty()).then(|| kit::file_uri(&art));
-    let preview = row(ui, s, 108.0);
-    let box_rect = Rect::from_min_size(preview.min, Vec2::splat(px(108.0)));
-    kit::image_or_placeholder(ui, box_rect, uri.as_deref(), 'K', px(theme::RADIUS_CARD), s);
-    ui.add_space(px(14.0));
     template_fields(app, ui, s);
     changed
 }
@@ -214,8 +209,9 @@ fn value_mut<'a>(app: &'a mut App, label: &str) -> &'a mut String {
         "CONTENT ROOT" => &mut app.projects_ui.form.content_root,
         "BUILD OUTPUT" => &mut app.projects_ui.form.build_output,
         "STEAMCMD PATH" => &mut app.projects_ui.form.steamcmd,
+        "KEY ART" => &mut app.projects_ui.form.key_art,
         "STEAM USERNAME" => &mut app.projects_ui.form.username,
-        _ => &mut app.projects_ui.form.key_art,
+        _ => unreachable!("unknown editor field: {label}"),
     }
 }
 

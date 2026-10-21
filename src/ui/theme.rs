@@ -17,7 +17,7 @@ pub const GHOST: Color32 = Color32::from_rgb(0x45, 0x45, 0x45);
 
 pub const INK: Color32 = Color32::from_rgb(0xE8, 0xE8, 0xE8);
 pub const INK_DIM: Color32 = Color32::from_rgb(0xA6, 0xA6, 0xA6);
-pub const INK_MUTED: Color32 = Color32::from_rgb(0x7C, 0x7C, 0x7C);
+pub const INK_MUTED: Color32 = Color32::from_rgb(0x8C, 0x8C, 0x8C);
 pub const INK_FAINT: Color32 = Color32::from_rgb(0x5E, 0x5E, 0x5E);
 
 pub const PRIMARY: Color32 = Color32::from_rgb(0xED, 0xED, 0xED);

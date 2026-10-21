@@ -20,8 +20,8 @@ fn escape(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
-fn win_path(s: &str) -> String {
-    s.replace('/', "\\")
+fn fwd_path(s: &str) -> String {
+    s.replace('\\', "/")
 }
 
 fn path_string(p: &Path) -> String {
@@ -53,17 +53,17 @@ fn gen_appbuild(project: &Project, options: &BuildOptions) -> String {
     s.push_str(&pair(
         1,
         "buildoutput",
-        &win_path(&path_string(&project.build_output_dir)),
+        &fwd_path(&path_string(&project.build_output_dir)),
     ));
     s.push_str(&pair(
         1,
         "contentroot",
-        &win_path(&path_string(&project.content_root)),
+        &fwd_path(&path_string(&project.content_root)),
     ));
     s.push_str(&pair(1, "setlive", &setlive(project)));
     s.push_str(&pair(1, "preview", if options.preview { "1" } else { "0" }));
     if let Some(local) = &options.local {
-        s.push_str(&pair(1, "local", &win_path(local)));
+        s.push_str(&pair(1, "local", &fwd_path(local)));
     }
     s.push_str("\t\"depots\"\n\t{\n");
     for depot in &project.depots {
@@ -73,16 +73,42 @@ fn gen_appbuild(project: &Project, options: &BuildOptions) -> String {
     s
 }
 
-fn gen_depotbuild(depot: &Depot) -> String {
+fn relative_local(content_root: &Path, local_path: &Path) -> String {
+    let norm = |c: &std::path::Component| c.as_os_str().to_string_lossy().to_lowercase();
+    let root: Vec<String> = content_root.components().map(|c| norm(&c)).collect();
+    let parts: Vec<std::path::Component> = local_path.components().collect();
+    let under_root =
+        parts.len() >= root.len() && root.iter().zip(&parts).all(|(r, p)| *r == norm(p));
+    let rel: Vec<String> = if under_root {
+        parts[root.len()..]
+            .iter()
+            .map(|c| c.as_os_str().to_string_lossy().to_string())
+            .collect()
+    } else {
+        parts
+            .iter()
+            .map(|c| c.as_os_str().to_string_lossy().to_string())
+            .collect()
+    };
+    let joined = rel.join("/");
+    let trimmed = joined.trim_matches('/');
+    if trimmed.is_empty() {
+        "*".to_string()
+    } else {
+        format!("{trimmed}/*")
+    }
+}
+
+fn gen_depotbuild(depot: &Depot, content_root: &Path) -> String {
     let mut s = String::from("\"DepotBuildConfig\"\n{\n");
     s.push_str(&pair(1, "DepotID", &depot.depot_id));
     s.push_str("\t\"FileMapping\"\n\t{\n");
     s.push_str(&pair(
         2,
         "LocalPath",
-        &win_path(&path_string(&depot.local_path)),
+        &relative_local(content_root, &depot.local_path),
     ));
-    s.push_str(&pair(2, "DepotPath", &win_path(&depot.depot_path)));
+    s.push_str(&pair(2, "DepotPath", &fwd_path(&depot.depot_path)));
     s.push_str(&pair(
         2,
         "recursive",
@@ -101,7 +127,10 @@ fn gen_depotbuild(depot: &Depot) -> String {
 pub fn generate_vdfs(project: &Project, options: &BuildOptions) -> Vec<(String, String)> {
     let mut out = vec![("appbuild.vdf".to_string(), gen_appbuild(project, options))];
     for depot in &project.depots {
-        out.push((depot_filename(&depot.depot_id), gen_depotbuild(depot)));
+        out.push((
+            depot_filename(&depot.depot_id),
+            gen_depotbuild(depot, &project.content_root),
+        ));
     }
     out
 }
@@ -149,7 +178,7 @@ mod tests {
     #[test]
     fn appbuild_exact() {
         let files = generate_vdfs(&sample(), &BuildOptions::default());
-        let expected = "\"appbuild\"\n{\n\t\"appid\"\t\"480\"\n\t\"desc\"\t\"Nightly\"\n\t\"buildoutput\"\t\"C:\\\\out\"\n\t\"contentroot\"\t\"C:\\\\game\"\n\t\"setlive\"\t\"beta\"\n\t\"preview\"\t\"0\"\n\t\"depots\"\n\t{\n\t\t\"481\"\t\"depot_build_481.vdf\"\n\t}\n}\n";
+        let expected = "\"appbuild\"\n{\n\t\"appid\"\t\"480\"\n\t\"desc\"\t\"Nightly\"\n\t\"buildoutput\"\t\"C:/out\"\n\t\"contentroot\"\t\"C:/game\"\n\t\"setlive\"\t\"beta\"\n\t\"preview\"\t\"0\"\n\t\"depots\"\n\t{\n\t\t\"481\"\t\"depot_build_481.vdf\"\n\t}\n}\n";
         assert_eq!(files[0].0, "appbuild.vdf");
         assert_eq!(files[0].1, expected);
     }
@@ -157,9 +186,48 @@ mod tests {
     #[test]
     fn depotbuild_exact() {
         let files = generate_vdfs(&sample(), &BuildOptions::default());
-        let expected = "\"DepotBuildConfig\"\n{\n\t\"DepotID\"\t\"481\"\n\t\"FileMapping\"\n\t{\n\t\t\"LocalPath\"\t\"C:\\\\game\\\\win\"\n\t\t\"DepotPath\"\t\".\"\n\t\t\"recursive\"\t\"1\"\n\t}\n\t\"FileExclusion\"\t\"*.pdb\"\n\t\"FileExclusion\"\t\"*.log\"\n}\n";
+        let expected = "\"DepotBuildConfig\"\n{\n\t\"DepotID\"\t\"481\"\n\t\"FileMapping\"\n\t{\n\t\t\"LocalPath\"\t\"win/*\"\n\t\t\"DepotPath\"\t\".\"\n\t\t\"recursive\"\t\"1\"\n\t}\n\t\"FileExclusion\"\t\"*.pdb\"\n\t\"FileExclusion\"\t\"*.log\"\n}\n";
         assert_eq!(files[1].0, "depot_build_481.vdf");
         assert_eq!(files[1].1, expected);
+    }
+
+    #[test]
+    fn local_path_is_relative_to_content_root() {
+        let mut p = sample();
+        p.content_root = "D:/Storage/content".into();
+        p.depots[0].local_path = "D:/Storage/content/windows".into();
+        let out = generate_vdfs(&p, &BuildOptions::default());
+        assert!(
+            out[1].1.contains("\"LocalPath\"\t\"windows/*\"\n"),
+            "got: {}",
+            out[1].1
+        );
+    }
+
+    #[test]
+    fn local_path_equal_to_content_root_is_wildcard() {
+        let mut p = sample();
+        p.content_root = "D:/game".into();
+        p.depots[0].local_path = "D:/game".into();
+        let out = generate_vdfs(&p, &BuildOptions::default());
+        assert!(
+            out[1].1.contains("\"LocalPath\"\t\"*\"\n"),
+            "got: {}",
+            out[1].1
+        );
+    }
+
+    #[test]
+    fn local_path_matches_content_root_case_insensitively() {
+        let mut p = sample();
+        p.content_root = "D:/Storage/Content".into();
+        p.depots[0].local_path = "d:/storage/content/linux".into();
+        let out = generate_vdfs(&p, &BuildOptions::default());
+        assert!(
+            out[1].1.contains("\"LocalPath\"\t\"linux/*\"\n"),
+            "got: {}",
+            out[1].1
+        );
     }
 
     #[test]
@@ -187,7 +255,7 @@ mod tests {
         };
         let out = generate_vdfs(&sample(), &opt);
         assert!(out[0].1.contains("\"preview\"\t\"1\"\n"));
-        assert!(out[0].1.contains("\"local\"\t\"D:\\\\local\"\n"));
+        assert!(out[0].1.contains("\"local\"\t\"D:/local\"\n"));
     }
 
     #[test]

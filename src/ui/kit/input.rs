@@ -1,9 +1,8 @@
 use eframe::egui::{
-    self, Align2, FontId, Frame, Pos2, Rect, Response, Stroke, StrokeKind, TextEdit, Vec2,
+    self, Align2, FontId, Frame, Pos2, Rect, Response, Stroke, StrokeKind, TextEdit,
 };
 
-use crate::ui::kit;
-use crate::ui::theme;
+use crate::ui::{anim, kit, theme};
 
 pub struct Input<'a> {
     text: &'a mut String,
@@ -62,21 +61,22 @@ impl<'a> Input<'a> {
             ctx.data_mut(|d| d.insert_temp(id.with("s"), now));
         }
         ctx.data_mut(|d| d.insert_temp(id.with("e"), self.error));
-        let shake = if self.error {
+        let flash = if self.error && !anim::reduce_motion() {
             let start = ctx.data_mut(|d| d.get_temp::<f64>(id.with("s")).unwrap_or(now));
             let elapsed = (now - start) as f32;
-            if elapsed < 0.55 {
+            if elapsed < 0.16 {
                 ctx.request_repaint();
-                (-elapsed * 6.0).exp() * (elapsed * 42.0).sin() * px(3.0)
+                1.0 - anim::ease_out_cubic(elapsed / 0.16)
             } else {
                 0.0
             }
         } else {
             0.0
         };
-        let field = rect.translate(Vec2::new(shake, 0.0));
+        let field = rect;
+        let fill = theme::lerp_color(theme::FIELD, theme::DANGER, flash * 0.12);
 
-        kit::surface(&ui.painter().clone(), field, theme::FIELD, radius);
+        kit::surface(&ui.painter().clone(), field, fill, radius);
 
         let inner = Rect::from_min_max(
             Pos2::new(field.left() + px(14.0), field.top()),
@@ -124,7 +124,9 @@ impl<'a> Input<'a> {
         } else {
             theme::LINE
         };
-        let width = if self.error || resp.has_focus() {
+        let width = if self.error {
+            1.5 + flash * 0.75
+        } else if resp.has_focus() {
             1.5
         } else {
             1.0

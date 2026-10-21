@@ -97,12 +97,13 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
         .count();
     let mut act = Act::None;
 
-    kit::modal(
+    kit::modal_with(
         ui,
         id,
         &mut open,
         Vec2::new(px(560.0), px(466.0)),
         s,
+        !running,
         |ui| {
             let d = ui.max_rect();
             let pad = px(24.0);

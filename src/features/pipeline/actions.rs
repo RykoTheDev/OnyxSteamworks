@@ -275,6 +275,23 @@ pub(super) fn run_upload(
                 let err = line.to_ascii_lowercase().contains("error") || line.contains("FAILED");
                 emit(tx, ctx, i, line, err);
             }
+            Ok(BuildEvent::Prompt(kind)) => {
+                let what = match kind {
+                    steamcmd::PromptKind::Password => "a password",
+                    steamcmd::PromptKind::SteamGuard => "a Steam Guard code",
+                };
+                emit(
+                    tx,
+                    ctx,
+                    i,
+                    format!(
+                        "SteamCMD is asking for {what}. Authorize this account on the Build page first; background builds cannot answer prompts."
+                    ),
+                    true,
+                );
+                steamcmd::cancel(&handle);
+                return StepStatus::Failed;
+            }
             Ok(BuildEvent::Finished(res)) => {
                 return match res {
                     BuildResult::Success { .. } => StepStatus::Success,

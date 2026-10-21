@@ -49,6 +49,8 @@ pub struct App {
     pub(crate) palette: crate::ui::palette::PaletteState,
     pub(crate) drop: crate::ui::dropimport::DropState,
     pub(crate) wizard: crate::ui::wizard::WizardState,
+    pub(crate) confirm_quit: bool,
+    pub(crate) quitting: bool,
     pub(crate) toasts: kit::Toasts,
     #[allow(dead_code)]
     event_tx: Sender<AppEvent>,
@@ -105,6 +107,8 @@ impl App {
             palette: crate::ui::palette::PaletteState::new(),
             drop: crate::ui::dropimport::DropState::new(),
             wizard: crate::ui::wizard::WizardState::new(open_wizard),
+            confirm_quit: false,
+            quitting: false,
             toasts: kit::Toasts::default(),
             event_tx,
             event_rx,
@@ -131,7 +135,11 @@ impl App {
         clip: egui::Rect,
         opacity: f32,
     ) {
-        let mut cu = ui.new_child(UiBuilder::new().max_rect(ui.max_rect()));
+        let mut cu = ui.new_child(
+            UiBuilder::new()
+                .max_rect(ui.max_rect())
+                .id_salt(nav::item(page).label),
+        );
         cu.set_opacity(opacity);
         cu.set_clip_rect(clip);
         pages::render(self, &mut cu, page, lay);
@@ -253,6 +261,11 @@ impl eframe::App for App {
             if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::K)) {
                 self.palette.toggle();
             }
+            if !self.palette.open
+                && ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::Enter))
+            {
+                crate::ui::palette::start_build(self, false, &ctx);
+            }
 
             let mut nav_to = None;
             if !self.palette.open {
@@ -268,15 +281,12 @@ impl eframe::App for App {
 
             let clip =
                 Rect::from_min_max(Pos2::new(lay.rail.right(), lay.frame.top()), lay.frame.max);
-            let slide = theme::px(14.0, s);
             if let Some(tr) = self.transition {
                 let t = tr.progress(&ctx);
                 if let Some(prev) = self.prev_page {
-                    let l = lay.translated(Vec2::new(-slide * t, 0.0));
-                    self.render_page(ui, prev, &l, clip, 1.0 - t);
+                    self.render_page(ui, prev, &lay, clip, 1.0 - t);
                 }
-                let l = lay.translated(Vec2::new(slide * (1.0 - t), 0.0));
-                self.render_page(ui, self.page, &l, clip, t);
+                self.render_page(ui, self.page, &lay, clip, t);
                 if tr.is_done(&ctx) {
                     self.transition = None;
                     self.prev_page = None;
@@ -290,6 +300,7 @@ impl eframe::App for App {
             crate::ui::palette::show(self, ui, s);
             crate::ui::accountmenu::show(self, ui, lay.rail, s);
             crate::ui::wizard::show(self, ui, s);
+            crate::ui::quitguard::show(self, ui, s);
 
             if let Some(page) = self.nav_request.take() {
                 self.goto(&ctx, page);

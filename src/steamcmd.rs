@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
 use std::io::Write;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{ChildStdin, Command, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
@@ -84,12 +84,31 @@ impl BuildHandle {
     }
 }
 
-fn append_login(cmd: &mut Command, project: &Project) {
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum LoginMode {
+    PreferCached,
+    Refresh,
+}
+
+pub(crate) fn command_for(exe: &Path) -> Command {
+    let mut cmd = Command::new(exe);
+    if let Some(dir) = exe.parent().filter(|p| !p.as_os_str().is_empty()) {
+        cmd.current_dir(dir);
+    }
+    cmd
+}
+
+fn append_login(cmd: &mut Command, exe: &Path, project: &Project, mode: LoginMode) {
     let login = project.steam_username.trim();
     if login.is_empty() {
         return;
     }
     cmd.arg("+login").arg(login);
+    if mode == LoginMode::PreferCached
+        && crate::features::accounts::cached_login(exe, login).is_some()
+    {
+        return;
+    }
     if let Ok(Some(password)) = crate::secrets::get_password(&crate::secrets::login_key(login))
         && !password.is_empty()
     {
@@ -115,12 +134,13 @@ pub fn start_build(
     tx: Sender<BuildEvent>,
 ) -> Result<BuildHandle, SteamError> {
     let log_path = log_path_for(options.log_path.as_ref(), "build")?;
-    let mut cmd = Command::new(crate::features::maintenance::effective_steamcmd(project));
+    let exe = crate::features::maintenance::effective_steamcmd(project);
+    let mut cmd = command_for(&exe);
     cmd.arg("+@ShutdownOnFailedCommand").arg("1");
     if !options.interactive {
         cmd.arg("+@NoPromptForPassword").arg("1");
     }
-    append_login(&mut cmd, project);
+    append_login(&mut cmd, &exe, project, LoginMode::PreferCached);
     cmd.arg("+run_app_build")
         .arg(&options.app_build_vdf)
         .arg("+quit");
@@ -133,9 +153,10 @@ pub fn start_login(
     tx: Sender<BuildEvent>,
 ) -> Result<BuildHandle, SteamError> {
     let log_path = log_path_for(None, "login")?;
-    let mut cmd = Command::new(crate::features::maintenance::effective_steamcmd(project));
+    let exe = crate::features::maintenance::effective_steamcmd(project);
+    let mut cmd = command_for(&exe);
     cmd.arg("+@ShutdownOnFailedCommand").arg("1");
-    append_login(&mut cmd, project);
+    append_login(&mut cmd, &exe, project, LoginMode::Refresh);
     cmd.arg("+quit");
     run(cmd, log_path, ctx, tx)
 }
@@ -155,13 +176,14 @@ pub fn start_verify(
     tx: Sender<BuildEvent>,
 ) -> Result<BuildHandle, SteamError> {
     let log_path = log_path_for(options.log_path.as_ref(), "verify")?;
-    let mut cmd = Command::new(crate::features::maintenance::effective_steamcmd(project));
+    let exe = crate::features::maintenance::effective_steamcmd(project);
+    let mut cmd = command_for(&exe);
     cmd.arg("+@ShutdownOnFailedCommand")
         .arg("1")
         .arg("+@NoPromptForPassword")
         .arg("1");
     cmd.arg("+force_install_dir").arg(&options.install_dir);
-    append_login(&mut cmd, project);
+    append_login(&mut cmd, &exe, project, LoginMode::PreferCached);
     cmd.arg("+app_update").arg(&options.app_id);
     let branch = options.branch.trim();
     if !branch.is_empty() && branch != "default" {
@@ -232,11 +254,11 @@ fn run(
         for r in readers {
             let _ = r.join();
         }
-        let status = child.wait();
+        let code = child.wait().ok().and_then(|s| s.code());
         let result = if waiter_cancelled.load(Ordering::SeqCst) {
             BuildResult::Cancelled
         } else {
-            finish(&parsed, status)
+            finish(&parsed, code)
         };
         let _ = tx.send(BuildEvent::Finished(result));
         waiter_ctx.request_repaint();

@@ -93,6 +93,14 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                 Pick::Output,
                 s,
             );
+            let hint = alloc(ui, 24.0, s);
+            ui.painter().text(
+                Pos2::new(hint.left(), hint.top() + px(2.0)),
+                Align2::LEFT_TOP,
+                "Projects inherit these paths until you override them in the project editor.",
+                FontId::new(px(11.5), theme::family_medium()),
+                theme::INK_MUTED,
+            );
 
             section(ui, "DISPLAY", s);
             let mut scale_pct = (c.ui_scale * 100.0).round() as u32;
@@ -147,6 +155,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
 
     if dirty {
         save(&c);
+        if let Ok(projects) = crate::config::list_projects() {
+            app.projects = projects;
+        }
     }
     let _ = ctx;
 }
