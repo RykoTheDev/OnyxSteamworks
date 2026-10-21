@@ -133,6 +133,43 @@ pub fn start_login(
     run(cmd, log_path, ctx, tx)
 }
 
+pub struct VerifyOptions {
+    pub app_id: String,
+    pub install_dir: PathBuf,
+    pub branch: String,
+    pub beta_password: String,
+    pub log_path: Option<PathBuf>,
+}
+
+pub fn start_verify(
+    project: &Project,
+    options: &VerifyOptions,
+    ctx: &egui::Context,
+    tx: Sender<BuildEvent>,
+) -> Result<BuildHandle, SteamError> {
+    let log_path = log_path_for(options.log_path.as_ref(), "verify")?;
+    let mut cmd = Command::new(&project.steamcmd_path);
+    cmd.arg("+@ShutdownOnFailedCommand")
+        .arg("1")
+        .arg("+@NoPromptForPassword")
+        .arg("1");
+    cmd.arg("+force_install_dir").arg(&options.install_dir);
+    let login = project.steam_username.trim();
+    if !login.is_empty() {
+        cmd.arg("+login").arg(login);
+    }
+    cmd.arg("+app_update").arg(&options.app_id);
+    let branch = options.branch.trim();
+    if !branch.is_empty() && branch != "default" {
+        cmd.arg("-beta").arg(branch);
+        if !options.beta_password.trim().is_empty() {
+            cmd.arg("-betapassword").arg(options.beta_password.trim());
+        }
+    }
+    cmd.arg("validate").arg("+quit");
+    run(cmd, log_path, ctx, tx)
+}
+
 fn run(
     mut cmd: Command,
     log_path: PathBuf,

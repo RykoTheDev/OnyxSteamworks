@@ -52,6 +52,17 @@ pub struct Settings {
     pub last_opened_project: Option<String>,
     pub remember_password: bool,
     pub skip_review: bool,
+    pub backup_dir: String,
+    pub backup_keep: u32,
+    pub backup_auto_prune: bool,
+    pub keep_verify_temp: bool,
+    pub llm_enabled: bool,
+    pub llm_base_url: String,
+    pub llm_model: String,
+    pub llm_api_key: String,
+    pub advisor_large_mb: u32,
+    pub analytics_growth_pct: u32,
+    pub queue_max_retries: u32,
 }
 
 /// Root config directory for the app, created if missing.

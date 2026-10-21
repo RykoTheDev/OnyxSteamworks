@@ -14,7 +14,7 @@ pub use button::{Button, ButtonKind, icon_button};
 pub use chip::{chip, chip_size};
 pub use input::Input;
 pub use overlay::{ToastLevel, Toasts, modal, tooltip};
-pub use progress::{progress_bar, segment_progress};
+pub use progress::{line_chart, progress_bar, progress_ring, segment_progress};
 pub use rail::{RailAction, rail};
 pub use select::{dropdown, tabs};
 pub use toggles::{checkbox, toggle};

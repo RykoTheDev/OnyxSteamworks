@@ -52,18 +52,3 @@ pub(crate) fn hero_and_tabs(
     }
     Rect::from_min_max(Pos2::new(content.left(), top), content.max)
 }
-
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn simple_page(
-    ui: &mut egui::Ui,
-    layout: &Layout,
-    title: &str,
-    tabs: &[&str],
-    active: &mut usize,
-    glyph: char,
-    empty_title: &str,
-    empty_body: &str,
-) {
-    let body = hero_and_tabs(ui, layout.content, layout.scale, title, tabs, active);
-    kit::empty_state(ui, body, glyph, empty_title, empty_body, layout.scale);
-}

@@ -216,7 +216,33 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
             FontId::new(px(11.0), theme::family_medium()),
             theme::INK_MUTED,
         );
-        if resp.clicked() {
+        let mut icon_clicked = false;
+        if is_sel && !p.app_id.is_empty() {
+            let bs = px(28.0);
+            let launch = Rect::from_min_size(
+                pos2(r.right() - px(10.0) - bs, r.center().y - bs / 2.0),
+                Vec2::splat(bs),
+            );
+            let store = Rect::from_min_size(
+                pos2(launch.left() - px(6.0) - bs, r.center().y - bs / 2.0),
+                Vec2::splat(bs),
+            );
+            if kit::icon_button(ui, store, theme::icon::PACKAGE, s).clicked() {
+                let url = crate::features::quick::steamworks_builds_url(&p.app_id);
+                std::thread::spawn(move || {
+                    let _ = open::that(url);
+                });
+                icon_clicked = true;
+            }
+            if kit::icon_button(ui, launch, theme::icon::PLAY, s).clicked() {
+                let url = crate::features::quick::steam_run_url(&p.app_id);
+                std::thread::spawn(move || {
+                    let _ = open::that(url);
+                });
+                icon_clicked = true;
+            }
+        }
+        if resp.clicked() && !icon_clicked {
             action = Some(Action::Select(i));
         }
         y += px(52.0);

@@ -57,9 +57,55 @@ pub(super) fn run_step(
                 StepStatus::Success
             }
         }
-        StepKind::Backup => {
-            emit(tx, ctx, i, "Backup is a placeholder until Q5.", false);
+        StepKind::Backup => run_backup(project, i, ctx, tx),
+    }
+}
+
+fn run_backup(
+    project: &Project,
+    i: usize,
+    ctx: &egui::Context,
+    tx: &Sender<PipelineEvent>,
+) -> StepStatus {
+    let settings = crate::config::load_settings().unwrap_or_default();
+    if settings.backup_dir.trim().is_empty() {
+        emit(
+            tx,
+            ctx,
+            i,
+            "No backup folder is set in Settings; skipping backup.",
+            true,
+        );
+        return StepStatus::Skipped;
+    }
+    emit(tx, ctx, i, "Creating backup...", false);
+    let root = PathBuf::from(&settings.backup_dir);
+    let keep = settings.backup_keep.max(1);
+    match crate::features::backup::create_backup(
+        project,
+        &root,
+        project.build_counter,
+        keep,
+        settings.backup_auto_prune,
+        None,
+    ) {
+        Ok(info) => {
+            emit(
+                tx,
+                ctx,
+                i,
+                format!(
+                    "Backed up to {} ({})",
+                    info.path.display(),
+                    crate::validate::human_size(info.size)
+                ),
+                false,
+            );
             StepStatus::Success
+        }
+        Err(e) => {
+            emit(tx, ctx, i, format!("Backup failed: {e}"), true);
+            StepStatus::Failed
         }
     }
 }

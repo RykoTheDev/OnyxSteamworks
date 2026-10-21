@@ -1,7 +1,13 @@
+mod analytics;
+mod backups;
 mod detail;
+mod patchnotes;
 mod state;
 mod table;
 
+pub use analytics::AnalyticsState;
+pub use backups::BackupState;
+pub use patchnotes::{PatchNotesState, start_gen as start_patch_notes};
 pub use state::{HistoryState, RangeFilter, StatusFilter};
 
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -23,30 +29,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
 
     match active {
         0 => builds_tab(app, ui, body, s),
-        1 => kit::empty_state(
-            ui,
-            body,
-            theme::icon::PACKAGE,
-            "No backups yet",
-            "Build backups will appear here.",
-            s,
-        ),
-        2 => kit::empty_state(
-            ui,
-            body,
-            theme::icon::SPARKLE,
-            "No patch notes yet",
-            "Release notes will appear here.",
-            s,
-        ),
-        _ => kit::empty_state(
-            ui,
-            body,
-            theme::icon::HISTORY,
-            "No analytics yet",
-            "Build analytics will appear here.",
-            s,
-        ),
+        1 => backups::show(app, ui, body, s),
+        2 => patchnotes::show(app, ui, body, s),
+        _ => analytics::show(app, ui, body, s),
     }
 
     let ctx = ui.ctx().clone();

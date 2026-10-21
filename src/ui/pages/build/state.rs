@@ -8,7 +8,6 @@ use eframe::egui;
 use crate::history;
 use crate::model::{BuildRecord, BuildStatus, Project};
 use crate::steamcmd::{self, BuildEvent, BuildHandle, BuildResult, PromptKind, Stage};
-use crate::vdf::{self, BuildOptions};
 
 const MAX_LINES: usize = 5000;
 
@@ -49,16 +48,20 @@ pub struct BuildState {
     pub finished_record: Option<BuildRecord>,
     pub preflight: super::preflight::PreflightState,
     pub review: super::review::ReviewState,
+    pub verify_ui: super::verify::VerifyState,
     pub pending_manifest_path: Option<PathBuf>,
-    interactive: bool,
-    run_project: Option<Project>,
-    run_branch: String,
-    log_path: Option<PathBuf>,
-    started: Option<Instant>,
-    finished_elapsed: Option<Duration>,
-    handle: Option<BuildHandle>,
-    tx: Sender<BuildEvent>,
-    rx: Receiver<BuildEvent>,
+    pub speed: super::speed::SpeedTracker,
+    pub guard: super::guard::GuardState,
+    pub(super) interactive: bool,
+    pub(super) run_project: Option<Project>,
+    pub(super) run_branch: String,
+    pub(super) log_path: Option<PathBuf>,
+    pub(super) started: Option<Instant>,
+    pub(super) finished_elapsed: Option<Duration>,
+    pub(super) handle: Option<BuildHandle>,
+    pub(super) keepawake: Option<crate::keepawake::KeepAwake>,
+    pub(super) tx: Sender<BuildEvent>,
+    pub(super) rx: Receiver<BuildEvent>,
 }
 
 impl BuildState {
@@ -85,7 +88,10 @@ impl BuildState {
             finished_record: None,
             preflight: super::preflight::PreflightState::new(),
             review: super::review::ReviewState::new(),
+            verify_ui: super::verify::VerifyState::new(),
             pending_manifest_path: None,
+            speed: super::speed::SpeedTracker::new(),
+            guard: super::guard::GuardState::new(),
             interactive: true,
             run_project: None,
             run_branch: String::new(),
@@ -93,6 +99,7 @@ impl BuildState {
             started: None,
             finished_elapsed: None,
             handle: None,
+            keepawake: None,
             tx,
             rx,
         }
@@ -151,7 +158,10 @@ impl BuildState {
                     self.push_log(s, error);
                 }
                 BuildEvent::Stage(st) => self.stage = Some(st),
-                BuildEvent::Progress(f) => self.progress = f.clamp(0.0, 1.0),
+                BuildEvent::Progress(f) => {
+                    self.progress = f.clamp(0.0, 1.0);
+                    self.speed.record(self.progress, self.started);
+                }
                 BuildEvent::Prompt(kind) => {
                     let msg = match kind {
                         PromptKind::Password => "SteamCMD is asking for a password.",
@@ -176,6 +186,7 @@ impl BuildState {
                     self.prompt_input.clear();
                     self.finished_elapsed = self.started.map(|t| t.elapsed());
                     self.handle = None;
+                    self.keepawake = None;
                     if !was_auth && let Some(project) = self.run_project.clone() {
                         let status = match &res {
                             BuildResult::Success { .. } => BuildStatus::Success,
@@ -195,6 +206,7 @@ impl BuildState {
                             duration_ms,
                             log.as_path(),
                         );
+                        record.git_commit = crate::features::patchnotes::head_commit(&project);
                         if status == BuildStatus::Success {
                             record.manifest_path = self.pending_manifest_path.take();
                         } else {
@@ -223,78 +235,6 @@ impl BuildState {
             ctx.request_repaint();
         }
         finished
-    }
-
-    pub fn start(
-        &mut self,
-        project: &Project,
-        branch: &str,
-        ctx: &egui::Context,
-    ) -> Result<(), String> {
-        let work = crate::config::build_dir().map_err(|e| e.to_string())?;
-        let options = BuildOptions {
-            preview: self.preview_only,
-            local: None,
-        };
-        let paths = vdf::write_vdfs(project, &options, &work).map_err(|e| e.to_string())?;
-        let app_build = paths
-            .iter()
-            .find(|p| p.file_name().and_then(|n| n.to_str()) == Some("appbuild.vdf"))
-            .cloned()
-            .ok_or_else(|| "no appbuild.vdf was generated".to_string())?;
-        let log_path = app_build.with_file_name("build.log");
-
-        let (tx, rx) = channel();
-        self.tx = tx;
-        self.rx = rx;
-        let opts = steamcmd::RunOptions {
-            app_build_vdf: app_build,
-            log_path: Some(log_path),
-            interactive: true,
-        };
-        let handle = steamcmd::start_build(project, &opts, ctx, self.tx.clone())
-            .map_err(|e| e.to_string())?;
-
-        self.begin(handle);
-        self.authorizing = false;
-        self.run_project = Some(project.clone());
-        self.run_branch = branch.to_string();
-        self.push_log(
-            if self.preview_only {
-                "Starting preview build..."
-            } else {
-                "Starting build..."
-            },
-            false,
-        );
-        Ok(())
-    }
-
-    pub fn authorize(&mut self, project: &Project, ctx: &egui::Context) -> Result<(), String> {
-        let (tx, rx) = channel();
-        self.tx = tx;
-        self.rx = rx;
-        let handle =
-            steamcmd::start_login(project, ctx, self.tx.clone()).map_err(|e| e.to_string())?;
-        self.begin(handle);
-        self.authorizing = true;
-        self.push_log("Authorizing account. Answer any prompt below...", false);
-        Ok(())
-    }
-
-    fn begin(&mut self, handle: BuildHandle) {
-        self.log_path = Some(handle.log_path.clone());
-        self.handle = Some(handle);
-        self.finished_record = None;
-        self.log.clear();
-        self.outcome = None;
-        self.stage = None;
-        self.progress = 0.0;
-        self.pending_prompt = None;
-        self.prompt_input.clear();
-        self.started = Some(Instant::now());
-        self.finished_elapsed = None;
-        self.running = true;
     }
 
     pub fn respond(&mut self) {

@@ -165,7 +165,9 @@ fn prompt_bar(
         .show(ui, field, s);
 
     if circle_button(ui, sparkle, theme::icon::SPARKLE, false, s).clicked() {
-        app.toasts.push(kit::ToastLevel::Warning, "Coming soon");
+        app.patchnotes_ui.project_sel = app.build_ui.project_sel;
+        crate::ui::pages::history::start_patch_notes(app, false, ctx);
+        open_history(app, 2);
     }
 
     let busy = app.build_ui.running || app.pipeline_ui.running;

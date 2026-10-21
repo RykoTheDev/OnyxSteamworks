@@ -1,16 +1,21 @@
 mod actions;
 mod auth;
 mod console;
+mod guard;
+mod launch;
 pub(crate) mod preflight;
 pub(crate) mod review;
+mod speed;
+mod stages;
 mod state;
+mod verify;
 
 pub use state::BuildState;
 
 use eframe::egui::{self, Align2, FontId, Pos2, Rect, UiBuilder, Vec2};
 
 use crate::app::{App, Page};
-use crate::model::Project;
+use crate::model::{BranchLevel, Project};
 use crate::steamcmd::BuildResult;
 use crate::ui::kit;
 use crate::ui::kit::{Button, ButtonKind, Input};
@@ -44,6 +49,11 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
             .as_ref()
             .and_then(|id| app.projects.iter().position(|p| &p.id == id))
             .unwrap_or(0);
+        if let Some(p) = app.projects.get(app.build_ui.project_sel)
+            && app.history_ui.latest_for(&p.id).is_none()
+        {
+            app.build_ui.preview_only = true;
+        }
         app.build_ui.inited = true;
     }
 
@@ -77,8 +87,10 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     left_panel(app, ui, left, &project, s);
     right_column(app, ui, right, &project, s, &ctx);
     auth::show(app, ui, s);
+    guard::show(app, ui, s, &ctx);
     preflight::show(app, ui, s, &ctx);
     review::show(app, ui, s, &ctx);
+    verify::show(app, ui, s, &ctx);
 }
 
 fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, project: &Project, s: f32) {
@@ -114,6 +126,11 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, project: &Project, s
     kit::dropdown(ui, dd_rect, &refs, &mut app.build_ui.project_sel, s);
     if app.build_ui.project_sel != prev {
         app.build_ui.branch_sel = 0;
+        if let Some(p) = app.projects.get(app.build_ui.project_sel)
+            && app.history_ui.latest_for(&p.id).is_none()
+        {
+            app.build_ui.preview_only = true;
+        }
     }
 
     let mut x = dd_rect.right() + px(14.0);
@@ -141,12 +158,25 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, project: &Project, s
             if kit::chip(ui, r, label, i == app.build_ui.branch_sel, s).clicked() {
                 app.build_ui.branch_sel = i;
             }
+            if b.level == BranchLevel::Live {
+                ui.painter().circle_filled(
+                    Pos2::new(r.right() - px(3.0), r.top() + px(3.0)),
+                    px(3.5),
+                    theme::DANGER,
+                );
+            }
             x += size.x + px(8.0);
         }
     }
 
+    let quick = Rect::from_min_size(
+        Pos2::new(inner_x, dd_rect.bottom() + px(14.0)),
+        Vec2::new(inner_w, px(32.0)),
+    );
+    actions::quick_actions(app, ui, quick, project, s);
+
     let console_rect = Rect::from_min_max(
-        Pos2::new(inner_x, dd_rect.bottom() + px(16.0)),
+        Pos2::new(inner_x, quick.bottom() + px(12.0)),
         Pos2::new(inner_x + inner_w, rect.bottom() - pad),
     );
     let cctx = ui.ctx().clone();
@@ -170,7 +200,7 @@ fn right_column(
     );
     run_panel(app, ui, run, project, s, ctx);
     let last = app.history_ui.latest_for(&project.id).cloned();
-    stages_panel(app, ui, stages, s, last.as_ref());
+    stages::show(app, ui, stages, s, last.as_ref());
 }
 
 fn run_panel(
@@ -306,7 +336,7 @@ fn run_panel(
                 .get(app.build_ui.branch_sel)
                 .map(|b| b.name.clone())
                 .unwrap_or_default();
-            app.build_ui.preflight.request(project, &branch, ctx);
+            guard::request(app, project, &branch, ctx);
         }
     }
     if t > 0.001 {
@@ -321,104 +351,6 @@ fn run_panel(
         {
             app.build_ui.cancel();
         }
-    }
-}
-
-fn stages_panel(
-    app: &mut App,
-    ui: &mut egui::Ui,
-    rect: Rect,
-    s: f32,
-    last: Option<&crate::model::BuildRecord>,
-) {
-    let px = |v: f32| theme::px(v, s);
-    kit::bordered(
-        &ui.painter().clone(),
-        rect,
-        theme::SURFACE_2,
-        theme::LINE,
-        px(theme::RADIUS_PANEL_MIN),
-    );
-    let pad = px(18.0);
-    let x = rect.left() + pad;
-    let w = rect.width() - pad * 2.0;
-    kit::label(
-        &ui.painter().clone(),
-        Pos2::new(x, rect.top() + pad),
-        "STAGES",
-        s,
-    );
-
-    let seg = Rect::from_min_size(Pos2::new(x, rect.top() + px(48.0)), Vec2::new(w, px(6.0)));
-    kit::segment_progress(
-        ui,
-        seg,
-        state::STAGES.len(),
-        app.build_ui.filled_stages(),
-        s,
-    );
-
-    let elapsed = app.build_ui.elapsed();
-    let secs = elapsed.as_secs();
-    let time = format!("{:02}:{:02}", secs / 60, secs % 60);
-    ui.painter().text(
-        Pos2::new(x, seg.bottom() + px(22.0)),
-        Align2::LEFT_CENTER,
-        app.build_ui.stage_name(),
-        FontId::new(px(14.0), theme::family_semibold()),
-        theme::INK,
-    );
-    ui.painter().text(
-        Pos2::new(x + w, seg.bottom() + px(22.0)),
-        Align2::RIGHT_CENTER,
-        time,
-        FontId::new(px(13.0), egui::FontFamily::Monospace),
-        theme::INK_DIM,
-    );
-
-    let bar = Rect::from_min_size(Pos2::new(x, seg.bottom() + px(40.0)), Vec2::new(w, px(5.0)));
-    kit::progress_bar(ui, bar, app.build_ui.progress, s);
-
-    if let Some(outcome) = &app.build_ui.outcome {
-        let (text, color) = match outcome {
-            BuildResult::Success { app_id } => (format!("Success  app {app_id}"), theme::SUCCESS),
-            BuildResult::Failure { .. } => ("Failed".to_string(), theme::DANGER),
-            BuildResult::Cancelled => ("Cancelled".to_string(), theme::WARNING),
-        };
-        ui.painter().text(
-            Pos2::new(x, bar.bottom() + px(22.0)),
-            Align2::LEFT_CENTER,
-            text,
-            FontId::new(px(12.5), theme::family_medium()),
-            color,
-        );
-    }
-
-    if let Some(record) = last {
-        use crate::ui::pages::history;
-        let y = rect.bottom() - px(22.0);
-        let secs = record.duration_ms / 1000;
-        let summary = format!(
-            "{}  ·  {:02}:{:02}  ·  {}",
-            history::status_label(record.status),
-            secs / 60,
-            secs % 60,
-            history::rel_time(record.timestamp)
-        );
-        ui.painter().text(
-            Pos2::new(x, y),
-            Align2::LEFT_CENTER,
-            "LAST BUILD",
-            FontId::new(px(11.0), theme::family_label()),
-            theme::INK_MUTED,
-        );
-        ui.painter().text(
-            Pos2::new(x + w, y),
-            Align2::RIGHT_CENTER,
-            summary,
-            FontId::new(px(12.0), theme::family_medium()),
-            history::status_color(record.status),
-        );
     }
 }
 

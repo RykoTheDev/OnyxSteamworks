@@ -93,6 +93,17 @@ impl HistoryState {
         self.records.iter().find(|r| r.project_id == project_id)
     }
 
+    pub fn last_commit_for(&self, project_id: &str) -> Option<String> {
+        self.records
+            .iter()
+            .find(|r| {
+                r.project_id == project_id
+                    && r.status == BuildStatus::Success
+                    && r.git_commit.is_some()
+            })
+            .and_then(|r| r.git_commit.clone())
+    }
+
     pub fn for_project<'a>(&'a self, project_id: &str) -> Vec<&'a BuildRecord> {
         self.records
             .iter()
