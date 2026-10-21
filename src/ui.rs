@@ -7,3 +7,4 @@ pub mod nav;
 pub mod pages;
 pub mod palette;
 pub mod theme;
+pub mod wizard;

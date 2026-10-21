@@ -1,16 +1,22 @@
 mod accounts;
 mod advanced;
+mod developer;
 mod doctor;
+mod general;
+mod notifications;
 
 pub use accounts::AccountsState;
 pub use advanced::AdvancedState;
+pub use developer::DeveloperState;
 pub use doctor::DoctorState;
+pub use general::GeneralState;
+pub use notifications::NotificationsState;
 
 use eframe::egui;
 
 use crate::app::{App, Page};
 use crate::ui::layout::Layout;
-use crate::ui::{kit, nav, pages, theme};
+use crate::ui::{nav, pages};
 
 pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     let idx = nav::index(Page::Settings);
@@ -26,20 +32,11 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     );
     app.sub_tabs[idx] = active;
 
-    if active == 1 {
-        accounts::show(app, ui, body, layout.scale);
-    } else if active == 3 {
-        doctor::show(app, ui, body, layout.scale);
-    } else if active == 4 {
-        advanced::show(app, ui, body, layout.scale);
-    } else {
-        let (title, note) = match active {
-            0 => (
-                "General settings",
-                "Defaults for builds and the review step will live here.",
-            ),
-            _ => ("Notifications", "Build notifications will live here."),
-        };
-        kit::empty_state(ui, body, theme::icon::GEAR, title, note, layout.scale);
+    match active {
+        1 => accounts::show(app, ui, body, layout.scale),
+        2 => notifications::show(app, ui, body, layout.scale),
+        3 => doctor::show(app, ui, body, layout.scale),
+        4 => advanced::show(app, ui, body, layout.scale),
+        _ => general::show(app, ui, body, layout.scale),
     }
 }

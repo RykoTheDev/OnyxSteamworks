@@ -1,4 +1,4 @@
-use eframe::egui::{self, Align2, FontId, Pos2, Rect, Vec2};
+use eframe::egui::{self, Align2, FontId, Pos2, Rect, Sense, UiBuilder, Vec2};
 
 use crate::app::App;
 use crate::ui::kit::{self, Button, ButtonKind, Input};
@@ -24,6 +24,10 @@ impl AdvancedState {
         Self {
             draft: Draft::default(),
         }
+    }
+
+    pub fn reload(&mut self) {
+        self.draft.loaded = false;
     }
 }
 
@@ -63,6 +67,27 @@ fn persist(draft: &Draft) {
 }
 
 pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
+    let px = |v: f32| theme::px(v, s);
+    let mut cu = ui.new_child(UiBuilder::new().max_rect(rect));
+    cu.set_clip_rect(rect);
+    egui::ScrollArea::vertical()
+        .id_salt("advanced_scroll")
+        .auto_shrink([false, false])
+        .show(&mut cu, |ui| {
+            let (canvas, _) = ui.allocate_exact_size(
+                Vec2::new(rect.width() - px(16.0), px(730.0)),
+                Sense::hover(),
+            );
+            ai_and_analytics(app, ui, canvas, s);
+            let dev = Rect::from_min_max(
+                Pos2::new(canvas.left(), canvas.top() + px(528.0)),
+                Pos2::new(canvas.right(), canvas.bottom()),
+            );
+            super::developer::show(app, ui, dev, s);
+        });
+}
+
+fn ai_and_analytics(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     let px = |v: f32| theme::px(v, s);
     load_into(&mut app.advanced_ui.draft);
     let draft = &mut app.advanced_ui.draft;

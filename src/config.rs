@@ -1,12 +1,6 @@
-//! On-disk storage for projects and settings.
-//!
-//! One JSON file per project plus a single settings file, all under the
-//! platform config directory (via the `directories` crate). Writes are atomic
-//! (temp file then rename). Loading is tolerant: a `schema_version` is recorded,
-//! unknown fields are ignored, and missing fields fall back to `Default`.
-//!
-//! The public API is defined ahead of the UI and commands that will call it
-//! (the U and K steps), so some functions are unused for now.
+//! On-disk storage for projects and settings: one JSON file per project plus a
+//! settings file under the platform config directory. Writes are atomic and
+//! loading is tolerant (unknown fields ignored, missing fields default).
 #![allow(dead_code)]
 
 use std::fs;
@@ -65,6 +59,18 @@ pub struct Settings {
     pub queue_max_retries: u32,
     pub accounts: Vec<String>,
     pub checklist_reset_on_live: bool,
+    pub notify_toast: bool,
+    pub notify_success: bool,
+    pub notify_failure: bool,
+    pub discord_enabled: bool,
+    pub default_content: String,
+    pub default_output: String,
+    pub ui_scale: f32,
+    pub reduce_motion: bool,
+    pub log_retention_days: u32,
+    pub use_fake_steamcmd: bool,
+    pub steamcmd_override: String,
+    pub wizard_done: bool,
 }
 
 /// Root config directory for the app, created if missing.

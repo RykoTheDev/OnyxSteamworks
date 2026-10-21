@@ -51,10 +51,22 @@ pub const REF_H: f32 = 830.0;
 const SCALE_MIN: f32 = 0.78;
 const SCALE_MAX: f32 = 1.35;
 
+static UI_SCALE: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(1000);
+
+pub fn set_ui_scale(factor: f32) {
+    let factor = factor.clamp(0.8, 1.3);
+    UI_SCALE.store(
+        (factor * 1000.0) as u32,
+        std::sync::atomic::Ordering::Relaxed,
+    );
+}
+
+pub fn ui_scale() -> f32 {
+    UI_SCALE.load(std::sync::atomic::Ordering::Relaxed) as f32 / 1000.0
+}
+
 pub fn scale(available: egui::Vec2) -> f32 {
-    (available.x / REF_W)
-        .min(available.y / REF_H)
-        .clamp(SCALE_MIN, SCALE_MAX)
+    ((available.x / REF_W).min(available.y / REF_H) * ui_scale()).clamp(SCALE_MIN, SCALE_MAX)
 }
 
 pub fn px(value: f32, scale: f32) -> f32 {

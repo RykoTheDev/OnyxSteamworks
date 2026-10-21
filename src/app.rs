@@ -37,13 +37,18 @@ pub struct App {
     pub(crate) analytics_ui: pages::history::AnalyticsState,
     pub(crate) pipeline_ui: pages::pipelines::PipelineState,
     pub(crate) queue: pages::pipelines::QueueState,
+    pub(crate) notify_ui: crate::features::notify::NotifyState,
     pub(crate) doctor_ui: pages::settings::DoctorState,
     pub(crate) advanced_ui: pages::settings::AdvancedState,
+    pub(crate) developer_ui: pages::settings::DeveloperState,
+    pub(crate) general_ui: pages::settings::GeneralState,
     pub(crate) accounts_ui: pages::settings::AccountsState,
+    pub(crate) notifications_ui: pages::settings::NotificationsState,
     pub(crate) account_menu: bool,
     pub(crate) nav_request: Option<Page>,
     pub(crate) palette: crate::ui::palette::PaletteState,
     pub(crate) drop: crate::ui::dropimport::DropState,
+    pub(crate) wizard: crate::ui::wizard::WizardState,
     pub(crate) toasts: kit::Toasts,
     #[allow(dead_code)]
     event_tx: Sender<AppEvent>,
@@ -54,6 +59,14 @@ impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         theme::apply_theme(&cc.egui_ctx);
         egui_extras::install_image_loaders(&cc.egui_ctx);
+
+        let startup = crate::config::load_settings().unwrap_or_default();
+        anim::set_reduce_motion(startup.reduce_motion);
+        if startup.ui_scale > 0.0 {
+            theme::set_ui_scale(startup.ui_scale);
+        }
+        let _ = crate::features::maintenance::clean_old_logs(startup.log_retention_days);
+        let open_wizard = !startup.wizard_done;
 
         let projects = match crate::config::list_projects() {
             Ok(projects) => projects,
@@ -80,13 +93,18 @@ impl App {
             analytics_ui: pages::history::AnalyticsState::new(),
             pipeline_ui: pages::pipelines::PipelineState::new(),
             queue: pages::pipelines::QueueState::new(),
+            notify_ui: crate::features::notify::NotifyState::new(),
             doctor_ui: pages::settings::DoctorState::new(),
             advanced_ui: pages::settings::AdvancedState::new(),
+            developer_ui: pages::settings::DeveloperState::default(),
+            general_ui: pages::settings::GeneralState::default(),
             accounts_ui: pages::settings::AccountsState::default(),
+            notifications_ui: pages::settings::NotificationsState::default(),
             account_menu: false,
             nav_request: None,
             palette: crate::ui::palette::PaletteState::new(),
             drop: crate::ui::dropimport::DropState::new(),
+            wizard: crate::ui::wizard::WizardState::new(open_wizard),
             toasts: kit::Toasts::default(),
             event_tx,
             event_rx,
@@ -187,6 +205,9 @@ impl eframe::App for App {
     fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.pump_events();
         self.queue.tick(&self.projects, ctx);
+        for msg in self.notify_ui.drain() {
+            self.toasts.push(kit::ToastLevel::Error, msg);
+        }
     }
 
     fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
@@ -268,6 +289,7 @@ impl eframe::App for App {
             crate::ui::dropimport::show(self, ui, lay.frame, s);
             crate::ui::palette::show(self, ui, s);
             crate::ui::accountmenu::show(self, ui, lay.rail, s);
+            crate::ui::wizard::show(self, ui, s);
 
             if let Some(page) = self.nav_request.take() {
                 self.goto(&ctx, page);

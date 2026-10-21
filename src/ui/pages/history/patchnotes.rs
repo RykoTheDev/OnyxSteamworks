@@ -379,10 +379,26 @@ fn actions(app: &mut App, ui: &mut egui::Ui, rect: Rect, y: f32, ctx: &egui::Con
         Pos2::new(rect.right() - px(170.0), y),
         Vec2::new(px(170.0), bh),
     );
-    Button::new("SEND TO DISCORD", ButtonKind::Secondary)
-        .enabled(false)
-        .disabled_reason("Available after Discord setup")
-        .show(ui, discord, s);
+    let discord_on = crate::config::load_settings()
+        .map(|c| c.discord_enabled)
+        .unwrap_or(false);
+    let can_discord = has_text && discord_on;
+    if Button::new("SEND TO DISCORD", ButtonKind::Secondary)
+        .enabled(can_discord)
+        .disabled_reason("Enable Discord in Settings > Notifications")
+        .show(ui, discord, s)
+        .clicked()
+        && can_discord
+    {
+        let webhook = crate::secrets::get_password(crate::features::notify::WEBHOOK_KEY)
+            .ok()
+            .flatten()
+            .unwrap_or_default();
+        app.notify_ui
+            .post_text(webhook, app.patchnotes_ui.draft.clone(), ctx);
+        app.toasts
+            .push(kit::ToastLevel::Success, "Sending to Discord\u{2026}");
+    }
     let save = Rect::from_min_size(
         Pos2::new(discord.left() - px(8.0) - px(130.0), y),
         Vec2::new(px(130.0), bh),

@@ -31,18 +31,7 @@ pub(super) fn run_step(
         StepKind::RunCommand => actions::run_command(project, i, step, control, ctx, tx),
         StepKind::Clean => actions::run_clean(project, i, step, ctx, tx),
         StepKind::Upload => actions::run_upload(project, i, control, ctx, tx),
-        StepKind::Notify => {
-            emit(tx, ctx, i, format!("Notify: {}", step.message), false);
-            let _ = tx.send(PipelineEvent::Notify(step.message.clone()));
-            emit(
-                tx,
-                ctx,
-                i,
-                "Discord notifications are not configured yet (Q12).",
-                false,
-            );
-            StepStatus::Success
-        }
+        StepKind::Notify => run_notify(project, i, step, ctx, tx),
         StepKind::Confirm => {
             if let Ok(mut flag) = control.confirm_flag.lock() {
                 *flag = false;
@@ -59,6 +48,43 @@ pub(super) fn run_step(
         }
         StepKind::Backup => run_backup(project, i, ctx, tx),
     }
+}
+
+fn run_notify(
+    project: &Project,
+    i: usize,
+    step: &PipelineStep,
+    ctx: &egui::Context,
+    tx: &Sender<PipelineEvent>,
+) -> StepStatus {
+    use crate::features::notify;
+    let message = step.message.trim();
+    emit(tx, ctx, i, format!("Notify: {message}"), false);
+    let _ = tx.send(PipelineEvent::Notify(step.message.clone()));
+
+    let cfg = crate::config::load_settings().unwrap_or_default();
+    let title = if project.name.is_empty() {
+        "SteamPipe GUI".to_string()
+    } else {
+        project.name.clone()
+    };
+    if cfg.notify_toast
+        && let Err(e) = notify::os_toast_message(&title, message)
+    {
+        emit(tx, ctx, i, format!("Toast failed: {e}"), true);
+    }
+    if cfg.discord_enabled {
+        let webhook = crate::secrets::get_password(notify::WEBHOOK_KEY)
+            .ok()
+            .flatten()
+            .unwrap_or_default();
+        let content = format!("**{title}**\n{message}");
+        match notify::post_discord_text(&webhook, &content) {
+            Ok(()) => emit(tx, ctx, i, "Discord message sent.", false),
+            Err(e) => emit(tx, ctx, i, format!("Discord failed: {e}"), true),
+        }
+    }
+    StepStatus::Success
 }
 
 fn run_backup(

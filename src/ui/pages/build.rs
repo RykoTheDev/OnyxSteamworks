@@ -1,6 +1,7 @@
 mod actions;
 mod auth;
 mod console;
+mod finish;
 mod guard;
 mod launch;
 pub(crate) mod preflight;
@@ -38,7 +39,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
         app.toasts.push(level, msg);
     }
     if let Some(record) = app.build_ui.finished_record.take() {
-        maybe_reset_checklist(app, &record);
+        finish::after_finish(app, &record, &ctx);
         app.history_ui.save(record);
     }
     app.history_ui.ensure_loaded();
@@ -363,35 +364,4 @@ fn build_reason(project: &Project) -> Option<String> {
         return Some("add at least one depot".to_string());
     }
     None
-}
-
-fn maybe_reset_checklist(app: &mut App, record: &crate::model::BuildRecord) {
-    if record.status != crate::model::BuildStatus::Success {
-        return;
-    }
-    if !crate::config::load_settings()
-        .map(|c| c.checklist_reset_on_live)
-        .unwrap_or(false)
-    {
-        return;
-    }
-    let Some(idx) = app.projects.iter().position(|p| p.id == record.project_id) else {
-        return;
-    };
-    let is_live = app.projects[idx]
-        .branches
-        .iter()
-        .find(|b| b.name == record.branch)
-        .map(|b| b.level == BranchLevel::Live)
-        .unwrap_or(false);
-    if !is_live {
-        return;
-    }
-    crate::features::checklist::reset(&mut app.projects[idx].checklist);
-    let project = app.projects[idx].clone();
-    let _ = crate::config::save_project(&project);
-    app.toasts.push(
-        kit::ToastLevel::Success,
-        "Release checklist reset for the next build",
-    );
 }

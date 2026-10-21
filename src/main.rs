@@ -6,6 +6,7 @@ mod config;
 mod features;
 mod history;
 mod keepawake;
+mod kv;
 mod model;
 mod secrets;
 mod steamcmd;

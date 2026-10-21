@@ -2,6 +2,7 @@ mod branches;
 mod checklist;
 mod depots;
 mod editor;
+mod io;
 mod preview;
 mod scan;
 mod state;
@@ -21,6 +22,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     let s = layout.scale;
     let px = |v: f32| theme::px(v, s);
     app.projects_ui.drain();
+    for res in app.projects_ui.io.drain() {
+        io::handle(app, res);
+    }
     if !app.projects_ui.inited {
         if let Some(p) = app.projects.first().cloned() {
             app.projects_ui.select(&p);
@@ -57,7 +61,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     }
 }
 
-fn reload(app: &mut App) {
+pub(super) fn reload(app: &mut App) {
     app.projects = config::list_projects().unwrap_or_default();
 }
 
@@ -104,11 +108,13 @@ fn empty(app: &mut App, ui: &mut egui::Ui, content: Rect, s: f32) {
     }
 }
 
-enum Action {
+pub(super) enum Action {
     New,
     Duplicate,
     Delete,
     Select(usize),
+    Import,
+    Export,
 }
 
 fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
@@ -121,54 +127,9 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         theme::INK_MUTED,
     );
 
-    let row_y = rect.top() + px(30.0);
-    let bw = (rect.width() - px(16.0)) / 3.0;
-    let has_sel = app.projects_ui.selected.is_some() && app.projects_ui.on_disk;
-    let mut action: Option<Action> = None;
+    let (mut action, list_top) = io::toolbar(app, ui, rect, s);
 
-    if Button::new("NEW", ButtonKind::Primary)
-        .icon(theme::icon::PLUS)
-        .show(
-            ui,
-            Rect::from_min_size(pos2(rect.left(), row_y), Vec2::new(bw, px(36.0))),
-            s,
-        )
-        .clicked()
-    {
-        action = Some(Action::New);
-    }
-    if Button::new("DUP", ButtonKind::Secondary)
-        .enabled(has_sel)
-        .show(
-            ui,
-            Rect::from_min_size(
-                pos2(rect.left() + bw + px(8.0), row_y),
-                Vec2::new(bw, px(36.0)),
-            ),
-            s,
-        )
-        .clicked()
-        && has_sel
-    {
-        action = Some(Action::Duplicate);
-    }
-    if Button::new("DEL", ButtonKind::Danger)
-        .enabled(has_sel)
-        .show(
-            ui,
-            Rect::from_min_size(
-                pos2(rect.left() + (bw + px(8.0)) * 2.0, row_y),
-                Vec2::new(bw, px(36.0)),
-            ),
-            s,
-        )
-        .clicked()
-        && has_sel
-    {
-        action = Some(Action::Delete);
-    }
-
-    let mut y = row_y + px(50.0);
+    let mut y = list_top;
     let selected = app.projects_ui.selected.clone();
     for (i, p) in app.projects.iter().enumerate() {
         let r = Rect::from_min_size(pos2(rect.left(), y), Vec2::new(rect.width(), px(46.0)));
@@ -256,6 +217,11 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         Some(Action::Select(i)) => {
             let p = app.projects[i].clone();
             app.projects_ui.select(&p);
+        }
+        Some(Action::Import) => app.projects_ui.io.spawn_import(&ui.ctx().clone()),
+        Some(Action::Export) => {
+            let project = app.projects_ui.project();
+            app.projects_ui.io.spawn_export(project, &ui.ctx().clone());
         }
         None => {}
     }

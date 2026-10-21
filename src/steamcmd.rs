@@ -102,7 +102,7 @@ pub fn start_build(
     tx: Sender<BuildEvent>,
 ) -> Result<BuildHandle, SteamError> {
     let log_path = log_path_for(options.log_path.as_ref(), "build")?;
-    let mut cmd = Command::new(&project.steamcmd_path);
+    let mut cmd = Command::new(crate::features::maintenance::effective_steamcmd(project));
     cmd.arg("+@ShutdownOnFailedCommand").arg("1");
     if !options.interactive {
         cmd.arg("+@NoPromptForPassword").arg("1");
@@ -123,7 +123,7 @@ pub fn start_login(
     tx: Sender<BuildEvent>,
 ) -> Result<BuildHandle, SteamError> {
     let log_path = log_path_for(None, "login")?;
-    let mut cmd = Command::new(&project.steamcmd_path);
+    let mut cmd = Command::new(crate::features::maintenance::effective_steamcmd(project));
     cmd.arg("+@ShutdownOnFailedCommand").arg("1");
     let login = project.steam_username.trim();
     if !login.is_empty() {
@@ -148,7 +148,7 @@ pub fn start_verify(
     tx: Sender<BuildEvent>,
 ) -> Result<BuildHandle, SteamError> {
     let log_path = log_path_for(options.log_path.as_ref(), "verify")?;
-    let mut cmd = Command::new(&project.steamcmd_path);
+    let mut cmd = Command::new(crate::features::maintenance::effective_steamcmd(project));
     cmd.arg("+@ShutdownOnFailedCommand")
         .arg("1")
         .arg("+@NoPromptForPassword")
