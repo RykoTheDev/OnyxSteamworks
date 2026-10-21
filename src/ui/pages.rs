@@ -34,7 +34,18 @@ pub(crate) fn hero_and_tabs(
     kit::hero(&ui.painter().clone(), content, title, scale);
     let mut top = content.top() + px(96.0);
     if !tabs.is_empty() {
-        let tw = (px(96.0) * tabs.len() as f32).min(content.width());
+        let font = egui::FontId::new(px(12.0), theme::family_semibold());
+        let widest = tabs
+            .iter()
+            .map(|t| {
+                ui.painter()
+                    .layout_no_wrap(t.to_string(), font.clone(), theme::INK)
+                    .size()
+                    .x
+            })
+            .fold(0.0_f32, f32::max);
+        let seg = (widest + px(28.0)).max(px(84.0));
+        let tw = (seg * tabs.len() as f32).min(content.width());
         let tr = Rect::from_min_size(Pos2::new(content.left(), top), Vec2::new(tw, px(34.0)));
         kit::tabs(ui, tr, tabs, active, scale);
         top = tr.bottom() + px(20.0);

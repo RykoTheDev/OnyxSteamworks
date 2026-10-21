@@ -51,10 +51,55 @@ pub struct Branch {
     pub level: BranchLevel,
 }
 
-/// A single pipeline step. Intentionally empty for now (defined in a later step).
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+pub enum StepKind {
+    #[default]
+    Upload,
+    RunCommand,
+    Clean,
+    Backup,
+    Notify,
+    Confirm,
+}
+
+impl StepKind {
+    pub const ALL: [StepKind; 6] = [
+        StepKind::Upload,
+        StepKind::RunCommand,
+        StepKind::Clean,
+        StepKind::Backup,
+        StepKind::Notify,
+        StepKind::Confirm,
+    ];
+
+    pub fn label(self) -> &'static str {
+        match self {
+            StepKind::Upload => "Upload",
+            StepKind::RunCommand => "Run command",
+            StepKind::Clean => "Clean",
+            StepKind::Backup => "Backup",
+            StepKind::Notify => "Notify",
+            StepKind::Confirm => "Confirm",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default)]
-pub struct PipelineStep {}
+pub struct PipelineStep {
+    pub id: String,
+    pub name: String,
+    pub kind: StepKind,
+    pub enabled: bool,
+    pub continue_on_failure: bool,
+    pub timeout_secs: u32,
+    pub exe: String,
+    pub args: String,
+    pub working_dir: String,
+    pub env: String,
+    pub targets: Vec<String>,
+    pub message: String,
+}
 
 /// A game project: everything needed to generate VDFs and run a build.
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
@@ -74,6 +119,7 @@ pub struct Project {
     pub branches: Vec<Branch>,
     pub set_live_branch: String,
     pub desc_template: String,
+    pub version_file: String,
     pub pipeline: Vec<PipelineStep>,
     pub ignore_patterns: Vec<String>,
     pub build_counter: u32,
@@ -98,6 +144,7 @@ pub struct BuildRecord {
     pub status: BuildStatus,
     pub duration_ms: u64,
     pub log_path: PathBuf,
+    pub settings_json: String,
     pub git_commit: Option<String>,
     pub manifest_path: Option<PathBuf>,
     pub notes: Option<String>,

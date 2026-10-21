@@ -112,9 +112,7 @@ impl ProjectsState {
     }
 
     pub fn first_error(&self) -> Option<String> {
-        self.errors
-            .first()
-            .map(|e| format!("{}: {}", e.field, e.message))
+        self.errors.first().map(|e| e.message.clone())
     }
 
     pub fn dirty(&self) -> bool {

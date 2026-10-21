@@ -1,7 +1,8 @@
-use eframe::egui::{self, Pos2, Rect, Sense, UiBuilder, Vec2};
+use eframe::egui::{self, Align2, FontId, Pos2, Rect, Sense, UiBuilder, Vec2};
 
 use super::state::PickField;
 use crate::app::App;
+use crate::features::template;
 use crate::ui::kit;
 use crate::ui::kit::{Button, ButtonKind, Input};
 use crate::ui::theme;
@@ -44,7 +45,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egui::Co
         egui::ScrollArea::vertical()
             .auto_shrink([false, false])
             .show(&mut cui, |ui| {
-                ui.set_width(content.width());
+                ui.set_width(content.width() - px(16.0));
                 changed |= basic_fields(app, ui, s, ctx);
                 super::depots::sections(app, ui, s, ctx);
                 ui.add_space(px(8.0));
@@ -85,7 +86,7 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
     );
     changed |= labelled_text(app, ui, left, "APP ID", None, false, s);
     changed |= labelled_text(app, ui, right, "DISPLAY NAME", Some("(Optional)"), false, s);
-    ui.add_space(px(6.0));
+    ui.add_space(px(22.0));
 
     changed |= labelled_path(app, ui, "CONTENT ROOT", PickField::ContentRoot, s, ctx);
     changed |= labelled_path(app, ui, "BUILD OUTPUT", PickField::BuildOutput, s, ctx);
@@ -103,7 +104,68 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
     let box_rect = Rect::from_min_size(preview.min, Vec2::splat(px(108.0)));
     kit::image_or_placeholder(ui, box_rect, uri.as_deref(), 'K', px(theme::RADIUS_CARD), s);
     ui.add_space(px(14.0));
+    template_fields(app, ui, s);
     changed
+}
+
+fn template_fields(app: &mut App, ui: &mut egui::Ui, s: f32) {
+    let px = |v: f32| theme::px(v, s);
+    label(ui, "DESCRIPTION TEMPLATE", s);
+    let r = row(ui, s, 40.0);
+    Input::new(&mut app.projects_ui.base.desc_template)
+        .hint("v{version} {branch} {date}.{time} #{build_number} {git_commit}")
+        .show(
+            ui,
+            Rect::from_min_size(r.min, Vec2::new(r.width(), px(40.0))),
+            s,
+        );
+    ui.add_space(px(10.0));
+
+    let branch = app.projects_ui.base.set_live_branch.clone();
+    let project = app.projects_ui.project();
+    let vars = template::resolve(
+        &project,
+        if branch.is_empty() {
+            "default"
+        } else {
+            &branch
+        },
+    );
+    let resolved = template::expand(&project.desc_template, &vars);
+    let preview = if resolved.trim().is_empty() {
+        "(type a template above)".to_string()
+    } else {
+        resolved
+    };
+    label(ui, "RESOLVED PREVIEW", s);
+    let pr = row(ui, s, 36.0);
+    let block = Rect::from_min_size(pr.min, Vec2::new(pr.width(), px(32.0)));
+    kit::bordered(
+        &ui.painter().clone(),
+        block,
+        theme::FIELD,
+        theme::LINE,
+        px(theme::RADIUS_FIELD),
+    );
+    ui.painter().text(
+        Pos2::new(block.left() + px(12.0), block.center().y),
+        Align2::LEFT_CENTER,
+        preview,
+        FontId::new(px(12.5), theme::family_medium()),
+        theme::INK_DIM,
+    );
+    ui.add_space(px(10.0));
+
+    label(ui, "VERSION FILE", s);
+    let vr = row(ui, s, 40.0);
+    Input::new(&mut app.projects_ui.base.version_file)
+        .hint("version.txt or version.json in the content root (optional)")
+        .show(
+            ui,
+            Rect::from_min_size(vr.min, Vec2::new(vr.width(), px(40.0))),
+            s,
+        );
+    ui.add_space(px(14.0));
 }
 
 pub(super) fn row(ui: &mut egui::Ui, s: f32, h: f32) -> Rect {
@@ -202,6 +264,6 @@ fn labelled_path(
     {
         app.projects_ui.spawn_pick(ctx, field, 0);
     }
-    ui.add_space(px(22.0));
+    ui.add_space(if err.is_some() { px(34.0) } else { px(18.0) });
     changed
 }

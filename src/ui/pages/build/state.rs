@@ -1,10 +1,12 @@
 use std::collections::VecDeque;
+use std::path::PathBuf;
 use std::sync::mpsc::{Receiver, Sender, channel};
 use std::time::{Duration, Instant};
 
 use eframe::egui;
 
-use crate::model::Project;
+use crate::history;
+use crate::model::{BuildRecord, BuildStatus, Project};
 use crate::steamcmd::{self, BuildEvent, BuildHandle, BuildResult, PromptKind, Stage};
 use crate::vdf::{self, BuildOptions};
 
@@ -31,6 +33,8 @@ pub struct BuildState {
     pub branch_sel: usize,
     pub description: String,
     pub preview_only: bool,
+    pub backup: bool,
+    pub verify: bool,
     pub options: [bool; 3],
     pub log: VecDeque<LogLine>,
     pub search: String,
@@ -42,7 +46,14 @@ pub struct BuildState {
     pub inited: bool,
     pub pending_prompt: Option<PromptKind>,
     pub prompt_input: String,
+    pub finished_record: Option<BuildRecord>,
+    pub preflight: super::preflight::PreflightState,
+    pub review: super::review::ReviewState,
+    pub pending_manifest_path: Option<PathBuf>,
     interactive: bool,
+    run_project: Option<Project>,
+    run_branch: String,
+    log_path: Option<PathBuf>,
     started: Option<Instant>,
     finished_elapsed: Option<Duration>,
     handle: Option<BuildHandle>,
@@ -58,6 +69,8 @@ impl BuildState {
             branch_sel: 0,
             description: String::new(),
             preview_only: false,
+            backup: false,
+            verify: false,
             options: [false; 3],
             log: VecDeque::new(),
             search: String::new(),
@@ -69,7 +82,14 @@ impl BuildState {
             inited: false,
             pending_prompt: None,
             prompt_input: String::new(),
+            finished_record: None,
+            preflight: super::preflight::PreflightState::new(),
+            review: super::review::ReviewState::new(),
+            pending_manifest_path: None,
             interactive: true,
+            run_project: None,
+            run_branch: String::new(),
+            log_path: None,
             started: None,
             finished_elapsed: None,
             handle: None,
@@ -79,21 +99,14 @@ impl BuildState {
     }
 
     pub fn push_log(&mut self, text: impl Into<String>, error: bool) {
-        self.log.push_back(LogLine {
-            text: text.into(),
-            error,
-        });
+        self.log.push_back(LogLine { text: text.into(), error });
         while self.log.len() > MAX_LINES {
             self.log.pop_front();
         }
     }
 
     pub fn log_text(&self) -> String {
-        self.log
-            .iter()
-            .map(|l| l.text.as_str())
-            .collect::<Vec<_>>()
-            .join("\n")
+        self.log.iter().map(|l| l.text.as_str()).collect::<Vec<_>>().join("\n")
     }
 
     pub fn elapsed(&self) -> Duration {
@@ -141,20 +154,43 @@ impl BuildState {
                     if self.interactive {
                         self.pending_prompt = Some(kind);
                     } else {
-                        self.push_log(
-                            "Non-interactive run needs a login. Run Authorize first.",
-                            true,
-                        );
+                        self.push_log("Non-interactive run needs a login. Run Authorize first.", true);
                         self.cancel();
                     }
                 }
                 BuildEvent::Finished(res) => {
+                    let was_auth = self.authorizing;
                     self.running = false;
                     self.authorizing = false;
                     self.pending_prompt = None;
                     self.prompt_input.clear();
                     self.finished_elapsed = self.started.map(|t| t.elapsed());
                     self.handle = None;
+                    if !was_auth
+                        && let Some(project) = self.run_project.clone()
+                    {
+                        let status = match &res {
+                            BuildResult::Success { .. } => BuildStatus::Success,
+                            BuildResult::Failure { .. } => BuildStatus::Failed,
+                            BuildResult::Cancelled => BuildStatus::Cancelled,
+                        };
+                        let duration_ms = self.finished_elapsed.map(|d| d.as_millis() as u64).unwrap_or(0);
+                        let log = self.log_path.clone().unwrap_or_default();
+                        let mut record = history::make_record(
+                            &project,
+                            &self.run_branch,
+                            &self.description,
+                            status,
+                            duration_ms,
+                            log.as_path(),
+                        );
+                        if status == BuildStatus::Success {
+                            record.manifest_path = self.pending_manifest_path.take();
+                        } else {
+                            self.pending_manifest_path = None;
+                        }
+                        self.finished_record = Some(record);
+                    }
                     match &res {
                         BuildResult::Success { app_id } if app_id.is_empty() => {
                             self.push_log("Signed in. SteamCMD cached the login.", false)
@@ -178,7 +214,7 @@ impl BuildState {
         finished
     }
 
-    pub fn start(&mut self, project: &Project, ctx: &egui::Context) -> Result<(), String> {
+    pub fn start(&mut self, project: &Project, branch: &str, ctx: &egui::Context) -> Result<(), String> {
         let work = crate::config::build_dir().map_err(|e| e.to_string())?;
         let options = BuildOptions {
             preview: self.preview_only,
@@ -205,6 +241,8 @@ impl BuildState {
 
         self.begin(handle);
         self.authorizing = false;
+        self.run_project = Some(project.clone());
+        self.run_branch = branch.to_string();
         self.push_log(
             if self.preview_only {
                 "Starting preview build..."
@@ -220,8 +258,7 @@ impl BuildState {
         let (tx, rx) = channel();
         self.tx = tx;
         self.rx = rx;
-        let handle =
-            steamcmd::start_login(project, ctx, self.tx.clone()).map_err(|e| e.to_string())?;
+        let handle = steamcmd::start_login(project, ctx, self.tx.clone()).map_err(|e| e.to_string())?;
         self.begin(handle);
         self.authorizing = true;
         self.push_log("Authorizing account. Answer any prompt below...", false);
@@ -229,7 +266,9 @@ impl BuildState {
     }
 
     fn begin(&mut self, handle: BuildHandle) {
+        self.log_path = Some(handle.log_path.clone());
         self.handle = Some(handle);
+        self.finished_record = None;
         self.log.clear();
         self.outcome = None;
         self.stage = None;

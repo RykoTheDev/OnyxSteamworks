@@ -51,6 +51,7 @@ pub struct Settings {
     pub schema_version: u32,
     pub last_opened_project: Option<String>,
     pub remember_password: bool,
+    pub skip_review: bool,
 }
 
 /// Root config directory for the app, created if missing.
@@ -65,6 +66,15 @@ fn config_dir() -> Result<PathBuf> {
 /// Directory holding one JSON file per project, created if missing.
 fn projects_dir() -> Result<PathBuf> {
     let dir = config_dir()?.join("projects");
+    fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+/// Root data directory for the app, created if missing.
+pub fn data_dir() -> Result<PathBuf> {
+    let dirs =
+        ProjectDirs::from("dev", "steampipe", "SteamPipe GUI").ok_or(ConfigError::NoConfigDir)?;
+    let dir = dirs.data_dir().to_path_buf();
     fs::create_dir_all(&dir)?;
     Ok(dir)
 }

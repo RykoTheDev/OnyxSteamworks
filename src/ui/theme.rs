@@ -152,6 +152,7 @@ pub mod icon {
     pub const HOUSE: char = '\u{e2c2}';
     pub const STACK: char = '\u{e466}';
     pub const HISTORY: char = '\u{e1a0}';
+    pub const CLOCK: char = '\u{e19a}';
     pub const BRANCH: char = '\u{e278}';
     pub const FLOW: char = '\u{e6ec}';
     pub const GEAR: char = '\u{e270}';

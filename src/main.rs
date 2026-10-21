@@ -16,6 +16,10 @@ mod vdf;
 use eframe::egui;
 
 fn main() -> eframe::Result {
+    if std::env::args_os().count() > 1 {
+        std::process::exit(cli::run());
+    }
+
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("SteamPipe GUI")
