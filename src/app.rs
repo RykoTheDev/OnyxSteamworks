@@ -28,10 +28,7 @@ pub struct App {
 
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        let mut visuals = egui::Visuals::dark();
-        visuals.panel_fill = egui::Color32::BLACK;
-        visuals.window_fill = egui::Color32::BLACK;
-        cc.egui_ctx.set_visuals(visuals);
+        crate::ui::theme::apply_theme(&cc.egui_ctx);
 
         let projects = match crate::config::list_projects() {
             Ok(projects) => projects,
