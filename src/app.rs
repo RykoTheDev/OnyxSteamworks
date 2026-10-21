@@ -2,6 +2,7 @@ use std::sync::mpsc::{Receiver, Sender};
 
 use eframe::egui;
 
+use crate::model::Project;
 use crate::ui::pages;
 
 #[allow(dead_code)]
@@ -19,6 +20,7 @@ pub enum AppEvent {}
 
 pub struct App {
     page: Page,
+    pub projects: Vec<Project>,
     #[allow(dead_code)]
     event_tx: Sender<AppEvent>,
     event_rx: Receiver<AppEvent>,
@@ -31,9 +33,18 @@ impl App {
         visuals.window_fill = egui::Color32::BLACK;
         cc.egui_ctx.set_visuals(visuals);
 
+        let projects = match crate::config::list_projects() {
+            Ok(projects) => projects,
+            Err(e) => {
+                eprintln!("failed to load projects: {e}");
+                Vec::new()
+            }
+        };
+
         let (event_tx, event_rx) = std::sync::mpsc::channel();
         Self {
             page: Page::default(),
+            projects,
             event_tx,
             event_rx,
         }

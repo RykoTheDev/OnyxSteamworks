@@ -1,1 +1,223 @@
-//! Application configuration (paths, persisted settings).
+#![allow(dead_code)]
+
+use std::fs;
+use std::path::{Path, PathBuf};
+
+use directories::ProjectDirs;
+use serde::{Deserialize, Serialize};
+
+use crate::model::Project;
+
+pub const SCHEMA_VERSION: u32 = 1;
+
+#[derive(Debug, thiserror::Error)]
+pub enum ConfigError {
+    #[error("could not determine the config directory")]
+    NoConfigDir,
+    #[error("project not found: {0}")]
+    NotFound(String),
+    #[error(transparent)]
+    Io(#[from] std::io::Error),
+    #[error(transparent)]
+    Serde(#[from] serde_json::Error),
+}
+
+type Result<T> = std::result::Result<T, ConfigError>;
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+struct ProjectFile {
+    schema_version: u32,
+    project: Project,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct Settings {
+    pub schema_version: u32,
+    pub last_opened_project: Option<String>,
+}
+
+fn config_dir() -> Result<PathBuf> {
+    let dirs =
+        ProjectDirs::from("dev", "steampipe", "SteamPipe GUI").ok_or(ConfigError::NoConfigDir)?;
+    let dir = dirs.config_dir().to_path_buf();
+    fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+fn projects_dir() -> Result<PathBuf> {
+    let dir = config_dir()?.join("projects");
+    fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+fn write_atomic(path: &Path, bytes: &[u8]) -> Result<()> {
+    let tmp = path.with_extension("tmp");
+    fs::write(&tmp, bytes)?;
+    fs::rename(&tmp, path)?;
+    Ok(())
+}
+
+fn project_path(dir: &Path, id: &str) -> PathBuf {
+    dir.join(format!("{id}.json"))
+}
+
+fn save_project_in(dir: &Path, project: &Project) -> Result<()> {
+    let file = ProjectFile {
+        schema_version: SCHEMA_VERSION,
+        project: project.clone(),
+    };
+    let bytes = serde_json::to_vec_pretty(&file)?;
+    write_atomic(&project_path(dir, &project.id), &bytes)
+}
+
+fn load_project_in(dir: &Path, id: &str) -> Result<Project> {
+    let path = project_path(dir, id);
+    if !path.exists() {
+        return Err(ConfigError::NotFound(id.to_string()));
+    }
+    let bytes = fs::read(&path)?;
+    let file: ProjectFile = serde_json::from_slice(&bytes)?;
+    Ok(file.project)
+}
+
+fn list_projects_in(dir: &Path) -> Result<Vec<Project>> {
+    let mut projects = Vec::new();
+    for entry in fs::read_dir(dir)? {
+        let path = entry?.path();
+        if path.extension().and_then(|e| e.to_str()) != Some("json") {
+            continue;
+        }
+        match fs::read(&path)
+            .map_err(ConfigError::from)
+            .and_then(|b| serde_json::from_slice::<ProjectFile>(&b).map_err(ConfigError::from))
+        {
+            Ok(file) => projects.push(file.project),
+            Err(e) => eprintln!("skipping unreadable project {}: {e}", path.display()),
+        }
+    }
+    projects.sort_by_key(|p| p.name.to_lowercase());
+    Ok(projects)
+}
+
+pub fn list_projects() -> Result<Vec<Project>> {
+    list_projects_in(&projects_dir()?)
+}
+
+pub fn load_project(id: &str) -> Result<Project> {
+    load_project_in(&projects_dir()?, id)
+}
+
+pub fn save_project(project: &Project) -> Result<()> {
+    save_project_in(&projects_dir()?, project)
+}
+
+pub fn delete_project(id: &str) -> Result<()> {
+    let path = project_path(&projects_dir()?, id);
+    match fs::remove_file(&path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(e.into()),
+    }
+}
+
+pub fn duplicate_project(id: &str) -> Result<Project> {
+    let mut copy = load_project(id)?;
+    copy.id = uuid::Uuid::new_v4().to_string();
+    copy.name = format!("{} (copy)", copy.name);
+    save_project(&copy)?;
+    Ok(copy)
+}
+
+fn settings_path(dir: &Path) -> PathBuf {
+    dir.join("settings.json")
+}
+
+pub fn load_settings() -> Result<Settings> {
+    let path = settings_path(&config_dir()?);
+    if !path.exists() {
+        return Ok(Settings::default());
+    }
+    let bytes = fs::read(&path)?;
+    Ok(serde_json::from_slice(&bytes)?)
+}
+
+pub fn save_settings(settings: &Settings) -> Result<()> {
+    let mut to_write = settings.clone();
+    to_write.schema_version = SCHEMA_VERSION;
+    let bytes = serde_json::to_vec_pretty(&to_write)?;
+    write_atomic(&settings_path(&config_dir()?), &bytes)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn temp_dir(tag: &str) -> PathBuf {
+        let dir =
+            std::env::temp_dir().join(format!("steampipe-test-{tag}-{}", uuid::Uuid::new_v4()));
+        fs::create_dir_all(&dir).expect("create temp dir");
+        dir
+    }
+
+    #[test]
+    fn save_load_roundtrip() {
+        let dir = temp_dir("roundtrip");
+        let mut project = Project {
+            id: "p1".to_string(),
+            name: "Demo".to_string(),
+            app_id: "480".to_string(),
+            build_counter: 7,
+            ..Default::default()
+        };
+        project.depots.push(crate::model::Depot {
+            depot_id: "481".to_string(),
+            name: "base".to_string(),
+            recursive: true,
+            ..Default::default()
+        });
+
+        save_project_in(&dir, &project).expect("save");
+        let loaded = load_project_in(&dir, "p1").expect("load");
+
+        assert_eq!(loaded.name, "Demo");
+        assert_eq!(loaded.app_id, "480");
+        assert_eq!(loaded.build_counter, 7);
+        assert_eq!(loaded.depots.len(), 1);
+        assert_eq!(loaded.depots[0].depot_id, "481");
+
+        let listed = list_projects_in(&dir).expect("list");
+        assert_eq!(listed.len(), 1);
+
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn loads_file_missing_newer_fields() {
+        let dir = temp_dir("legacy");
+        let legacy = r#"{ "project": { "id": "old", "name": "Legacy", "app_id": "10" } }"#;
+        fs::write(project_path(&dir, "old"), legacy).expect("write legacy");
+
+        let loaded = load_project_in(&dir, "old").expect("load legacy");
+        assert_eq!(loaded.name, "Legacy");
+        assert_eq!(loaded.app_id, "10");
+
+        assert_eq!(loaded.build_counter, 0);
+        assert!(loaded.depots.is_empty());
+        assert!(loaded.ignored_findings.is_empty());
+
+        fs::remove_dir_all(&dir).ok();
+    }
+
+    #[test]
+    fn ignores_unknown_fields() {
+        let dir = temp_dir("unknown");
+        let data = r#"{ "schema_version": 1, "project": { "id": "u", "name": "U",
+            "surprise_field": 123, "another": ["x"] } }"#;
+        fs::write(project_path(&dir, "u"), data).expect("write");
+        let loaded = load_project_in(&dir, "u").expect("load");
+        assert_eq!(loaded.name, "U");
+        fs::remove_dir_all(&dir).ok();
+    }
+}
