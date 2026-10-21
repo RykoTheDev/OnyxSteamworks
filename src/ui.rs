@@ -1,3 +1,4 @@
+pub mod accountmenu;
 pub mod anim;
 pub mod dropimport;
 pub mod kit;

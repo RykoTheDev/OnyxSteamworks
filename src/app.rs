@@ -39,6 +39,8 @@ pub struct App {
     pub(crate) queue: pages::pipelines::QueueState,
     pub(crate) doctor_ui: pages::settings::DoctorState,
     pub(crate) advanced_ui: pages::settings::AdvancedState,
+    pub(crate) accounts_ui: pages::settings::AccountsState,
+    pub(crate) account_menu: bool,
     pub(crate) nav_request: Option<Page>,
     pub(crate) palette: crate::ui::palette::PaletteState,
     pub(crate) drop: crate::ui::dropimport::DropState,
@@ -80,6 +82,8 @@ impl App {
             queue: pages::pipelines::QueueState::new(),
             doctor_ui: pages::settings::DoctorState::new(),
             advanced_ui: pages::settings::AdvancedState::new(),
+            accounts_ui: pages::settings::AccountsState::default(),
+            account_menu: false,
             nav_request: None,
             palette: crate::ui::palette::PaletteState::new(),
             drop: crate::ui::dropimport::DropState::new(),
@@ -206,8 +210,23 @@ impl eframe::App for App {
                 Stroke::new(1.0, theme::LINE),
             );
 
-            if let Some(RailAction::Navigate(page)) = kit::rail(ui, lay.rail, self.page, s) {
-                self.goto(&ctx, page);
+            let avatar_letter = self
+                .projects
+                .get(self.build_ui.project_sel)
+                .map(|p| {
+                    if p.default_account.is_empty() {
+                        &p.steam_username
+                    } else {
+                        &p.default_account
+                    }
+                })
+                .and_then(|a| a.chars().next())
+                .map(|c| c.to_ascii_uppercase())
+                .unwrap_or('S');
+            match kit::rail(ui, lay.rail, self.page, avatar_letter, s) {
+                Some(RailAction::Navigate(page)) => self.goto(&ctx, page),
+                Some(RailAction::Avatar) => self.account_menu = !self.account_menu,
+                _ => {}
             }
 
             if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::K)) {
@@ -248,6 +267,7 @@ impl eframe::App for App {
             self.search_pill(ui, lay.content, s);
             crate::ui::dropimport::show(self, ui, lay.frame, s);
             crate::ui::palette::show(self, ui, s);
+            crate::ui::accountmenu::show(self, ui, lay.rail, s);
 
             if let Some(page) = self.nav_request.take() {
                 self.goto(&ctx, page);

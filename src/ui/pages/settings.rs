@@ -1,6 +1,8 @@
+mod accounts;
 mod advanced;
 mod doctor;
 
+pub use accounts::AccountsState;
 pub use advanced::AdvancedState;
 pub use doctor::DoctorState;
 
@@ -24,7 +26,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     );
     app.sub_tabs[idx] = active;
 
-    if active == 3 {
+    if active == 1 {
+        accounts::show(app, ui, body, layout.scale);
+    } else if active == 3 {
         doctor::show(app, ui, body, layout.scale);
     } else if active == 4 {
         advanced::show(app, ui, body, layout.scale);
@@ -33,10 +37,6 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
             0 => (
                 "General settings",
                 "Defaults for builds and the review step will live here.",
-            ),
-            1 => (
-                "Accounts",
-                "Steam accounts and the remember-password toggle will live here.",
             ),
             _ => ("Notifications", "Build notifications will live here."),
         };

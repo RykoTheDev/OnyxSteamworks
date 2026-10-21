@@ -48,6 +48,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egui::Co
                 ui.set_width(content.width() - px(16.0));
                 changed |= basic_fields(app, ui, s, ctx);
                 super::depots::sections(app, ui, s, ctx);
+                super::checklist::sections(app, ui, s);
                 ui.add_space(px(8.0));
             });
         if changed {

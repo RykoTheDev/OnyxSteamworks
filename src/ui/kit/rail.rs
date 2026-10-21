@@ -7,9 +7,16 @@ pub enum RailAction {
     Navigate(Page),
     Logo,
     Logout,
+    Avatar,
 }
 
-pub fn rail(ui: &mut egui::Ui, rect: Rect, active: Page, s: f32) -> Option<RailAction> {
+pub fn rail(
+    ui: &mut egui::Ui,
+    rect: Rect,
+    active: Page,
+    avatar: char,
+    s: f32,
+) -> Option<RailAction> {
     let px = |v: f32| theme::px(v, s);
     let ctx = ui.ctx().clone();
     let mut action = None;
@@ -89,14 +96,16 @@ pub fn rail(ui: &mut egui::Ui, rect: Rect, active: Page, s: f32) -> Option<RailA
 
     let avatar_r = px(16.0);
     let avatar_c = Pos2::new(cx, rect.bottom() - px(26.0));
-    crate::ui::kit::image_or_placeholder(
-        ui,
-        Rect::from_center_size(avatar_c, Vec2::splat(avatar_r * 2.0)),
-        None,
-        'S',
-        avatar_r,
-        s,
+    let avatar_hit = Rect::from_center_size(avatar_c, Vec2::splat(avatar_r * 2.0));
+    crate::ui::kit::image_or_placeholder(ui, avatar_hit, None, avatar, avatar_r, s);
+    let avatar_resp = ui.interact(
+        avatar_hit,
+        ui.make_persistent_id("rail_avatar"),
+        Sense::click(),
     );
+    if avatar_resp.clicked() {
+        action = Some(RailAction::Avatar);
+    }
 
     let logout_c = Pos2::new(cx, avatar_c.y - px(44.0));
     let logout_hit = Rect::from_center_size(logout_c, Vec2::splat(px(40.0)));

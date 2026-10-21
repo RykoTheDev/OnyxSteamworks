@@ -1,6 +1,8 @@
+pub mod accounts;
 pub mod actions;
 pub mod advisor;
 pub mod backup;
+pub mod checklist;
 pub mod doctor;
 pub mod importer;
 pub mod manifest;

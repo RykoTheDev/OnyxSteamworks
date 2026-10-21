@@ -1,4 +1,5 @@
 mod branches;
+mod checklist;
 mod depots;
 mod editor;
 mod preview;

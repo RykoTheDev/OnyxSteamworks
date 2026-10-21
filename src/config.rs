@@ -63,6 +63,8 @@ pub struct Settings {
     pub advisor_large_mb: u32,
     pub analytics_growth_pct: u32,
     pub queue_max_retries: u32,
+    pub accounts: Vec<String>,
+    pub checklist_reset_on_live: bool,
 }
 
 /// Root config directory for the app, created if missing.

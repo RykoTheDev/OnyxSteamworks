@@ -1,4 +1,4 @@
-use eframe::egui::{self, FontId, Key, Pos2, Rect, Vec2};
+use eframe::egui::{self, Align2, FontId, Key, Pos2, Rect, Vec2};
 
 use crate::app::App;
 use crate::model::{BranchLevel, Project};
@@ -46,15 +46,32 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
     let mut open = app.build_ui.guard.open;
     let branch = app.build_ui.guard.branch.clone();
     let matches = app.build_ui.guard.typed == branch && !branch.is_empty();
+    let unchecked: Vec<String> = app
+        .projects
+        .get(app.build_ui.project_sel)
+        .map(|p| {
+            crate::features::checklist::unchecked(&p.checklist)
+                .iter()
+                .map(|t| t.to_string())
+                .collect()
+        })
+        .unwrap_or_default();
+    let shown = unchecked.len().min(6);
     let mut confirm = false;
     let mut cancel = false;
     let typed = &mut app.build_ui.guard.typed;
+    let height = 248.0
+        + if shown == 0 {
+            0.0
+        } else {
+            26.0 + shown as f32 * 20.0
+        };
 
     kit::modal(
         ui,
         id,
         &mut open,
-        Vec2::new(px(460.0), px(248.0)),
+        Vec2::new(px(460.0), px(height)),
         s,
         |ui| {
             let d = ui.max_rect();
@@ -76,6 +93,30 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             );
             ui.painter()
                 .galley(Pos2::new(x, d.top() + px(52.0)), galley, theme::DANGER);
+
+            if shown > 0 {
+                kit::label(
+                    &ui.painter().clone(),
+                    Pos2::new(x, d.top() + px(90.0)),
+                    "RELEASE CHECKLIST — STILL UNCHECKED",
+                    s,
+                );
+                for (i, item) in unchecked.iter().take(shown).enumerate() {
+                    let y = d.top() + px(112.0) + i as f32 * px(20.0);
+                    ui.painter().circle_filled(
+                        Pos2::new(x + px(4.0), y + px(6.0)),
+                        px(2.5),
+                        theme::WARNING,
+                    );
+                    ui.painter().text(
+                        Pos2::new(x + px(16.0), y),
+                        Align2::LEFT_TOP,
+                        item,
+                        FontId::new(px(12.0), theme::family_medium()),
+                        theme::INK_DIM,
+                    );
+                }
+            }
 
             let field = Rect::from_min_size(
                 Pos2::new(x, d.bottom() - px(118.0)),

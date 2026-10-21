@@ -51,6 +51,14 @@ pub struct Branch {
     pub level: BranchLevel,
 }
 
+/// A single release-checklist item.
+#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct ChecklistItem {
+    pub text: String,
+    pub done: bool,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum StepKind {
     #[default]
@@ -124,9 +132,8 @@ pub struct Project {
     pub pipeline: Vec<PipelineStep>,
     pub ignore_patterns: Vec<String>,
     pub build_counter: u32,
-    /// Release-checklist item labels. Placeholder `Vec<String>` until the
-    /// checklist feature defines a richer type.
-    pub checklist: Vec<String>,
+    /// Release-checklist items (label plus checked state).
+    pub checklist: Vec<ChecklistItem>,
     /// Secret-scanner finding ids the user chose to ignore.
     pub ignored_findings: Vec<String>,
 }
