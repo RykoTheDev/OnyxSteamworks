@@ -96,11 +96,25 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
     let r = row(ui, s, 64.0);
     let uw = (r.width() - gap) * 0.5;
     let uleft = Rect::from_min_size(r.min, Vec2::new(uw, r.height()));
+    let uright = Rect::from_min_size(
+        Pos2::new(r.left() + uw + gap, r.top()),
+        Vec2::new(uw, r.height()),
+    );
     changed |= labelled_text(app, ui, uleft, "STEAM USERNAME", None, false, s);
+    password_field(app, ui, uright, s);
+    let hint = row(ui, s, 22.0);
+    ui.painter().text(
+        hint.left_top(),
+        Align2::LEFT_TOP,
+        "Password is stored in your OS keyring and used to sign in. Leave blank to be prompted; Steam Guard is always asked on the Build page.",
+        FontId::new(px(11.0), theme::family_medium()),
+        theme::INK_MUTED,
+    );
+    ui.add_space(px(8.0));
 
     labelled_path(app, ui, "KEY ART", PickField::KeyArt, s, ctx);
     let art = app.projects_ui.form.key_art.clone();
-    let uri = (!art.is_empty()).then(|| format!("file://{art}"));
+    let uri = (!art.is_empty()).then(|| kit::file_uri(&art));
     let preview = row(ui, s, 108.0);
     let box_rect = Rect::from_min_size(preview.min, Vec2::splat(px(108.0)));
     kit::image_or_placeholder(ui, box_rect, uri.as_deref(), 'K', px(theme::RADIUS_CARD), s);
@@ -202,6 +216,22 @@ fn value_mut<'a>(app: &'a mut App, label: &str) -> &'a mut String {
         "STEAMCMD PATH" => &mut app.projects_ui.form.steamcmd,
         "STEAM USERNAME" => &mut app.projects_ui.form.username,
         _ => &mut app.projects_ui.form.key_art,
+    }
+}
+
+fn password_field(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
+    let px = |v: f32| theme::px(v, s);
+    kit::label(&ui.painter().clone(), rect.left_top(), "STEAM PASSWORD", s);
+    let field = Rect::from_min_size(
+        Pos2::new(rect.left(), rect.top() + px(24.0)),
+        Vec2::new(rect.width(), px(40.0)),
+    );
+    let resp = Input::new(&mut app.projects_ui.form.password)
+        .hint("Optional — saved to keyring")
+        .mask(true)
+        .show(ui, field, s);
+    if resp.lost_focus() {
+        app.projects_ui.store_password();
     }
 }
 

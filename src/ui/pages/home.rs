@@ -104,7 +104,7 @@ fn left_main(
 
     let art = Rect::from_min_size(Pos2::new(x, rect.top() + px(52.0)), Vec2::new(w, px(130.0)));
     let key_art = project.key_art_path.to_string_lossy();
-    let uri = (!key_art.is_empty()).then(|| format!("file://{key_art}"));
+    let uri = (!key_art.is_empty()).then(|| kit::file_uri(&key_art));
     let letter = name.chars().next().unwrap_or('S');
     kit::image_or_placeholder(ui, art, uri.as_deref(), letter, px(theme::RADIUS_CARD), s);
 

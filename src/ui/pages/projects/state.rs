@@ -31,6 +31,7 @@ pub struct Form {
     pub steamcmd: String,
     pub username: String,
     pub key_art: String,
+    pub password: String,
 }
 
 fn path_str(p: &Path) -> String {
@@ -47,6 +48,7 @@ impl Form {
             steamcmd: path_str(&p.steamcmd_path),
             username: p.steam_username.clone(),
             key_art: path_str(&p.key_art_path),
+            password: String::new(),
         }
     }
 
@@ -137,11 +139,36 @@ impl ProjectsState {
         self.selected = Some(project.id.clone());
         self.base = project.clone();
         self.form = Form::from_project(project);
+        self.form.password = self.load_password(&project.steam_username);
         self.saved_project = project.clone();
         self.on_disk = true;
         self.confirm_delete = false;
         self.scans = vec![ScanState::Idle; project.depots.len()];
         self.revalidate();
+    }
+
+    fn load_password(&self, username: &str) -> String {
+        let user = username.trim();
+        if user.is_empty() {
+            return String::new();
+        }
+        crate::secrets::get_password(&crate::secrets::login_key(user))
+            .ok()
+            .flatten()
+            .unwrap_or_default()
+    }
+
+    pub fn store_password(&self) {
+        let user = self.form.username.trim();
+        if user.is_empty() {
+            return;
+        }
+        let key = crate::secrets::login_key(user);
+        if self.form.password.is_empty() {
+            let _ = crate::secrets::delete_password(&key);
+        } else {
+            let _ = crate::secrets::set_password(&key, &self.form.password);
+        }
     }
 
     pub fn start_new(&mut self) {

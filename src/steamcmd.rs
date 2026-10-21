@@ -84,6 +84,19 @@ impl BuildHandle {
     }
 }
 
+fn append_login(cmd: &mut Command, project: &Project) {
+    let login = project.steam_username.trim();
+    if login.is_empty() {
+        return;
+    }
+    cmd.arg("+login").arg(login);
+    if let Ok(Some(password)) = crate::secrets::get_password(&crate::secrets::login_key(login))
+        && !password.is_empty()
+    {
+        cmd.arg(password);
+    }
+}
+
 fn log_path_for(explicit: Option<&PathBuf>, prefix: &str) -> Result<PathBuf, SteamError> {
     match explicit {
         Some(p) => Ok(p.clone()),
@@ -107,10 +120,7 @@ pub fn start_build(
     if !options.interactive {
         cmd.arg("+@NoPromptForPassword").arg("1");
     }
-    let login = project.steam_username.trim();
-    if !login.is_empty() {
-        cmd.arg("+login").arg(login);
-    }
+    append_login(&mut cmd, project);
     cmd.arg("+run_app_build")
         .arg(&options.app_build_vdf)
         .arg("+quit");
@@ -125,10 +135,7 @@ pub fn start_login(
     let log_path = log_path_for(None, "login")?;
     let mut cmd = Command::new(crate::features::maintenance::effective_steamcmd(project));
     cmd.arg("+@ShutdownOnFailedCommand").arg("1");
-    let login = project.steam_username.trim();
-    if !login.is_empty() {
-        cmd.arg("+login").arg(login);
-    }
+    append_login(&mut cmd, project);
     cmd.arg("+quit");
     run(cmd, log_path, ctx, tx)
 }
@@ -154,10 +161,7 @@ pub fn start_verify(
         .arg("+@NoPromptForPassword")
         .arg("1");
     cmd.arg("+force_install_dir").arg(&options.install_dir);
-    let login = project.steam_username.trim();
-    if !login.is_empty() {
-        cmd.arg("+login").arg(login);
-    }
+    append_login(&mut cmd, project);
     cmd.arg("+app_update").arg(&options.app_id);
     let branch = options.branch.trim();
     if !branch.is_empty() && branch != "default" {

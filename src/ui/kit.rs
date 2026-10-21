@@ -19,7 +19,7 @@ pub use rail::{RailAction, rail};
 pub use select::{dropdown, tabs};
 pub use toggles::{checkbox, toggle};
 
-use eframe::egui::{self, Align2, FontId, Pos2, Rect, Stroke, StrokeKind, Vec2};
+use eframe::egui::{self, Align2, FontId, Pos2, Rect, Sense, Stroke, StrokeKind, Vec2};
 
 use crate::ui::theme;
 
@@ -131,6 +131,15 @@ pub fn spinner(
     painter.add(egui::epaint::Shape::line(pts, Stroke::new(2.0, color)));
 }
 
+pub fn file_uri(path: &str) -> String {
+    let p = path.replace('\\', "/");
+    if p.starts_with('/') {
+        format!("file://{p}")
+    } else {
+        format!("file:///{p}")
+    }
+}
+
 pub fn image_or_placeholder(
     ui: &mut egui::Ui,
     rect: Rect,
@@ -141,24 +150,81 @@ pub fn image_or_placeholder(
 ) {
     match uri {
         Some(u) if !u.is_empty() => {
-            egui::Image::from_uri(u.to_owned())
+            let img = egui::Image::from_uri(u.to_owned())
                 .maintain_aspect_ratio(false)
                 .fit_to_exact_size(rect.size())
-                .corner_radius(theme::corner(radius_px))
-                .paint_at(ui, rect);
+                .corner_radius(theme::corner(radius_px));
+            match img.load_for_size(ui.ctx(), rect.size()) {
+                Ok(egui::load::TexturePoll::Ready { .. }) => {
+                    img.paint_at(ui, rect);
+                }
+                Ok(egui::load::TexturePoll::Pending { .. }) => {
+                    bordered(
+                        &ui.painter().clone(),
+                        rect,
+                        theme::FIELD,
+                        theme::LINE,
+                        radius_px,
+                    );
+                    spinner(
+                        &ui.painter().clone(),
+                        rect.center(),
+                        theme::px(9.0, s),
+                        theme::INK_MUTED,
+                        ui.ctx(),
+                    );
+                }
+                Err(err) => image_error(ui, rect, letter, radius_px, &err.to_string(), s),
+            }
         }
-        _ => {
-            let painter = ui.painter();
-            bordered(painter, rect, theme::FIELD, theme::LINE, radius_px);
-            painter.text(
-                rect.center(),
-                Align2::CENTER_CENTER,
-                letter.to_uppercase().to_string(),
-                FontId::new(theme::px(20.0, s), theme::family_semibold()),
-                theme::INK_MUTED,
-            );
-        }
+        _ => placeholder_letter(ui, rect, letter, radius_px, s),
     }
+}
+
+fn placeholder_letter(ui: &mut egui::Ui, rect: Rect, letter: char, radius_px: f32, s: f32) {
+    let painter = ui.painter();
+    bordered(painter, rect, theme::FIELD, theme::LINE, radius_px);
+    painter.text(
+        rect.center(),
+        Align2::CENTER_CENTER,
+        letter.to_uppercase().to_string(),
+        FontId::new(theme::px(20.0, s), theme::family_semibold()),
+        theme::INK_MUTED,
+    );
+}
+
+fn image_error(ui: &mut egui::Ui, rect: Rect, letter: char, radius_px: f32, raw: &str, s: f32) {
+    let px = |v: f32| theme::px(v, s);
+    placeholder_letter(ui, rect, letter, radius_px, s);
+    ui.painter().text(
+        Pos2::new(rect.right() - px(13.0), rect.bottom() - px(13.0)),
+        Align2::CENTER_CENTER,
+        theme::icon::WARNING.to_string(),
+        theme::icon_font(px(14.0), false),
+        theme::WARNING,
+    );
+    let id = ui.make_persistent_id(("img_err", rect.left() as i32, rect.top() as i32));
+    ui.interact(rect, id, Sense::hover())
+        .on_hover_text(friendly_image_error(raw));
+}
+
+fn friendly_image_error(raw: &str) -> String {
+    let l = raw.to_ascii_lowercase();
+    let hint = if l.contains("no such file") || l.contains("not found") || l.contains("cannot find")
+    {
+        "Key art file not found — check the path."
+    } else if l.contains("format")
+        || l.contains("unsupported")
+        || l.contains("decode")
+        || l.contains("unknown")
+    {
+        "Unsupported image format — use PNG or JPEG."
+    } else if l.contains("no loader") || l.contains("not supported") {
+        "No loader is registered for this image."
+    } else {
+        "Couldn't load key art."
+    };
+    format!("{hint}\n{raw}")
 }
 
 pub fn empty_state(ui: &mut egui::Ui, rect: Rect, glyph: char, title: &str, body: &str, s: f32) {
@@ -187,4 +253,22 @@ pub fn empty_state(ui: &mut egui::Ui, rect: Rect, glyph: char, title: &str, body
         FontId::new(px(12.5), theme::family_medium()),
         theme::INK_MUTED,
     );
+}
+
+#[cfg(test)]
+mod tests {
+    use super::file_uri;
+
+    #[test]
+    fn windows_drive_path_becomes_triple_slash_forward() {
+        assert_eq!(
+            file_uri("D:\\Storage\\art\\key.png"),
+            "file:///D:/Storage/art/key.png"
+        );
+    }
+
+    #[test]
+    fn unix_absolute_path_is_preserved() {
+        assert_eq!(file_uri("/home/saad/key.png"), "file:///home/saad/key.png");
+    }
 }

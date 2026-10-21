@@ -7,6 +7,7 @@ pub fn detect_login(line: &str) -> Option<bool> {
     if (l.contains("failed") && l.contains("login"))
         || l.contains("invalid password")
         || l.contains("login failure")
+        || (l.contains("access denied") && l.contains("logging in"))
         || l.contains("rate limit exceeded")
     {
         return Some(false);
@@ -23,6 +24,8 @@ pub fn login_failure_reason(line: &str) -> String {
         "Invalid password.".to_string()
     } else if l.contains("rate limit") {
         "Rate limited by Steam. Wait a few minutes and try again.".to_string()
+    } else if l.contains("access denied") {
+        "Steam denied the login (Access Denied). The cached credentials are invalid or expired, or the account lacks publishing access. Sign in to SteamCMD once in a terminal to refresh them, then try again.".to_string()
     } else if l.contains("expired") || (l.contains("cached") && l.contains("invalid")) {
         "The cached login expired. Run Authorize again.".to_string()
     } else if l.contains("two-factor") || l.contains("steam guard") {
@@ -88,5 +91,32 @@ pub fn detect_failure(line: &str) -> Option<String> {
         Some(line.trim().to_string())
     } else {
         None
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn access_denied_is_a_login_failure() {
+        let line =
+            "Logging in user 'itsRyko11' [U:1:1251715880] to Steam Public...ERROR (Access Denied)";
+        assert_eq!(detect_login(line), Some(false));
+        let reason = login_failure_reason(line);
+        assert!(reason.contains("Access Denied"));
+    }
+
+    #[test]
+    fn plain_access_denied_without_login_context_is_not_a_login_event() {
+        assert_eq!(detect_login("depot access denied for something"), None);
+    }
+
+    #[test]
+    fn successful_login_still_detected() {
+        assert_eq!(
+            detect_login("Logging in user 'x' to Steam Public...OK"),
+            Some(true)
+        );
     }
 }

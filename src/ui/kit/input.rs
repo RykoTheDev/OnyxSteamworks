@@ -108,6 +108,8 @@ impl<'a> Input<'a> {
                 inner,
                 TextEdit::singleline(self.text)
                     .frame(Frame::NONE)
+                    .margin(egui::Margin::ZERO)
+                    .align(Align2::LEFT_CENTER)
                     .password(self.mask)
                     .hint_text(self.hint)
                     .text_color(theme::INK)
