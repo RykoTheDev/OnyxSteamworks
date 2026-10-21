@@ -1,15 +1,15 @@
 pub mod actions;
 pub mod advisor;
 pub mod backup;
-pub mod importer;
 pub mod doctor;
+pub mod importer;
 pub mod manifest;
 pub mod patchnotes;
 pub mod pipeline;
 pub mod presets;
 pub mod queue;
-pub mod schedule;
 pub mod quick;
 pub mod scanner;
+pub mod schedule;
 pub mod template;
 pub mod verify;

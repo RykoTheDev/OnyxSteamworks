@@ -23,8 +23,20 @@ pub struct Action {
 }
 
 impl Action {
-    fn new(id: &str, title: &str, keywords: &str, shortcut: Option<&str>, command: Command) -> Self {
-        Self { id: id.to_string(), title: title.to_string(), keywords: keywords.to_string(), shortcut: shortcut.map(|s| s.to_string()), command }
+    fn new(
+        id: &str,
+        title: &str,
+        keywords: &str,
+        shortcut: Option<&str>,
+        command: Command,
+    ) -> Self {
+        Self {
+            id: id.to_string(),
+            title: title.to_string(),
+            keywords: keywords.to_string(),
+            shortcut: shortcut.map(|s| s.to_string()),
+            command,
+        }
     }
 
     pub fn haystack(&self) -> String {
@@ -55,15 +67,55 @@ pub fn registry(projects: &[Project]) -> Vec<Action> {
         }
     }
 
-    out.push(Action::new("build.start", "Start build", "run upload deploy", None, Command::StartBuild));
-    out.push(Action::new("build.preview", "Run preview build", "dry run test", None, Command::PreviewBuild));
-    out.push(Action::new("build.cancel", "Cancel build", "stop abort", None, Command::CancelBuild));
-    out.push(Action::new("open.steamworks", "Open Steamworks page", "partner builds web", None, Command::OpenSteamworks));
-    out.push(Action::new("doctor.run", "Run Doctor", "diagnostics checks health", None, Command::RunDoctor));
-    out.push(Action::new("ci.export", "Export CI workflow", "github actions yaml", None, Command::ExportCi));
+    out.push(Action::new(
+        "build.start",
+        "Start build",
+        "run upload deploy",
+        None,
+        Command::StartBuild,
+    ));
+    out.push(Action::new(
+        "build.preview",
+        "Run preview build",
+        "dry run test",
+        None,
+        Command::PreviewBuild,
+    ));
+    out.push(Action::new(
+        "build.cancel",
+        "Cancel build",
+        "stop abort",
+        None,
+        Command::CancelBuild,
+    ));
+    out.push(Action::new(
+        "open.steamworks",
+        "Open Steamworks page",
+        "partner builds web",
+        None,
+        Command::OpenSteamworks,
+    ));
+    out.push(Action::new(
+        "doctor.run",
+        "Run Doctor",
+        "diagnostics checks health",
+        None,
+        Command::RunDoctor,
+    ));
+    out.push(Action::new(
+        "ci.export",
+        "Export CI workflow",
+        "github actions yaml",
+        None,
+        Command::ExportCi,
+    ));
 
     for (i, p) in projects.iter().enumerate() {
-        let name = if p.name.is_empty() { "Untitled".to_string() } else { p.name.clone() };
+        let name = if p.name.is_empty() {
+            "Untitled".to_string()
+        } else {
+            p.name.clone()
+        };
         out.push(Action::new(
             &format!("project.{i}"),
             &format!("Switch to {name}"),
@@ -82,10 +134,17 @@ mod tests {
 
     #[test]
     fn registry_includes_core_and_project_actions() {
-        let projects = vec![Project { name: "Alpha".into(), ..Default::default() }];
+        let projects = vec![Project {
+            name: "Alpha".into(),
+            ..Default::default()
+        }];
         let actions = registry(&projects);
         assert!(actions.iter().any(|a| a.id == "goto.home"));
-        assert!(actions.iter().any(|a| a.title == "History \u{203a} Analytics"));
+        assert!(
+            actions
+                .iter()
+                .any(|a| a.title == "History \u{203a} Analytics")
+        );
         assert!(actions.iter().any(|a| a.id == "build.start"));
         assert!(actions.iter().any(|a| a.title == "Switch to Alpha"));
     }

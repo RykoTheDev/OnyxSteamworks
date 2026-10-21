@@ -43,18 +43,30 @@ pub fn classify_failure(output: &str, exit_code: Option<i32>) -> (RetryClass, St
     let l = output.to_ascii_lowercase();
     for pat in NO_RETRY {
         if l.contains(pat) {
-            return (RetryClass::NoRetry, "Login or authorization problem — not retried.".to_string());
+            return (
+                RetryClass::NoRetry,
+                "Login or authorization problem — not retried.".to_string(),
+            );
         }
     }
     if matches!(exit_code, Some(2) | Some(3)) {
-        return (RetryClass::NoRetry, "Validation or login error — not retried.".to_string());
+        return (
+            RetryClass::NoRetry,
+            "Validation or login error — not retried.".to_string(),
+        );
     }
     for pat in NETWORK {
         if l.contains(pat) {
-            return (RetryClass::Retryable, format!("Network problem ({pat}) — will retry."));
+            return (
+                RetryClass::Retryable,
+                format!("Network problem ({pat}) — will retry."),
+            );
         }
     }
-    (RetryClass::NoRetry, "Build failed — not a transient network error.".to_string())
+    (
+        RetryClass::NoRetry,
+        "Build failed — not a transient network error.".to_string(),
+    )
 }
 
 pub fn backoff_delay(attempt: u32) -> Duration {
@@ -70,7 +82,11 @@ pub fn should_retry(class: RetryClass, attempts: u32, max: u32) -> bool {
 }
 
 pub fn effective_max(setting: u32) -> u32 {
-    if setting == 0 { DEFAULT_MAX_RETRIES } else { setting }
+    if setting == 0 {
+        DEFAULT_MAX_RETRIES
+    } else {
+        setting
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
@@ -101,7 +117,6 @@ impl JobStatus {
             JobStatus::Cancelled => "Cancelled",
         }
     }
-
 }
 
 pub struct Job {
@@ -134,11 +149,18 @@ impl Job {
     }
 
     pub fn project_name(&self) -> String {
-        if self.project.name.is_empty() { "Untitled".to_string() } else { self.project.name.clone() }
+        if self.project.name.is_empty() {
+            "Untitled".to_string()
+        } else {
+            self.project.name.clone()
+        }
     }
 
     pub fn countdown_secs(&self) -> Option<u64> {
-        self.retry_at.map(|t| t.saturating_duration_since(std::time::Instant::now()).as_secs())
+        self.retry_at.map(|t| {
+            t.saturating_duration_since(std::time::Instant::now())
+                .as_secs()
+        })
     }
 }
 
@@ -162,7 +184,11 @@ mod tests {
     }
 
     fn run_scenario(name: &str) -> (String, Option<i32>) {
-        let out = Command::new(fake_bin()).arg("+login").arg(name).output().expect("run fake");
+        let out = Command::new(fake_bin())
+            .arg("+login")
+            .arg(name)
+            .output()
+            .expect("run fake");
         let mut text = String::from_utf8_lossy(&out.stdout).to_string();
         text.push_str(&String::from_utf8_lossy(&out.stderr));
         (text, out.status.code())

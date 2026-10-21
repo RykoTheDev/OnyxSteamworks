@@ -7,7 +7,15 @@ use crate::features::doctor::{self, CheckResult, Fix, Status};
 use crate::ui::kit::{self, Button, ButtonKind};
 use crate::ui::theme;
 
-const TITLES: [&str; 7] = ["SteamCMD", "Internet", "Disk space", "Write access", "Cached login", "Project config", "Build tools"];
+const TITLES: [&str; 7] = [
+    "SteamCMD",
+    "Internet",
+    "Disk space",
+    "Write access",
+    "Cached login",
+    "Project config",
+    "Build tools",
+];
 
 struct Row {
     title: String,
@@ -25,7 +33,13 @@ pub struct DoctorState {
 impl DoctorState {
     pub fn new() -> Self {
         let (tx, rx) = channel();
-        Self { started: false, username: String::new(), rows: Vec::new(), tx, rx }
+        Self {
+            started: false,
+            username: String::new(),
+            rows: Vec::new(),
+            tx,
+            rx,
+        }
     }
 
     pub fn request(&mut self) {
@@ -37,18 +51,42 @@ impl DoctorState {
         self.tx = tx;
         self.rx = rx;
         self.started = true;
-        self.username = project.as_ref().map(|p| p.steam_username.clone()).unwrap_or_default();
-        self.rows = TITLES.iter().map(|t| Row { title: t.to_string(), result: None }).collect();
+        self.username = project
+            .as_ref()
+            .map(|p| p.steam_username.clone())
+            .unwrap_or_default();
+        self.rows = TITLES
+            .iter()
+            .map(|t| Row {
+                title: t.to_string(),
+                result: None,
+            })
+            .collect();
         let output = project.as_ref().map(|p| p.build_output_dir.clone());
         type Check = Box<dyn FnOnce() -> CheckResult + Send>;
         let p = project;
         let checks: Vec<Check> = vec![
-            { let p = p.clone(); Box::new(move || doctor::check_steamcmd(p)) },
+            {
+                let p = p.clone();
+                Box::new(move || doctor::check_steamcmd(p))
+            },
             Box::new(doctor::check_internet),
-            { let o = output.clone(); Box::new(move || doctor::check_disk(o)) },
-            { let o = output.clone(); Box::new(move || doctor::check_write_access(o)) },
-            { let p = p.clone(); Box::new(move || doctor::check_cached_login(p)) },
-            { let p = p.clone(); Box::new(move || doctor::check_project(p)) },
+            {
+                let o = output.clone();
+                Box::new(move || doctor::check_disk(o))
+            },
+            {
+                let o = output.clone();
+                Box::new(move || doctor::check_write_access(o))
+            },
+            {
+                let p = p.clone();
+                Box::new(move || doctor::check_cached_login(p))
+            },
+            {
+                let p = p.clone();
+                Box::new(move || doctor::check_project(p))
+            },
             { Box::new(move || doctor::check_tools(p)) },
         ];
         for (i, check) in checks.into_iter().enumerate() {
@@ -104,7 +142,10 @@ fn spinner(painter: &egui::Painter, center: Pos2, radius: f32, s: f32, time: f64
             Pos2::new(center.x + radius * ang.cos(), center.y + radius * ang.sin())
         })
         .collect();
-    painter.add(Shape::line(points, Stroke::new(theme::px(2.5, s), theme::INK_MUTED)));
+    painter.add(Shape::line(
+        points,
+        Stroke::new(theme::px(2.5, s), theme::INK_MUTED),
+    ));
 }
 
 pub fn show(app: &mut App, ui: &mut egui::Ui, body: Rect, s: f32) {
@@ -116,14 +157,30 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, body: Rect, s: f32) {
     }
     app.doctor_ui.drain(&ctx);
 
-    let done = app.doctor_ui.rows.iter().filter(|r| r.result.is_some()).count();
+    let done = app
+        .doctor_ui
+        .rows
+        .iter()
+        .filter(|r| r.result.is_some())
+        .count();
     let total = app.doctor_ui.rows.len().max(1);
     let all_done = done == total;
     let overall = doctor::overall(&app.doctor_ui.results());
-    let ring_color = if all_done { status_color(overall) } else { theme::INK_MUTED };
+    let ring_color = if all_done {
+        status_color(overall)
+    } else {
+        theme::INK_MUTED
+    };
 
     let ring_c = Pos2::new(body.left() + px(34.0), body.top() + px(34.0));
-    kit::progress_ring(ui, ring_c, px(28.0), done as f32 / total as f32, ring_color, s);
+    kit::progress_ring(
+        ui,
+        ring_c,
+        px(28.0),
+        done as f32 / total as f32,
+        ring_color,
+        s,
+    );
     ui.painter().text(
         ring_c,
         Align2::CENTER_CENTER,
@@ -149,7 +206,14 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, body: Rect, s: f32) {
     );
 
     if Button::new("RE-RUN", ButtonKind::Secondary)
-        .show(ui, Rect::from_min_size(Pos2::new(body.right() - px(310.0), body.top() + px(12.0)), Vec2::new(px(104.0), px(38.0))), s)
+        .show(
+            ui,
+            Rect::from_min_size(
+                Pos2::new(body.right() - px(310.0), body.top() + px(12.0)),
+                Vec2::new(px(104.0), px(38.0)),
+            ),
+            s,
+        )
         .clicked()
     {
         let project = app.projects.get(app.build_ui.project_sel).cloned();
@@ -158,13 +222,21 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, body: Rect, s: f32) {
     if Button::new("COPY DIAGNOSTICS", ButtonKind::Primary)
         .icon(theme::icon::COPY)
         .enabled(all_done)
-        .show(ui, Rect::from_min_size(Pos2::new(body.right() - px(194.0), body.top() + px(12.0)), Vec2::new(px(194.0), px(38.0))), s)
+        .show(
+            ui,
+            Rect::from_min_size(
+                Pos2::new(body.right() - px(194.0), body.top() + px(12.0)),
+                Vec2::new(px(194.0), px(38.0)),
+            ),
+            s,
+        )
         .clicked()
         && all_done
     {
         let report = doctor::diagnostics_report(&app.doctor_ui.username, &app.doctor_ui.results());
         ui.ctx().copy_text(report);
-        app.toasts.push(kit::ToastLevel::Success, "Diagnostics copied");
+        app.toasts
+            .push(kit::ToastLevel::Success, "Diagnostics copied");
     }
 
     let list = Rect::from_min_max(Pos2::new(body.left(), body.top() + px(70.0)), body.max);
@@ -182,13 +254,26 @@ fn rows(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         if top + row_h > rect.bottom() {
             break;
         }
-        let r = Rect::from_min_size(Pos2::new(rect.left(), top), Vec2::new(rect.width().min(px(640.0)), row_h));
-        kit::bordered(ui.painter(), r, theme::SURFACE_2, theme::LINE, px(theme::RADIUS_CARD));
+        let r = Rect::from_min_size(
+            Pos2::new(rect.left(), top),
+            Vec2::new(rect.width().min(px(640.0)), row_h),
+        );
+        kit::bordered(
+            ui.painter(),
+            r,
+            theme::SURFACE_2,
+            theme::LINE,
+            px(theme::RADIUS_CARD),
+        );
         let icon_c = Pos2::new(r.left() + px(26.0), r.center().y);
         match &row.result {
             None => spinner(ui.painter(), icon_c, px(9.0), s, time),
             Some(result) => {
-                ui.painter().circle_filled(icon_c, px(11.0), theme::with_alpha(status_color(result.status), 40));
+                ui.painter().circle_filled(
+                    icon_c,
+                    px(11.0),
+                    theme::with_alpha(status_color(result.status), 40),
+                );
                 ui.painter().text(
                     icon_c,
                     Align2::CENTER_CENTER,
@@ -205,7 +290,11 @@ fn rows(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
             FontId::new(px(13.5), theme::family_semibold()),
             theme::INK,
         );
-        let message = row.result.as_ref().map(|x| x.message.as_str()).unwrap_or("Checking...");
+        let message = row
+            .result
+            .as_ref()
+            .map(|x| x.message.as_str())
+            .unwrap_or("Checking...");
         ui.painter().text(
             Pos2::new(r.left() + px(50.0), r.bottom() - px(16.0)),
             Align2::LEFT_CENTER,
@@ -216,8 +305,14 @@ fn rows(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         if let Some(result) = &row.result
             && let Some(action) = &result.fix
         {
-            let btn = Rect::from_min_size(Pos2::new(r.right() - px(96.0), r.center().y - px(15.0)), Vec2::new(px(84.0), px(30.0)));
-            if Button::new("FIX", ButtonKind::Secondary).show(ui, btn, s).clicked() {
+            let btn = Rect::from_min_size(
+                Pos2::new(r.right() - px(96.0), r.center().y - px(15.0)),
+                Vec2::new(px(84.0), px(30.0)),
+            );
+            if Button::new("FIX", ButtonKind::Secondary)
+                .show(ui, btn, s)
+                .clicked()
+            {
                 fix = Some(action.clone());
             }
         }

@@ -101,7 +101,14 @@ impl App {
         }
     }
 
-    fn render_page(&mut self, ui: &mut egui::Ui, page: Page, lay: &Layout, clip: egui::Rect, opacity: f32) {
+    fn render_page(
+        &mut self,
+        ui: &mut egui::Ui,
+        page: Page,
+        lay: &Layout,
+        clip: egui::Rect,
+        opacity: f32,
+    ) {
         let mut cu = ui.new_child(UiBuilder::new().max_rect(ui.max_rect()));
         cu.set_opacity(opacity);
         cu.set_clip_rect(clip);
@@ -112,17 +119,53 @@ impl App {
         let px = |v: f32| theme::px(v, s);
         let pw = px(152.0);
         let ph = px(32.0);
-        let r = Rect::from_min_size(Pos2::new(content.right() - pw, content.top()), Vec2::new(pw, ph));
+        let r = Rect::from_min_size(
+            Pos2::new(content.right() - pw, content.top()),
+            Vec2::new(pw, ph),
+        );
         let id = ui.make_persistent_id("search_pill");
         let resp = ui.interact(r, id, Sense::click());
         let ctx = ui.ctx().clone();
-        let hover = anim::anim_bool(&ctx, id.with("h"), resp.hovered(), 0.12, anim::ease_out_cubic);
+        let hover = anim::anim_bool(
+            &ctx,
+            id.with("h"),
+            resp.hovered(),
+            0.12,
+            anim::ease_out_cubic,
+        );
         let painter = ui.painter();
-        painter.rect_filled(r, theme::corner(px(theme::RADIUS_FIELD)), theme::lerp_color(theme::FIELD, theme::FIELD_HI, hover));
-        painter.rect_stroke(r, theme::corner(px(theme::RADIUS_FIELD)), Stroke::new(1.0, theme::LINE), StrokeKind::Inside);
-        painter.text(Pos2::new(r.left() + px(12.0), r.center().y), Align2::LEFT_CENTER, theme::icon::MAGNIFYING_GLASS.to_string(), theme::icon_font(px(14.0), false), theme::INK_MUTED);
-        painter.text(Pos2::new(r.left() + px(32.0), r.center().y), Align2::LEFT_CENTER, "Search", FontId::new(px(12.5), theme::family_medium()), theme::INK_DIM);
-        painter.text(Pos2::new(r.right() - px(12.0), r.center().y), Align2::RIGHT_CENTER, "Ctrl+K", FontId::new(px(11.0), theme::family_medium()), theme::INK_MUTED);
+        painter.rect_filled(
+            r,
+            theme::corner(px(theme::RADIUS_FIELD)),
+            theme::lerp_color(theme::FIELD, theme::FIELD_HI, hover),
+        );
+        painter.rect_stroke(
+            r,
+            theme::corner(px(theme::RADIUS_FIELD)),
+            Stroke::new(1.0, theme::LINE),
+            StrokeKind::Inside,
+        );
+        painter.text(
+            Pos2::new(r.left() + px(12.0), r.center().y),
+            Align2::LEFT_CENTER,
+            theme::icon::MAGNIFYING_GLASS.to_string(),
+            theme::icon_font(px(14.0), false),
+            theme::INK_MUTED,
+        );
+        painter.text(
+            Pos2::new(r.left() + px(32.0), r.center().y),
+            Align2::LEFT_CENTER,
+            "Search",
+            FontId::new(px(12.5), theme::family_medium()),
+            theme::INK_DIM,
+        );
+        painter.text(
+            Pos2::new(r.right() - px(12.0), r.center().y),
+            Align2::RIGHT_CENTER,
+            "Ctrl+K",
+            FontId::new(px(11.0), theme::family_medium()),
+            theme::INK_MUTED,
+        );
         if resp.clicked() {
             self.palette.toggle();
         }
@@ -148,7 +191,13 @@ impl eframe::App for App {
             let lay = layout::compute(ui.max_rect());
             let s = lay.scale;
 
-            kit::bordered(ui.painter(), lay.frame, theme::SURFACE, theme::LINE, theme::px(theme::RADIUS_APP, s));
+            kit::bordered(
+                ui.painter(),
+                lay.frame,
+                theme::SURFACE,
+                theme::LINE,
+                theme::px(theme::RADIUS_APP, s),
+            );
             ui.painter().line_segment(
                 [
                     Pos2::new(lay.rail.right(), lay.frame.top() + theme::px(14.0, s)),
@@ -177,10 +226,8 @@ impl eframe::App for App {
                 self.goto(&ctx, page);
             }
 
-            let clip = Rect::from_min_max(
-                Pos2::new(lay.rail.right(), lay.frame.top()),
-                lay.frame.max,
-            );
+            let clip =
+                Rect::from_min_max(Pos2::new(lay.rail.right(), lay.frame.top()), lay.frame.max);
             let slide = theme::px(14.0, s);
             if let Some(tr) = self.transition {
                 let t = tr.progress(&ctx);
@@ -211,4 +258,3 @@ impl eframe::App for App {
         });
     }
 }
-

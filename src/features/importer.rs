@@ -77,7 +77,10 @@ fn engine_from_names(names: &[String]) -> Engine {
         Engine::Godot
     } else if names.iter().any(|n| n == "ProjectSettings") {
         Engine::Unity
-    } else if names.iter().any(|n| n.to_ascii_lowercase().ends_with(".uproject")) {
+    } else if names
+        .iter()
+        .any(|n| n.to_ascii_lowercase().ends_with(".uproject"))
+    {
         Engine::Unreal
     } else {
         Engine::Unknown
@@ -104,7 +107,10 @@ pub fn detect(root: &Path) -> Detected {
     let engine = engine_from_names(&names);
 
     let mut content_root = root.to_path_buf();
-    if let Some((dir, _)) = top.iter().find(|(n, d)| *d && OUTPUT_HINTS.contains(&n.to_ascii_lowercase().as_str())) {
+    if let Some((dir, _)) = top
+        .iter()
+        .find(|(n, d)| *d && OUTPUT_HINTS.contains(&n.to_ascii_lowercase().as_str()))
+    {
         content_root = root.join(dir);
     }
 
@@ -120,19 +126,40 @@ pub fn detect(root: &Path) -> Detected {
     let mut depots = Vec::new();
     let os_dirs: Vec<&(String, Option<Os>)> = dirs.iter().filter(|(_, os)| os.is_some()).collect();
     if os_dirs.is_empty() {
-        depots.push(DetectedDepot { name: "content".to_string(), os: None, local_path: content_root.clone() });
+        depots.push(DetectedDepot {
+            name: "content".to_string(),
+            os: None,
+            local_path: content_root.clone(),
+        });
     } else {
         for (name, os) in &os_dirs {
-            depots.push(DetectedDepot { name: name.clone(), os: *os, local_path: content_root.join(name) });
+            depots.push(DetectedDepot {
+                name: name.clone(),
+                os: *os,
+                local_path: content_root.join(name),
+            });
         }
     }
 
-    let mut executables: Vec<String> = child_names(&content_root).into_iter().filter(|(n, d)| !*d && is_executable(n)).map(|(n, _)| n).collect();
+    let mut executables: Vec<String> = child_names(&content_root)
+        .into_iter()
+        .filter(|(n, d)| !*d && is_executable(n))
+        .map(|(n, _)| n)
+        .collect();
     executables.sort();
     executables.truncate(8);
 
-    let name = root.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_else(|| "New project".to_string());
-    Detected { name, engine, content_root, depots, executables }
+    let name = root
+        .file_name()
+        .map(|n| n.to_string_lossy().to_string())
+        .unwrap_or_else(|| "New project".to_string());
+    Detected {
+        name,
+        engine,
+        content_root,
+        depots,
+        executables,
+    }
 }
 
 pub fn to_project(d: &Detected) -> Project {
@@ -174,8 +201,14 @@ mod tests {
 
     #[test]
     fn engine_detection_from_marker_files() {
-        assert_eq!(engine_from_names(&["project.godot".into(), "scenes".into()]), Engine::Godot);
-        assert_eq!(engine_from_names(&["ProjectSettings".into(), "Assets".into()]), Engine::Unity);
+        assert_eq!(
+            engine_from_names(&["project.godot".into(), "scenes".into()]),
+            Engine::Godot
+        );
+        assert_eq!(
+            engine_from_names(&["ProjectSettings".into(), "Assets".into()]),
+            Engine::Unity
+        );
         assert_eq!(engine_from_names(&["Game.uproject".into()]), Engine::Unreal);
         assert_eq!(engine_from_names(&["readme.txt".into()]), Engine::Unknown);
     }

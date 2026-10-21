@@ -38,7 +38,10 @@ pub struct Schedule {
 }
 
 pub fn now_ms() -> i64 {
-    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis() as i64)
+        .unwrap_or(0)
 }
 
 pub struct ScheduleForm {
@@ -55,7 +58,17 @@ pub struct ScheduleForm {
 
 impl Default for ScheduleForm {
     fn default() -> Self {
-        Self { project_sel: 0, recurrence: Recurrence::Once, hour: 9, minute: 0, weekday: 1, year: 2026, month: 1, day: 1, inited: false }
+        Self {
+            project_sel: 0,
+            recurrence: Recurrence::Once,
+            hour: 9,
+            minute: 0,
+            weekday: 1,
+            year: 2026,
+            month: 1,
+            day: 1,
+            inited: false,
+        }
     }
 }
 
@@ -155,13 +168,24 @@ pub struct TaskTiming {
     pub dow: u32,
 }
 
-pub fn schtasks_create_args(task: &str, exe: &str, build_args: &[String], t: &TaskTiming) -> Vec<String> {
+pub fn schtasks_create_args(
+    task: &str,
+    exe: &str,
+    build_args: &[String],
+    t: &TaskTiming,
+) -> Vec<String> {
     let tr = {
         let mut parts = vec![quote(exe)];
         parts.extend(build_args.iter().map(|a| quote(a)));
         parts.join(" ")
     };
-    let mut args = vec!["/Create".into(), "/TN".into(), task.to_string(), "/TR".into(), tr];
+    let mut args = vec![
+        "/Create".into(),
+        "/TN".into(),
+        task.to_string(),
+        "/TR".into(),
+        tr,
+    ];
     match t.rec {
         Recurrence::Once => {
             args.push("/SC".into());
@@ -189,7 +213,12 @@ pub fn schtasks_create_args(task: &str, exe: &str, build_args: &[String], t: &Ta
 }
 
 pub fn schtasks_delete_args(task: &str) -> Vec<String> {
-    vec!["/Delete".into(), "/TN".into(), task.to_string(), "/F".into()]
+    vec![
+        "/Delete".into(),
+        "/TN".into(),
+        task.to_string(),
+        "/F".into(),
+    ]
 }
 
 fn dow_token(dow: u32) -> &'static str {
@@ -197,11 +226,17 @@ fn dow_token(dow: u32) -> &'static str {
 }
 
 fn quote(value: &str) -> String {
-    if value.contains(' ') { format!("\"{value}\"") } else { value.to_string() }
+    if value.contains(' ') {
+        format!("\"{value}\"")
+    } else {
+        value.to_string()
+    }
 }
 
 fn schedules_path() -> Option<PathBuf> {
-    crate::config::data_dir().ok().map(|d| d.join("schedules.json"))
+    crate::config::data_dir()
+        .ok()
+        .map(|d| d.join("schedules.json"))
 }
 
 pub fn load() -> Vec<Schedule> {
@@ -254,13 +289,27 @@ mod tests {
 
     #[test]
     fn schtasks_args_build_create_and_delete() {
-        let timing = TaskTiming { rec: Recurrence::Weekly, hour: 9, minute: 30, date: None, dow: 1 };
-        let args = schtasks_create_args("Onyx Game", "C:/app/onyx.exe", &["build".into(), "--project".into(), "My Game".into()], &timing);
+        let timing = TaskTiming {
+            rec: Recurrence::Weekly,
+            hour: 9,
+            minute: 30,
+            date: None,
+            dow: 1,
+        };
+        let args = schtasks_create_args(
+            "Onyx Game",
+            "C:/app/onyx.exe",
+            &["build".into(), "--project".into(), "My Game".into()],
+            &timing,
+        );
         assert!(args.contains(&"/Create".to_string()));
         assert!(args.contains(&"WEEKLY".to_string()));
         assert!(args.contains(&"MON".to_string()));
         assert!(args.contains(&"09:30".to_string()));
         assert!(args.iter().any(|a| a.contains("\"My Game\"")));
-        assert_eq!(schtasks_delete_args("Onyx Game"), vec!["/Delete", "/TN", "Onyx Game", "/F"]);
+        assert_eq!(
+            schtasks_delete_args("Onyx Game"),
+            vec!["/Delete", "/TN", "Onyx Game", "/F"]
+        );
     }
 }
