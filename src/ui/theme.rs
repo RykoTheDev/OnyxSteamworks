@@ -8,6 +8,7 @@ use eframe::egui::{
 };
 
 // --- Tokens ---------------------------------------------------------------
+
 pub const BG: Color32 = Color32::from_rgb(0x00, 0x00, 0x00);
 pub const PANEL: Color32 = Color32::from_rgb(0xFF, 0xFF, 0xFF);
 pub const PANEL_ALT: Color32 = Color32::from_rgb(0xF4, 0xF4, 0xF4);
@@ -22,6 +23,7 @@ pub const WARNING: Color32 = Color32::from_rgb(0xFB, 0xBF, 0x24);
 pub const DANGER: Color32 = Color32::from_rgb(0xF8, 0x71, 0x71);
 
 // --- Spacing and radii (reference units; pass through px()) ----------------
+
 pub const GUTTER: f32 = 24.0;
 pub const SPACE_XS: f32 = 8.0;
 pub const SPACE_SM: f32 = 12.0;
@@ -34,6 +36,7 @@ pub const RADIUS_CARD: f32 = 40.0;
 pub const RADIUS_POPUP: f32 = 24.0;
 
 // --- Reference canvas and scaling -----------------------------------------
+
 pub const REF_W: f32 = 1180.0;
 pub const REF_H: f32 = 830.0;
 const SCALE_MIN: f32 = 0.75;
@@ -58,6 +61,7 @@ pub fn corner(radius_px: f32) -> CornerRadius {
 }
 
 // --- Color helpers --------------------------------------------------------
+
 /// Linearly interpolate between two solid colors (for cross-fades).
 pub fn lerp_color(a: Color32, b: Color32, t: f32) -> Color32 {
     let t = t.clamp(0.0, 1.0);
@@ -87,6 +91,7 @@ pub fn focus_ring(painter: &Painter, rect: Rect, radius_px: f32, color: Color32)
 }
 
 // --- Fonts ----------------------------------------------------------------
+
 const MANROPE_REGULAR: &[u8] = include_bytes!("../../assets/fonts/Manrope-Regular.ttf");
 const MANROPE_MEDIUM: &[u8] = include_bytes!("../../assets/fonts/Manrope-Medium.ttf");
 const MANROPE_SEMIBOLD: &[u8] = include_bytes!("../../assets/fonts/Manrope-SemiBold.ttf");
@@ -94,16 +99,46 @@ const JETBRAINS_MONO: &[u8] = include_bytes!("../../assets/fonts/JetBrainsMono-R
 const PHOSPHOR: &[u8] = include_bytes!("../../assets/fonts/Phosphor-Regular.ttf");
 const PHOSPHOR_FILL: &[u8] = include_bytes!("../../assets/fonts/Phosphor-Fill.ttf");
 
+/// Named family for Manrope Medium (labels, buttons).
 pub fn family_medium() -> FontFamily {
     FontFamily::Name("Medium".into())
 }
 
+/// Named family for Manrope SemiBold (headings, titles).
 pub fn family_semibold() -> FontFamily {
     FontFamily::Name("SemiBold".into())
 }
 
+pub fn family_icon() -> FontFamily {
+    FontFamily::Name("Phosphor".into())
+}
+
+/// Named family for the filled phosphor weight (active icons).
 pub fn family_icon_fill() -> FontFamily {
     FontFamily::Name("PhosphorFill".into())
+}
+
+pub fn icon_font(size: f32, filled: bool) -> FontId {
+    FontId::new(
+        size,
+        if filled {
+            family_icon_fill()
+        } else {
+            family_icon()
+        },
+    )
+}
+
+pub mod icon {
+    pub const HOUSE: char = '\u{e2c2}';
+    pub const HEART: char = '\u{e2a8}';
+    pub const IMAGE: char = '\u{e2ca}';
+    pub const CROP: char = '\u{e1d4}';
+    pub const GEAR: char = '\u{e270}';
+    pub const SIGN_OUT: char = '\u{e42a}';
+    pub const MAGNIFYING_GLASS: char = '\u{e30c}';
+    pub const SPARKLE: char = '\u{e6a2}';
+    pub const DOWNLOAD: char = '\u{e20a}';
 }
 
 fn install_fonts(ctx: &egui::Context) {
@@ -120,6 +155,7 @@ fn install_fonts(ctx: &egui::Context) {
     add("Phosphor", PHOSPHOR, &mut fonts);
     add("Phosphor-Fill", PHOSPHOR_FILL, &mut fonts);
 
+    // Manrope leads the proportional stack; phosphor trails as an icon fallback.
     let prop = fonts.families.entry(FontFamily::Proportional).or_default();
     prop.insert(0, "Manrope".to_owned());
     prop.push("Phosphor".to_owned());
@@ -168,11 +204,13 @@ fn text_styles() -> std::collections::BTreeMap<TextStyle, FontId> {
 }
 
 // --- Visuals --------------------------------------------------------------
+
 fn build_visuals() -> egui::Visuals {
     let mut v = egui::Visuals::light();
     v.dark_mode = false;
     v.override_text_color = None;
 
+    // The canvas and any window chrome are pure black; panels we paint white.
     v.panel_fill = BG;
     v.window_fill = BG;
     v.window_stroke = Stroke::NONE;
@@ -181,9 +219,12 @@ fn build_visuals() -> egui::Visuals {
     v.code_bg_color = PANEL_ALT;
     v.hyperlink_color = INK;
 
+    // Text selection: black highlight, white text.
     v.selection.bg_fill = INK;
     v.selection.stroke = Stroke::new(1.0, PANEL);
 
+    // Base widget states: white/alt fills, ink text, no strokes. Chip outlines
+    // and focus rings are painted explicitly by the bento kit, not here.
     for w in [
         &mut v.widgets.noninteractive,
         &mut v.widgets.inactive,
@@ -208,6 +249,8 @@ fn build_visuals() -> egui::Visuals {
     v
 }
 
+/// Embed the fonts, define the text styles, and apply the flat monochrome
+/// visuals. Call once at startup.
 pub fn apply_theme(ctx: &egui::Context) {
     install_fonts(ctx);
     let styles = text_styles();
