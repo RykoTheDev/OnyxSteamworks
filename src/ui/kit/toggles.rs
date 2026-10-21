@@ -2,7 +2,13 @@ use eframe::egui::{self, Align2, FontId, Pos2, Rect, Response, Sense, Stroke, St
 
 use crate::ui::{anim, theme};
 
-pub fn checkbox(ui: &mut egui::Ui, rect: Rect, checked: &mut bool, label: &str, s: f32) -> Response {
+pub fn checkbox(
+    ui: &mut egui::Ui,
+    rect: Rect,
+    checked: &mut bool,
+    label: &str,
+    s: f32,
+) -> Response {
     let px = |v: f32| theme::px(v, s);
     let box_size = px(18.0);
     let box_rect = Rect::from_min_size(
@@ -46,7 +52,10 @@ pub fn checkbox(ui: &mut egui::Ui, rect: Rect, checked: &mut bool, label: &str, 
 
 fn draw_check(painter: &egui::Painter, rect: Rect, t: f32, color: egui::Color32, s: f32) {
     let p = |fx: f32, fy: f32| {
-        Pos2::new(rect.left() + rect.width() * fx, rect.top() + rect.height() * fy)
+        Pos2::new(
+            rect.left() + rect.width() * fx,
+            rect.top() + rect.height() * fy,
+        )
     };
     let a = p(0.26, 0.52);
     let b = p(0.44, 0.70);
@@ -79,7 +88,10 @@ pub fn toggle(ui: &mut egui::Ui, rect: Rect, on: &mut bool, s: f32) -> Response 
     painter.rect_filled(rect, theme::corner(rect.height() / 2.0), track);
     let pad = px(3.0);
     let thumb_r = rect.height() / 2.0 - pad;
-    let x = egui::lerp((rect.left() + pad + thumb_r)..=(rect.right() - pad - thumb_r), t.clamp(0.0, 1.0));
+    let x = egui::lerp(
+        (rect.left() + pad + thumb_r)..=(rect.right() - pad - thumb_r),
+        t.clamp(0.0, 1.0),
+    );
     painter.circle_filled(
         egui::pos2(x, rect.center().y),
         thumb_r,

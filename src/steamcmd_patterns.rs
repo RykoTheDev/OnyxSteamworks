@@ -17,6 +17,21 @@ pub fn detect_login(line: &str) -> Option<bool> {
     None
 }
 
+pub fn login_failure_reason(line: &str) -> String {
+    let l = line.to_ascii_lowercase();
+    if l.contains("invalid password") {
+        "Invalid password.".to_string()
+    } else if l.contains("rate limit") {
+        "Rate limited by Steam. Wait a few minutes and try again.".to_string()
+    } else if l.contains("expired") || (l.contains("cached") && l.contains("invalid")) {
+        "The cached login expired. Run Authorize again.".to_string()
+    } else if l.contains("two-factor") || l.contains("steam guard") {
+        "Steam Guard code was required or incorrect.".to_string()
+    } else {
+        "Login failed.".to_string()
+    }
+}
+
 pub fn detect_prompt(partial: &str) -> Option<PromptKind> {
     let l = partial.to_ascii_lowercase();
     if l.contains("steam guard") || l.contains("two-factor") {

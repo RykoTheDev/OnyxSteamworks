@@ -3,6 +3,8 @@ use std::sync::mpsc::{Receiver, Sender};
 use eframe::egui::{self, Pos2, Rect, Stroke, UiBuilder, Vec2};
 
 use crate::model::Project;
+use crate::ui::kit;
+use crate::ui::kit::rail::RailAction;
 use crate::ui::layout::{self, Layout};
 use crate::ui::{anim, nav, pages, theme};
 
@@ -11,6 +13,7 @@ pub enum Page {
     #[default]
     Home,
     Projects,
+    Build,
     History,
     Pipelines,
     Settings,
@@ -23,9 +26,11 @@ pub struct App {
     prev_page: Option<Page>,
     transition: Option<anim::Transition>,
     pub projects: Vec<Project>,
-    pub(crate) sub_tabs: [usize; 5],
+    pub(crate) sub_tabs: [usize; 6],
     pub(crate) home_gen: u32,
     pub(crate) projects_ui: pages::projects::ProjectsState,
+    pub(crate) build_ui: pages::build::BuildState,
+    pub(crate) toasts: kit::Toasts,
     #[allow(dead_code)]
     event_tx: Sender<AppEvent>,
     event_rx: Receiver<AppEvent>,
@@ -50,9 +55,11 @@ impl App {
             prev_page: None,
             transition: None,
             projects,
-            sub_tabs: [0; 5],
+            sub_tabs: [0; 6],
             home_gen: 0,
             projects_ui: pages::projects::ProjectsState::new(),
+            build_ui: pages::build::BuildState::new(),
+            toasts: kit::Toasts::default(),
             event_tx,
             event_rx,
         }
@@ -70,7 +77,14 @@ impl App {
         }
     }
 
-    fn render_page(&mut self, ui: &mut egui::Ui, page: Page, lay: &Layout, clip: egui::Rect, opacity: f32) {
+    fn render_page(
+        &mut self,
+        ui: &mut egui::Ui,
+        page: Page,
+        lay: &Layout,
+        clip: egui::Rect,
+        opacity: f32,
+    ) {
         let mut cu = ui.new_child(UiBuilder::new().max_rect(ui.max_rect()));
         cu.set_opacity(opacity);
         cu.set_clip_rect(clip);
@@ -96,6 +110,13 @@ impl eframe::App for App {
             let lay = layout::compute(ui.max_rect());
             let s = lay.scale;
 
+            kit::bordered(
+                ui.painter(),
+                lay.frame,
+                theme::SURFACE,
+                theme::LINE,
+                theme::px(theme::RADIUS_APP, s),
+            );
             ui.painter().line_segment(
                 [
                     Pos2::new(lay.rail.right(), lay.frame.top() + theme::px(14.0, s)),
@@ -103,6 +124,10 @@ impl eframe::App for App {
                 ],
                 Stroke::new(1.0, theme::LINE),
             );
+
+            if let Some(RailAction::Navigate(page)) = kit::rail(ui, lay.rail, self.page, s) {
+                self.goto(&ctx, page);
+            }
 
             let mut nav_to = None;
             for item in nav::ITEMS.iter() {
@@ -114,10 +139,8 @@ impl eframe::App for App {
                 self.goto(&ctx, page);
             }
 
-            let clip = Rect::from_min_max(
-                Pos2::new(lay.rail.right(), lay.frame.top()),
-                lay.frame.max,
-            );
+            let clip =
+                Rect::from_min_max(Pos2::new(lay.rail.right(), lay.frame.top()), lay.frame.max);
             let slide = theme::px(14.0, s);
             if let Some(tr) = self.transition {
                 let t = tr.progress(&ctx);
@@ -135,6 +158,7 @@ impl eframe::App for App {
                 self.render_page(ui, self.page, &lay, clip, 1.0);
             }
 
+            self.toasts.show(ui, lay.toast_anchor, s);
         });
     }
 }

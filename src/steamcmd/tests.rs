@@ -4,7 +4,7 @@ use std::time::Duration;
 
 use eframe::egui;
 
-use super::{BuildEvent, BuildResult, PromptKind, RunOptions, cancel, start_build};
+use super::{BuildEvent, BuildResult, PromptKind, RunOptions, cancel, start_build, start_login};
 use crate::model::Project;
 
 fn fake_bin() -> PathBuf {
@@ -36,7 +36,39 @@ fn scenario_opts(name: &str) -> RunOptions {
     RunOptions {
         app_build_vdf: vdf,
         log_path: Some(dir.join("build.log")),
+        interactive: true,
     }
+}
+
+fn login_project(scenario: &str) -> Project {
+    Project {
+        steamcmd_path: fake_bin(),
+        steam_username: scenario.to_string(),
+        ..Default::default()
+    }
+}
+
+fn run_login(scenario: &str) -> Vec<BuildEvent> {
+    let ctx = egui::Context::default();
+    let (tx, rx) = channel();
+    let handle = start_login(&login_project(scenario), &ctx, tx).expect("start_login");
+    let mut events = Vec::new();
+    loop {
+        match rx.recv_timeout(Duration::from_secs(15)) {
+            Ok(ev) => {
+                let done = matches!(ev, BuildEvent::Finished(_));
+                if let BuildEvent::Prompt(_) = &ev {
+                    handle.send_input("12345");
+                }
+                events.push(ev);
+                if done {
+                    break;
+                }
+            }
+            Err(_) => panic!("timed out waiting for {scenario}"),
+        }
+    }
+    events
 }
 
 fn run(name: &str) -> (Vec<BuildEvent>, PathBuf) {
@@ -138,4 +170,45 @@ fn cancel_reports_cancelled() {
             Err(_) => panic!("timed out waiting for cancel"),
         }
     }
+}
+
+#[test]
+fn login_guard_required_then_code_succeeds() {
+    let events = run_login("guard_required");
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, BuildEvent::Prompt(PromptKind::SteamGuard)))
+    );
+    assert_eq!(
+        finished(&events),
+        Some(BuildResult::Success {
+            app_id: String::new()
+        })
+    );
+}
+
+#[test]
+fn login_wrong_password_reports_failure() {
+    let events = run_login("wrong_password");
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, BuildEvent::Prompt(PromptKind::Password)))
+    );
+    match finished(&events) {
+        Some(BuildResult::Failure { message }) => {
+            assert!(message.to_ascii_lowercase().contains("invalid password"))
+        }
+        other => panic!("expected failure, got {other:?}"),
+    }
+}
+
+#[test]
+fn login_fail_reports_failure() {
+    let events = run_login("login_fail");
+    assert!(matches!(
+        finished(&events),
+        Some(BuildResult::Failure { .. })
+    ));
 }

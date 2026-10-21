@@ -103,7 +103,8 @@ const INTER_MEDIUM: &[u8] = include_bytes!("../../assets/fonts/Inter-Medium.ttf"
 const INTER_SEMIBOLD: &[u8] = include_bytes!("../../assets/fonts/Inter-SemiBold.ttf");
 const INTER_BOLD: &[u8] = include_bytes!("../../assets/fonts/Inter-Bold.ttf");
 const INTER_BLACK_ITALIC: &[u8] = include_bytes!("../../assets/fonts/Inter-BlackItalic.ttf");
-const INTER_EXTRABOLD_ITALIC: &[u8] = include_bytes!("../../assets/fonts/Inter-ExtraBoldItalic.ttf");
+const INTER_EXTRABOLD_ITALIC: &[u8] =
+    include_bytes!("../../assets/fonts/Inter-ExtraBoldItalic.ttf");
 const JETBRAINS_MONO: &[u8] = include_bytes!("../../assets/fonts/JetBrainsMono-Regular.ttf");
 const PHOSPHOR: &[u8] = include_bytes!("../../assets/fonts/Phosphor-Regular.ttf");
 const PHOSPHOR_FILL: &[u8] = include_bytes!("../../assets/fonts/Phosphor-Fill.ttf");
@@ -167,6 +168,7 @@ pub mod icon {
     pub const FOLDER: char = '\u{e24a}';
     pub const PLAY: char = '\u{e3d0}';
     pub const PACKAGE: char = '\u{e390}';
+    pub const ROCKET: char = '\u{e3fe}';
     pub const WARNING: char = '\u{e4e0}';
     pub const X: char = '\u{e4f6}';
 }
@@ -197,7 +199,10 @@ fn install_fonts(ctx: &egui::Context) {
 
     let named = [
         (family_medium(), vec!["Inter-Medium", "Inter", "Phosphor"]),
-        (family_semibold(), vec!["Inter-SemiBold", "Inter", "Phosphor"]),
+        (
+            family_semibold(),
+            vec!["Inter-SemiBold", "Inter", "Phosphor"],
+        ),
         (family_bold(), vec!["Inter-Bold", "Inter", "Phosphor"]),
         (family_display(), vec!["Inter-BlackItalic", "Inter"]),
         (family_label(), vec!["Inter-ExtraBoldItalic", "Inter"]),
@@ -216,8 +221,14 @@ fn text_styles() -> std::collections::BTreeMap<TextStyle, FontId> {
     [
         (TextStyle::Heading, FontId::new(16.0, family_semibold())),
         (TextStyle::Body, FontId::new(14.0, FontFamily::Proportional)),
-        (TextStyle::Small, FontId::new(12.0, FontFamily::Proportional)),
-        (TextStyle::Monospace, FontId::new(13.0, FontFamily::Monospace)),
+        (
+            TextStyle::Small,
+            FontId::new(12.0, FontFamily::Proportional),
+        ),
+        (
+            TextStyle::Monospace,
+            FontId::new(13.0, FontFamily::Monospace),
+        ),
         (TextStyle::Button, FontId::new(14.0, family_medium())),
     ]
     .into()

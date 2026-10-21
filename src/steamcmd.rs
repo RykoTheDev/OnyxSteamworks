@@ -59,6 +59,7 @@ pub enum SteamError {
 pub struct RunOptions {
     pub app_build_vdf: PathBuf,
     pub log_path: Option<PathBuf>,
+    pub interactive: bool,
 }
 
 pub struct BuildHandle {
@@ -83,13 +84,13 @@ impl BuildHandle {
     }
 }
 
-fn log_path_for(options: &RunOptions) -> Result<PathBuf, SteamError> {
-    match &options.log_path {
+fn log_path_for(explicit: Option<&PathBuf>, prefix: &str) -> Result<PathBuf, SteamError> {
+    match explicit {
         Some(p) => Ok(p.clone()),
         None => {
             let dir = crate::config::log_dir()
                 .map_err(|e| SteamError::Io(std::io::Error::other(e.to_string())))?;
-            Ok(dir.join(format!("build-{}.log", uuid::Uuid::new_v4())))
+            Ok(dir.join(format!("{prefix}-{}.log", uuid::Uuid::new_v4())))
         }
     }
 }
@@ -100,25 +101,50 @@ pub fn start_build(
     ctx: &egui::Context,
     tx: Sender<BuildEvent>,
 ) -> Result<BuildHandle, SteamError> {
-    let log_path = log_path_for(options)?;
-    if let Some(parent) = log_path.parent() {
-        std::fs::create_dir_all(parent)?;
-    }
-    let log = Arc::new(Mutex::new(std::fs::File::create(&log_path)?));
-
+    let log_path = log_path_for(options.log_path.as_ref(), "build")?;
     let mut cmd = Command::new(&project.steamcmd_path);
-    cmd.arg("+@ShutdownOnFailedCommand")
-        .arg("1")
-        .arg("+@NoPromptForPassword")
-        .arg("1");
+    cmd.arg("+@ShutdownOnFailedCommand").arg("1");
+    if !options.interactive {
+        cmd.arg("+@NoPromptForPassword").arg("1");
+    }
     let login = project.steam_username.trim();
     if !login.is_empty() {
         cmd.arg("+login").arg(login);
     }
     cmd.arg("+run_app_build")
         .arg(&options.app_build_vdf)
-        .arg("+quit")
-        .stdout(Stdio::piped())
+        .arg("+quit");
+    run(cmd, log_path, ctx, tx)
+}
+
+pub fn start_login(
+    project: &Project,
+    ctx: &egui::Context,
+    tx: Sender<BuildEvent>,
+) -> Result<BuildHandle, SteamError> {
+    let log_path = log_path_for(None, "login")?;
+    let mut cmd = Command::new(&project.steamcmd_path);
+    cmd.arg("+@ShutdownOnFailedCommand").arg("1");
+    let login = project.steam_username.trim();
+    if !login.is_empty() {
+        cmd.arg("+login").arg(login);
+    }
+    cmd.arg("+quit");
+    run(cmd, log_path, ctx, tx)
+}
+
+fn run(
+    mut cmd: Command,
+    log_path: PathBuf,
+    ctx: &egui::Context,
+    tx: Sender<BuildEvent>,
+) -> Result<BuildHandle, SteamError> {
+    if let Some(parent) = log_path.parent() {
+        std::fs::create_dir_all(parent)?;
+    }
+    let log = Arc::new(Mutex::new(std::fs::File::create(&log_path)?));
+
+    cmd.stdout(Stdio::piped())
         .stderr(Stdio::piped())
         .stdin(Stdio::piped());
     #[cfg(windows)]

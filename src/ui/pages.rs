@@ -1,3 +1,4 @@
+pub mod build;
 pub mod history;
 pub mod home;
 pub mod pipelines;
@@ -14,6 +15,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, page: Page, layout: &Layout) {
     match page {
         Page::Home => home::show(app, ui, layout),
         Page::Projects => projects::show(app, ui, layout),
+        Page::Build => build::show(app, ui, layout),
         Page::History => history::show(app, ui, layout),
         Page::Pipelines => pipelines::show(app, ui, layout),
         Page::Settings => settings::show(app, ui, layout),

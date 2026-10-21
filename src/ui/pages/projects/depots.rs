@@ -77,11 +77,18 @@ fn depot_section(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) 
     ];
     for (k, (lbl, preset)) in presets.iter().enumerate() {
         let r = Rect::from_min_size(
-            Pos2::new(hr.right() - bw * (4 - k) as f32 - px(6.0) * (3 - k) as f32, hr.center().y - px(15.0)),
+            Pos2::new(
+                hr.right() - bw * (4 - k) as f32 - px(6.0) * (3 - k) as f32,
+                hr.center().y - px(15.0),
+            ),
             Vec2::new(bw, px(30.0)),
         );
-        if Button::new(lbl, ButtonKind::Secondary).show(ui, r, s).clicked() {
-            app.projects_ui.add_depot(preset.map(preset_depot).unwrap_or_default());
+        if Button::new(lbl, ButtonKind::Secondary)
+            .show(ui, r, s)
+            .clicked()
+        {
+            app.projects_ui
+                .add_depot(preset.map(preset_depot).unwrap_or_default());
         }
     }
 
@@ -123,12 +130,24 @@ fn depot_section(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) 
     }
 }
 
-fn depot_card(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context, i: usize) -> Option<DepotAct> {
+fn depot_card(
+    app: &mut App,
+    ui: &mut egui::Ui,
+    s: f32,
+    ctx: &egui::Context,
+    i: usize,
+) -> Option<DepotAct> {
     let px = |v: f32| theme::px(v, s);
     let n_excl = app.projects_ui.base.depots[i].exclusions.len();
     let card_h = 196.0 + n_excl as f32 * 34.0;
     let card = row(ui, s, card_h);
-    kit::bordered(&ui.painter().clone(), card, theme::SURFACE_2, theme::LINE, px(theme::RADIUS_CARD));
+    kit::bordered(
+        &ui.painter().clone(),
+        card,
+        theme::SURFACE_2,
+        theme::LINE,
+        px(theme::RADIUS_CARD),
+    );
     let pad = px(14.0);
     let x = card.left() + pad;
     let w = card.width() - pad * 2.0;
@@ -143,11 +162,19 @@ fn depot_card(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context, i: 
     if let Some(e) = &id_err {
         tid = tid.error(true).helper(e);
     }
-    tid.show(ui, Rect::from_min_size(Pos2::new(x, y), Vec2::new(id_w, px(40.0))), s);
+    tid.show(
+        ui,
+        Rect::from_min_size(Pos2::new(x, y), Vec2::new(id_w, px(40.0))),
+        s,
+    );
     let name_w = w - id_w - gap - 3.0 * (btn_w + gap);
     Input::new(&mut app.projects_ui.base.depots[i].name)
         .hint("name")
-        .show(ui, Rect::from_min_size(Pos2::new(x + id_w + gap, y), Vec2::new(name_w, px(40.0))), s);
+        .show(
+            ui,
+            Rect::from_min_size(Pos2::new(x + id_w + gap, y), Vec2::new(name_w, px(40.0))),
+            s,
+        );
     let mut bx = x + w - 3.0 * btn_w - 2.0 * gap;
     for (lbl, kind, a) in [
         ("UP", ButtonKind::Secondary, DepotAct::Move(i, true)),
@@ -155,7 +182,11 @@ fn depot_card(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context, i: 
         ("X", ButtonKind::Danger, DepotAct::Remove(i)),
     ] {
         if Button::new(lbl, kind)
-            .show(ui, Rect::from_min_size(Pos2::new(bx, y), Vec2::new(btn_w, px(40.0))), s)
+            .show(
+                ui,
+                Rect::from_min_size(Pos2::new(bx, y), Vec2::new(btn_w, px(40.0))),
+                s,
+            )
             .clicked()
         {
             act = Some(a);
@@ -168,8 +199,17 @@ fn depot_card(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context, i: 
     let browse_w = px(96.0);
     let path_w = w - browse_w - scan_w - px(12.0) - px(150.0);
     let pr = Rect::from_min_size(Pos2::new(x, y), Vec2::new(path_w, px(40.0)));
-    kit::bordered(&ui.painter().clone(), pr, theme::FIELD, theme::LINE, px(theme::RADIUS_FIELD));
-    let lp = app.projects_ui.base.depots[i].local_path.to_string_lossy().to_string();
+    kit::bordered(
+        &ui.painter().clone(),
+        pr,
+        theme::FIELD,
+        theme::LINE,
+        px(theme::RADIUS_FIELD),
+    );
+    let lp = app.projects_ui.base.depots[i]
+        .local_path
+        .to_string_lossy()
+        .to_string();
     let (txt, col) = if lp.is_empty() {
         ("local path".to_string(), theme::INK_FAINT)
     } else {
@@ -184,7 +224,14 @@ fn depot_card(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context, i: 
     );
     if Button::new("BROWSE", ButtonKind::Secondary)
         .icon(theme::icon::FOLDER)
-        .show(ui, Rect::from_min_size(Pos2::new(x + path_w + px(6.0), y), Vec2::new(browse_w, px(40.0))), s)
+        .show(
+            ui,
+            Rect::from_min_size(
+                Pos2::new(x + path_w + px(6.0), y),
+                Vec2::new(browse_w, px(40.0)),
+            ),
+            s,
+        )
         .clicked()
     {
         app.projects_ui.spawn_pick(ctx, PickField::DepotLocal, i);
@@ -192,7 +239,14 @@ fn depot_card(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context, i: 
     let running = matches!(app.projects_ui.scans.get(i), Some(ScanState::Running));
     if Button::new("SCAN", ButtonKind::Secondary)
         .loading(running)
-        .show(ui, Rect::from_min_size(Pos2::new(x + path_w + browse_w + px(12.0), y), Vec2::new(scan_w, px(40.0))), s)
+        .show(
+            ui,
+            Rect::from_min_size(
+                Pos2::new(x + path_w + browse_w + px(12.0), y),
+                Vec2::new(scan_w, px(40.0)),
+            ),
+            s,
+        )
         .clicked()
         && !running
     {
@@ -211,7 +265,11 @@ fn depot_card(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context, i: 
 
     Input::new(&mut app.projects_ui.base.depots[i].depot_path)
         .hint(".")
-        .show(ui, Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(120.0), px(36.0))), s);
+        .show(
+            ui,
+            Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(120.0), px(36.0))),
+            s,
+        );
     kit::checkbox(
         ui,
         Rect::from_min_size(Pos2::new(x + px(140.0), y), Vec2::new(px(160.0), px(36.0))),
@@ -232,9 +290,17 @@ fn depot_card(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context, i: 
     for j in 0..app.projects_ui.base.depots[i].exclusions.len() {
         Input::new(&mut app.projects_ui.base.depots[i].exclusions[j])
             .hint("*.pdb")
-            .show(ui, Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(220.0), px(28.0))), s);
+            .show(
+                ui,
+                Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(220.0), px(28.0))),
+                s,
+            );
         if Button::new("X", ButtonKind::Danger)
-            .show(ui, Rect::from_min_size(Pos2::new(x + px(228.0), y), Vec2::new(px(38.0), px(28.0))), s)
+            .show(
+                ui,
+                Rect::from_min_size(Pos2::new(x + px(228.0), y), Vec2::new(px(38.0), px(28.0))),
+                s,
+            )
             .clicked()
         {
             act = Some(DepotAct::RemoveExcl(i, j));
@@ -242,7 +308,11 @@ fn depot_card(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context, i: 
         y += px(34.0);
     }
     if Button::new("+ PATTERN", ButtonKind::Secondary)
-        .show(ui, Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(128.0), px(30.0))), s)
+        .show(
+            ui,
+            Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(128.0), px(30.0))),
+            s,
+        )
         .clicked()
     {
         act = Some(DepotAct::AddExcl(i));

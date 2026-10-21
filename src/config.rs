@@ -50,6 +50,7 @@ struct ProjectFile {
 pub struct Settings {
     pub schema_version: u32,
     pub last_opened_project: Option<String>,
+    pub remember_password: bool,
 }
 
 /// Root config directory for the app, created if missing.
@@ -73,6 +74,15 @@ pub fn log_dir() -> Result<PathBuf> {
     let dirs =
         ProjectDirs::from("dev", "steampipe", "SteamPipe GUI").ok_or(ConfigError::NoConfigDir)?;
     let dir = dirs.data_dir().join("logs");
+    fs::create_dir_all(&dir)?;
+    Ok(dir)
+}
+
+/// Directory holding generated VDFs for a build run, created if missing.
+pub fn build_dir() -> Result<PathBuf> {
+    let dirs =
+        ProjectDirs::from("dev", "steampipe", "SteamPipe GUI").ok_or(ConfigError::NoConfigDir)?;
+    let dir = dirs.data_dir().join("builds");
     fs::create_dir_all(&dir)?;
     Ok(dir)
 }

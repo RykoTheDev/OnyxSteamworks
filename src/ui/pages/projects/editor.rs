@@ -22,7 +22,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egui::Co
         Pos2::new(rect.left(), rect.top() + px(92.0)),
         Vec2::new(px(240.0), px(32.0)),
     );
-    kit::tabs(ui, tab_rect, &["EDITOR", "VDF PREVIEW"], &mut app.projects_ui.editor_tab, s);
+    kit::tabs(
+        ui,
+        tab_rect,
+        &["EDITOR", "VDF PREVIEW"],
+        &mut app.projects_ui.editor_tab,
+        s,
+    );
 
     let save_h = px(66.0);
     let content = Rect::from_min_max(
@@ -73,7 +79,10 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
     let left_w = (r.width() - gap) * 0.42;
     let right_w = r.width() - gap - left_w;
     let left = Rect::from_min_size(r.min, Vec2::new(left_w, r.height()));
-    let right = Rect::from_min_size(Pos2::new(r.left() + left_w + gap, r.top()), Vec2::new(right_w, r.height()));
+    let right = Rect::from_min_size(
+        Pos2::new(r.left() + left_w + gap, r.top()),
+        Vec2::new(right_w, r.height()),
+    );
     changed |= labelled_text(app, ui, left, "APP ID", None, false, s);
     changed |= labelled_text(app, ui, right, "DISPLAY NAME", Some("(Optional)"), false, s);
     ui.add_space(px(6.0));
@@ -98,7 +107,10 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
 }
 
 pub(super) fn row(ui: &mut egui::Ui, s: f32, h: f32) -> Rect {
-    let (rect, _) = ui.allocate_exact_size(Vec2::new(ui.available_width(), theme::px(h, s)), Sense::hover());
+    let (rect, _) = ui.allocate_exact_size(
+        Vec2::new(ui.available_width(), theme::px(h, s)),
+        Sense::hover(),
+    );
     rect
 }
 
@@ -145,7 +157,10 @@ fn labelled_text(
         Some(suf) => kit::label_optional(&painter, rect.left_top(), lbl, suf, s),
         None => kit::label(&painter, rect.left_top(), lbl, s),
     }
-    let field = Rect::from_min_size(Pos2::new(rect.left(), rect.top() + px(24.0)), Vec2::new(rect.width(), px(40.0)));
+    let field = Rect::from_min_size(
+        Pos2::new(rect.left(), rect.top() + px(24.0)),
+        Vec2::new(rect.width(), px(40.0)),
+    );
     let err = app.projects_ui.error_for(key_for(lbl));
     let value = value_mut(app, lbl);
     let mut ti = Input::new(value).mask(mask);
@@ -155,7 +170,14 @@ fn labelled_text(
     ti.show(ui, field, s).changed()
 }
 
-fn labelled_path(app: &mut App, ui: &mut egui::Ui, lbl: &str, field: PickField, s: f32, ctx: &egui::Context) -> bool {
+fn labelled_path(
+    app: &mut App,
+    ui: &mut egui::Ui,
+    lbl: &str,
+    field: PickField,
+    s: f32,
+    ctx: &egui::Context,
+) -> bool {
     let px = |v: f32| theme::px(v, s);
     label(ui, lbl, s);
     let r = row(ui, s, 48.0);
@@ -169,7 +191,10 @@ fn labelled_path(app: &mut App, ui: &mut egui::Ui, lbl: &str, field: PickField, 
         ti = ti.error(true).helper(e);
     }
     let changed = ti.show(ui, input, s).changed();
-    let browse = Rect::from_min_size(Pos2::new(input.right() + gap, input.top()), Vec2::new(browse_w, px(40.0)));
+    let browse = Rect::from_min_size(
+        Pos2::new(input.right() + gap, input.top()),
+        Vec2::new(browse_w, px(40.0)),
+    );
     if Button::new("BROWSE", ButtonKind::Secondary)
         .icon(theme::icon::FOLDER)
         .show(ui, browse, s)

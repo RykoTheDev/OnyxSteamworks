@@ -1,4 +1,6 @@
-use eframe::egui::{self, Align2, FontId, Frame, Pos2, Rect, Response, Stroke, StrokeKind, TextEdit, Vec2};
+use eframe::egui::{
+    self, Align2, FontId, Frame, Pos2, Rect, Response, Stroke, StrokeKind, TextEdit, Vec2,
+};
 
 use crate::ui::kit;
 use crate::ui::theme;
@@ -83,8 +85,16 @@ impl<'a> Input<'a> {
 
         let resp = if self.readonly {
             let painter = ui.painter();
-            let shown = if self.text.is_empty() { self.hint } else { self.text.as_str() };
-            let color = if self.text.is_empty() { theme::INK_FAINT } else { theme::INK_DIM };
+            let shown = if self.text.is_empty() {
+                self.hint
+            } else {
+                self.text.as_str()
+            };
+            let color = if self.text.is_empty() {
+                theme::INK_FAINT
+            } else {
+                theme::INK_DIM
+            };
             painter.text(
                 Pos2::new(inner.left(), inner.center().y),
                 Align2::LEFT_CENTER,
@@ -112,7 +122,11 @@ impl<'a> Input<'a> {
         } else {
             theme::LINE
         };
-        let width = if self.error || resp.has_focus() { 1.5 } else { 1.0 };
+        let width = if self.error || resp.has_focus() {
+            1.5
+        } else {
+            1.0
+        };
         ui.painter().rect_stroke(
             field,
             theme::corner(radius),
@@ -121,7 +135,11 @@ impl<'a> Input<'a> {
         );
 
         if let Some(helper) = self.helper {
-            let color = if self.error { theme::DANGER } else { theme::INK_MUTED };
+            let color = if self.error {
+                theme::DANGER
+            } else {
+                theme::INK_MUTED
+            };
             ui.painter().text(
                 Pos2::new(field.left() + px(2.0), field.bottom() + px(5.0)),
                 Align2::LEFT_TOP,

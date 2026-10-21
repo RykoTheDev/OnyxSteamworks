@@ -11,29 +11,35 @@ use crate::steamcmd_patterns as patterns;
 pub(super) struct Parsed {
     pub(super) app_id: Option<String>,
     pub(super) failure: Option<String>,
+    pub(super) logged_in: bool,
 }
 
 pub(super) fn finish(
     parsed: &Arc<Mutex<Parsed>>,
     status: std::io::Result<std::process::ExitStatus>,
 ) -> BuildResult {
-    let (app_id, failure) = {
+    let (app_id, failure, logged_in) = {
         let p = parsed.lock().unwrap_or_else(|e| e.into_inner());
-        (p.app_id.clone(), p.failure.clone())
+        (p.app_id.clone(), p.failure.clone(), p.logged_in)
     };
-    match (app_id, failure) {
-        (Some(app_id), _) => BuildResult::Success { app_id },
-        (None, Some(message)) => BuildResult::Failure { message },
-        (None, None) => {
-            let code = status.ok().and_then(|s| s.code());
-            let message = match code {
-                Some(0) => "steamcmd exited without a success marker".to_string(),
-                Some(c) => format!("steamcmd exited with code {c}"),
-                None => "steamcmd exited abnormally".to_string(),
-            };
-            BuildResult::Failure { message }
-        }
+    if let Some(app_id) = app_id {
+        return BuildResult::Success { app_id };
     }
+    if let Some(message) = failure {
+        return BuildResult::Failure { message };
+    }
+    let code = status.ok().and_then(|s| s.code());
+    if logged_in && code == Some(0) {
+        return BuildResult::Success {
+            app_id: String::new(),
+        };
+    }
+    let message = match code {
+        Some(0) => "steamcmd exited without a success marker".to_string(),
+        Some(c) => format!("steamcmd exited with code {c}"),
+        None => "steamcmd exited abnormally".to_string(),
+    };
+    BuildResult::Failure { message }
 }
 
 pub(super) fn spawn_reader<R: Read + Send + 'static>(
@@ -111,11 +117,21 @@ fn handle_line(
             let _ = tx.send(BuildEvent::Stage(Stage::Finished));
         }
     }
-    if let Some(false) = patterns::detect_login(line)
-        && let Ok(mut g) = parsed.lock()
-        && g.failure.is_none()
-    {
-        g.failure = Some(line.trim().to_string());
+    match patterns::detect_login(line) {
+        Some(true) => {
+            if let Ok(mut g) = parsed.lock() {
+                g.logged_in = true;
+            }
+        }
+        Some(false) => {
+            let reason = patterns::login_failure_reason(line);
+            if let Ok(mut g) = parsed.lock()
+                && g.failure.is_none()
+            {
+                g.failure = Some(reason);
+            }
+        }
+        None => {}
     }
     if let Some(msg) = patterns::detect_failure(line)
         && let Ok(mut g) = parsed.lock()

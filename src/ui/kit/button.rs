@@ -80,7 +80,12 @@ impl<'a> Button<'a> {
         let (base_fill, hi_fill, fg, border) = match self.kind {
             ButtonKind::Primary => (theme::PRIMARY, theme::INK, theme::PRIMARY_INK, None),
             ButtonKind::Secondary => (theme::FIELD, theme::FIELD_HI, theme::INK, Some(theme::LINE)),
-            ButtonKind::Danger => (theme::FIELD, theme::FIELD_HI, theme::DANGER, Some(theme::DANGER)),
+            ButtonKind::Danger => (
+                theme::FIELD,
+                theme::FIELD_HI,
+                theme::DANGER,
+                Some(theme::DANGER),
+            ),
             ButtonKind::Ghost => (theme::SURFACE, theme::FIELD, theme::INK_DIM, None),
         };
         let dim = if self.enabled { 1.0 } else { 0.4 };
@@ -147,7 +152,13 @@ pub fn icon_button(ui: &mut egui::Ui, rect: Rect, glyph: char, s: f32) -> Respon
     let id = ui.make_persistent_id(("iconbtn", glyph, rect.left() as i32, rect.top() as i32));
     let resp = ui.interact(rect, id, Sense::click());
     let ctx = ui.ctx().clone();
-    let hover = anim::anim_bool(&ctx, id.with("h"), resp.hovered(), 0.12, anim::ease_out_cubic);
+    let hover = anim::anim_bool(
+        &ctx,
+        id.with("h"),
+        resp.hovered(),
+        0.12,
+        anim::ease_out_cubic,
+    );
     let painter = ui.painter();
     painter.rect_filled(
         rect,

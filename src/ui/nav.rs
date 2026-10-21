@@ -13,7 +13,7 @@ pub struct NavItem {
     pub sub_tabs: &'static [&'static str],
 }
 
-pub const ITEMS: [NavItem; 5] = [
+pub const ITEMS: [NavItem; 6] = [
     NavItem {
         page: Page::Home,
         glyph: icon::HOUSE,
@@ -29,24 +29,31 @@ pub const ITEMS: [NavItem; 5] = [
         sub_tabs: &[],
     },
     NavItem {
+        page: Page::Build,
+        glyph: icon::ROCKET,
+        label: "Build",
+        shortcut: Key::Num3,
+        sub_tabs: &[],
+    },
+    NavItem {
         page: Page::History,
         glyph: icon::HISTORY,
         label: "History",
-        shortcut: Key::Num3,
+        shortcut: Key::Num4,
         sub_tabs: &["Builds", "Backups", "Patch notes", "Analytics"],
     },
     NavItem {
         page: Page::Pipelines,
         glyph: icon::FLOW,
         label: "Pipelines",
-        shortcut: Key::Num4,
+        shortcut: Key::Num5,
         sub_tabs: &["Pipelines", "Queue", "Schedule"],
     },
     NavItem {
         page: Page::Settings,
         glyph: icon::GEAR,
         label: "Settings",
-        shortcut: Key::Num5,
+        shortcut: Key::Num6,
         sub_tabs: &["General", "Accounts", "Notifications", "Doctor", "Advanced"],
     },
 ];

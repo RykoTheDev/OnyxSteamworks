@@ -1,4 +1,6 @@
-use eframe::egui::{self, Align2, Color32, FontId, Order, Pos2, Rect, Sense, Stroke, StrokeKind, UiBuilder, Vec2};
+use eframe::egui::{
+    self, Align2, Color32, FontId, Order, Pos2, Rect, Sense, Stroke, StrokeKind, UiBuilder, Vec2,
+};
 
 use crate::ui::{anim, theme};
 
@@ -22,12 +24,19 @@ pub fn modal(
         .show(&ctx, |ui| {
             let dim = theme::with_alpha(Color32::BLACK, (150.0 * t.clamp(0.0, 1.0)) as u8);
             ui.painter().rect_filled(screen, theme::corner(0.0), dim);
-            if ui.interact(screen, id.with("dim"), Sense::click()).clicked() {
+            if ui
+                .interact(screen, id.with("dim"), Sense::click())
+                .clicked()
+            {
                 *open = false;
             }
             let scale = 0.94 + 0.06 * t;
             let prect = Rect::from_center_size(screen.center(), size * scale);
-            ui.painter().rect_filled(prect, theme::corner(theme::px(theme::RADIUS_PANEL_MIN, s)), theme::SURFACE);
+            ui.painter().rect_filled(
+                prect,
+                theme::corner(theme::px(theme::RADIUS_PANEL_MIN, s)),
+                theme::SURFACE,
+            );
             ui.painter().rect_stroke(
                 prect,
                 theme::corner(theme::px(theme::RADIUS_PANEL_MIN, s)),
@@ -116,7 +125,8 @@ impl Toasts {
                     let slide = anim::ease_out_cubic((age / 0.25).min(1.0));
                     let x = anchor.x - w + (1.0 - slide) * px(40.0);
                     let r = Rect::from_min_size(Pos2::new(x, y), Vec2::new(w, h));
-                    ui.painter().rect_filled(r, theme::corner(radius), theme::SURFACE_2);
+                    ui.painter()
+                        .rect_filled(r, theme::corner(radius), theme::SURFACE_2);
                     ui.painter().rect_stroke(
                         r,
                         theme::corner(radius),

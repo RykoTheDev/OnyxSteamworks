@@ -38,7 +38,10 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     let list = Rect::from_min_max(content.min, pos2(content.left() + list_w, content.bottom()));
     let divider_x = list.right() + px(20.0);
     ui.painter().line_segment(
-        [Pos2::new(divider_x, content.top() + px(6.0)), Pos2::new(divider_x, content.bottom() - px(6.0))],
+        [
+            Pos2::new(divider_x, content.top() + px(6.0)),
+            Pos2::new(divider_x, content.bottom() - px(6.0)),
+        ],
         Stroke::new(1.0, theme::LINE),
     );
     let editor_rect = Rect::from_min_max(pos2(divider_x + px(20.0), content.top()), content.max);
@@ -124,14 +127,25 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
 
     if Button::new("NEW", ButtonKind::Primary)
         .icon(theme::icon::PLUS)
-        .show(ui, Rect::from_min_size(pos2(rect.left(), row_y), Vec2::new(bw, px(36.0))), s)
+        .show(
+            ui,
+            Rect::from_min_size(pos2(rect.left(), row_y), Vec2::new(bw, px(36.0))),
+            s,
+        )
         .clicked()
     {
         action = Some(Action::New);
     }
     if Button::new("DUP", ButtonKind::Secondary)
         .enabled(has_sel)
-        .show(ui, Rect::from_min_size(pos2(rect.left() + bw + px(8.0), row_y), Vec2::new(bw, px(36.0))), s)
+        .show(
+            ui,
+            Rect::from_min_size(
+                pos2(rect.left() + bw + px(8.0), row_y),
+                Vec2::new(bw, px(36.0)),
+            ),
+            s,
+        )
         .clicked()
         && has_sel
     {
@@ -139,7 +153,14 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     }
     if Button::new("DEL", ButtonKind::Danger)
         .enabled(has_sel)
-        .show(ui, Rect::from_min_size(pos2(rect.left() + (bw + px(8.0)) * 2.0, row_y), Vec2::new(bw, px(36.0))), s)
+        .show(
+            ui,
+            Rect::from_min_size(
+                pos2(rect.left() + (bw + px(8.0)) * 2.0, row_y),
+                Vec2::new(bw, px(36.0)),
+            ),
+            s,
+        )
         .clicked()
         && has_sel
     {
@@ -152,13 +173,18 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         let r = Rect::from_min_size(pos2(rect.left(), y), Vec2::new(rect.width(), px(46.0)));
         let is_sel = selected.as_deref() == Some(p.id.as_str());
         let resp = ui.interact(r, ui.make_persistent_id(("proj_row", i)), Sense::click());
-        let hover = ui.ctx().animate_bool_with_time(ui.make_persistent_id(("proj_hover", i)), resp.hovered(), 0.12);
+        let hover = ui.ctx().animate_bool_with_time(
+            ui.make_persistent_id(("proj_hover", i)),
+            resp.hovered(),
+            0.12,
+        );
         let fill = if is_sel {
             theme::FIELD
         } else {
             theme::lerp_color(theme::SURFACE, theme::SURFACE_2, hover)
         };
-        ui.painter().rect_filled(r, theme::corner(px(theme::RADIUS_FIELD)), fill);
+        ui.painter()
+            .rect_filled(r, theme::corner(px(theme::RADIUS_FIELD)), fill);
         if is_sel {
             ui.painter().rect_filled(
                 Rect::from_min_size(r.min, Vec2::new(px(3.0), r.height())),
@@ -166,7 +192,11 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                 theme::INK,
             );
         }
-        let name = if p.name.is_empty() { "Untitled" } else { p.name.as_str() };
+        let name = if p.name.is_empty() {
+            "Untitled"
+        } else {
+            p.name.as_str()
+        };
         ui.painter().text(
             pos2(r.left() + px(16.0), r.center().y - px(8.0)),
             Align2::LEFT_CENTER,
@@ -174,7 +204,11 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
             FontId::new(px(13.0), theme::family_semibold()),
             if is_sel { theme::INK } else { theme::INK_DIM },
         );
-        let sub = if p.app_id.is_empty() { "no app id".to_string() } else { format!("App {}", p.app_id) };
+        let sub = if p.app_id.is_empty() {
+            "no app id".to_string()
+        } else {
+            format!("App {}", p.app_id)
+        };
         ui.painter().text(
             pos2(r.left() + px(16.0), r.center().y + px(9.0)),
             Align2::LEFT_CENTER,
@@ -221,41 +255,59 @@ fn confirm_modal(app: &mut App, ui: &mut egui::Ui, s: f32) {
     };
     let id = ui.make_persistent_id("delete_modal");
     let mut do_delete = false;
-    kit::modal(ui, id, &mut app.projects_ui.confirm_delete, Vec2::new(px(390.0), px(188.0)), s, |ui| {
-        let d = ui.max_rect();
-        let mut close = false;
-        ui.painter().text(
-            pos2(d.left() + px(26.0), d.top() + px(28.0)),
-            Align2::LEFT_TOP,
-            "DELETE PROJECT",
-            FontId::new(px(13.0), theme::family_label()),
-            theme::INK,
-        );
-        ui.painter().text(
-            pos2(d.left() + px(26.0), d.top() + px(64.0)),
-            Align2::LEFT_TOP,
-            format!("Delete {name}? This cannot be undone."),
-            FontId::new(px(13.0), theme::family_medium()),
-            theme::INK_DIM,
-        );
-        let bw = px(150.0);
-        let by = d.bottom() - px(26.0) - px(40.0);
-        if Button::new("CANCEL", ButtonKind::Secondary)
-            .show(ui, Rect::from_min_size(pos2(d.left() + px(26.0), by), Vec2::new(bw, px(40.0))), s)
-            .clicked()
-        {
-            close = true;
-        }
-        if Button::new("DELETE", ButtonKind::Danger)
-            .icon(theme::icon::TRASH)
-            .show(ui, Rect::from_min_size(pos2(d.right() - px(26.0) - bw, by), Vec2::new(bw, px(40.0))), s)
-            .clicked()
-        {
-            do_delete = true;
-            close = true;
-        }
-        close
-    });
+    kit::modal(
+        ui,
+        id,
+        &mut app.projects_ui.confirm_delete,
+        Vec2::new(px(390.0), px(188.0)),
+        s,
+        |ui| {
+            let d = ui.max_rect();
+            let mut close = false;
+            ui.painter().text(
+                pos2(d.left() + px(26.0), d.top() + px(28.0)),
+                Align2::LEFT_TOP,
+                "DELETE PROJECT",
+                FontId::new(px(13.0), theme::family_label()),
+                theme::INK,
+            );
+            ui.painter().text(
+                pos2(d.left() + px(26.0), d.top() + px(64.0)),
+                Align2::LEFT_TOP,
+                format!("Delete {name}? This cannot be undone."),
+                FontId::new(px(13.0), theme::family_medium()),
+                theme::INK_DIM,
+            );
+            let bw = px(150.0);
+            let by = d.bottom() - px(26.0) - px(40.0);
+            if Button::new("CANCEL", ButtonKind::Secondary)
+                .show(
+                    ui,
+                    Rect::from_min_size(pos2(d.left() + px(26.0), by), Vec2::new(bw, px(40.0))),
+                    s,
+                )
+                .clicked()
+            {
+                close = true;
+            }
+            if Button::new("DELETE", ButtonKind::Danger)
+                .icon(theme::icon::TRASH)
+                .show(
+                    ui,
+                    Rect::from_min_size(
+                        pos2(d.right() - px(26.0) - bw, by),
+                        Vec2::new(bw, px(40.0)),
+                    ),
+                    s,
+                )
+                .clicked()
+            {
+                do_delete = true;
+                close = true;
+            }
+            close
+        },
+    );
     if do_delete {
         delete_current(app);
     }

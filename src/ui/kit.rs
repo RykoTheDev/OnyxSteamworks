@@ -2,15 +2,19 @@
 #![allow(unused_imports)]
 
 pub mod button;
+pub mod chip;
 pub mod input;
 pub mod overlay;
+pub mod progress;
 pub mod rail;
 pub mod select;
 pub mod toggles;
 
 pub use button::{Button, ButtonKind, icon_button};
+pub use chip::{chip, chip_size};
 pub use input::Input;
 pub use overlay::{ToastLevel, Toasts, modal, tooltip};
+pub use progress::{progress_bar, segment_progress};
 pub use rail::{RailAction, rail};
 pub use select::{dropdown, tabs};
 pub use toggles::{checkbox, toggle};
@@ -49,7 +53,10 @@ pub fn separator(painter: &egui::Painter, a: Pos2, b: Pos2) {
 
 pub fn hero(painter: &egui::Painter, clip: Rect, text: &str, s: f32) {
     let size = theme::px(104.0, s);
-    let pos = Pos2::new(clip.left() - theme::px(4.0, s), clip.top() - theme::px(18.0, s));
+    let pos = Pos2::new(
+        clip.left() - theme::px(4.0, s),
+        clip.top() - theme::px(18.0, s),
+    );
     let p = painter.with_clip_rect(clip);
     p.text(
         pos,
@@ -106,7 +113,13 @@ pub fn caption(painter: &egui::Painter, pos: Pos2, text: &str, s: f32) {
     );
 }
 
-pub fn spinner(painter: &egui::Painter, center: Pos2, r: f32, color: egui::Color32, ctx: &egui::Context) {
+pub fn spinner(
+    painter: &egui::Painter,
+    center: Pos2,
+    r: f32,
+    color: egui::Color32,
+    ctx: &egui::Context,
+) {
     ctx.request_repaint();
     let t = ctx.input(|i| i.time) as f32;
     let start = t * 5.0;

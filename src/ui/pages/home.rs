@@ -11,7 +11,12 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
 
     kit::hero(&ui.painter().clone(), content, "STEAMPIPE", s);
 
-    let (op, dy) = anim::stagger_in(ui.ctx(), ui.make_persistent_id(("home", app.home_gen)), 0, 0.0);
+    let (op, dy) = anim::stagger_in(
+        ui.ctx(),
+        ui.make_persistent_id(("home", app.home_gen)),
+        0,
+        0.0,
+    );
     let body = Rect::from_min_max(
         Pos2::new(content.left(), content.top() + px(104.0) + dy * s),
         content.max,
@@ -42,7 +47,14 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     let count = app.projects.len();
     let cards = [
         ("PROJECTS", count.to_string()),
-        ("DEPOTS", app.projects.iter().map(|p| p.depots.len()).sum::<usize>().to_string()),
+        (
+            "DEPOTS",
+            app.projects
+                .iter()
+                .map(|p| p.depots.len())
+                .sum::<usize>()
+                .to_string(),
+        ),
         ("LAST BUILD", "--".to_string()),
     ];
     for (i, (label, value)) in cards.iter().enumerate() {
@@ -50,7 +62,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
             Pos2::new(content.left() + i as f32 * (card_w + gap), cards_top),
             Vec2::new(card_w, card_h),
         );
-        kit::bordered(ui.painter(), r, theme::SURFACE_2, theme::LINE, px(theme::RADIUS_CARD));
+        kit::bordered(
+            ui.painter(),
+            r,
+            theme::SURFACE_2,
+            theme::LINE,
+            px(theme::RADIUS_CARD),
+        );
         ui.painter().text(
             Pos2::new(r.left() + px(18.0), r.top() + px(18.0)),
             Align2::LEFT_TOP,

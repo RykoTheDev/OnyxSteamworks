@@ -18,7 +18,13 @@ pub fn dropdown(
     if resp.clicked() {
         open = !open;
     }
-    let hover = anim::anim_bool(&ctx, id.with("h"), resp.hovered(), 0.12, anim::ease_out_cubic);
+    let hover = anim::anim_bool(
+        &ctx,
+        id.with("h"),
+        resp.hovered(),
+        0.12,
+        anim::ease_out_cubic,
+    );
 
     let painter = ui.painter();
     painter.rect_filled(
@@ -59,7 +65,11 @@ pub fn dropdown(
             .show(&ctx, |ui| {
                 ui.set_opacity(t);
                 let prect = Rect::from_min_size(pos, Vec2::new(rect.width(), ph));
-                ui.painter().rect_filled(prect, theme::corner(px(theme::RADIUS_POPUP)), theme::SURFACE_2);
+                ui.painter().rect_filled(
+                    prect,
+                    theme::corner(px(theme::RADIUS_POPUP)),
+                    theme::SURFACE_2,
+                );
                 ui.painter().rect_stroke(
                     prect,
                     theme::corner(px(theme::RADIUS_POPUP)),
@@ -68,11 +78,20 @@ pub fn dropdown(
                 );
                 for (i, opt) in options.iter().enumerate() {
                     let rr = Rect::from_min_size(
-                        Pos2::new(prect.left() + px(5.0), prect.top() + px(5.0) + i as f32 * row_h),
+                        Pos2::new(
+                            prect.left() + px(5.0),
+                            prect.top() + px(5.0) + i as f32 * row_h,
+                        ),
                         Vec2::new(prect.width() - px(10.0), row_h),
                     );
                     let r = ui.interact(rr, id.with(("opt", i)), Sense::click());
-                    let hov = anim::anim_bool(ui.ctx(), id.with(("rh", i)), r.hovered(), 0.1, anim::ease_out_cubic);
+                    let hov = anim::anim_bool(
+                        ui.ctx(),
+                        id.with(("rh", i)),
+                        r.hovered(),
+                        0.1,
+                        anim::ease_out_cubic,
+                    );
                     ui.painter().rect_filled(
                         rr,
                         theme::corner(px(8.0)),
@@ -100,22 +119,38 @@ pub fn dropdown(
     resp
 }
 
-pub fn tabs(ui: &mut egui::Ui, rect: Rect, labels: &[&str], active: &mut usize, s: f32) -> egui::Response {
+pub fn tabs(
+    ui: &mut egui::Ui,
+    rect: Rect,
+    labels: &[&str],
+    active: &mut usize,
+    s: f32,
+) -> egui::Response {
     let px = |v: f32| theme::px(v, s);
     let n = labels.len().max(1);
     let seg_w = rect.width() / n as f32;
     let id = ui.make_persistent_id(("tabs", rect.left() as i32, rect.top() as i32));
     let resp = ui.interact(rect, id, Sense::hover());
 
-    ui.painter().rect_filled(rect, theme::corner(px(theme::RADIUS_FIELD)), theme::SURFACE_2);
+    ui.painter().rect_filled(
+        rect,
+        theme::corner(px(theme::RADIUS_FIELD)),
+        theme::SURFACE_2,
+    );
 
     let target = rect.left() + seg_w * (*active as f32);
-    let x = ui.ctx().animate_value_with_time(id.with("ind"), target, 0.18);
+    let x = ui
+        .ctx()
+        .animate_value_with_time(id.with("ind"), target, 0.18);
     let ind = Rect::from_min_size(
         Pos2::new(x + px(3.0), rect.top() + px(3.0)),
         Vec2::new(seg_w - px(6.0), rect.height() - px(6.0)),
     );
-    ui.painter().rect_filled(ind, theme::corner(px(theme::RADIUS_FIELD) - px(2.0)), theme::FIELD_HI);
+    ui.painter().rect_filled(
+        ind,
+        theme::corner(px(theme::RADIUS_FIELD) - px(2.0)),
+        theme::FIELD_HI,
+    );
 
     for (i, lbl) in labels.iter().enumerate() {
         let seg = Rect::from_min_size(
