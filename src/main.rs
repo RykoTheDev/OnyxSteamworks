@@ -17,14 +17,14 @@ use eframe::egui;
 fn main() -> eframe::Result {
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
-            .with_title("SteamPipe GUI")
+            .with_title("Onyx")
             .with_inner_size([1180.0, 830.0])
             .with_min_inner_size([900.0, 640.0]),
         ..Default::default()
     };
 
     eframe::run_native(
-        "SteamPipe GUI",
+        "Onyx",
         native_options,
         Box::new(|cc| Ok(Box::new(app::App::new(cc)))),
     )
