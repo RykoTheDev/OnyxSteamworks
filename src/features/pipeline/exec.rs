@@ -150,15 +150,16 @@ fn wait_confirm(control: &Control) {
 }
 
 pub(super) fn base_dir(project: &Project, step: &PipelineStep) -> PathBuf {
+    let content_root = crate::features::maintenance::resolve(project).content_root;
     let wd = step.working_dir.trim();
     if wd.is_empty() || wd == "." {
-        project.content_root.clone()
+        content_root
     } else {
         let p = PathBuf::from(wd);
         if p.is_absolute() {
             p
         } else {
-            project.content_root.join(p)
+            content_root.join(p)
         }
     }
 }

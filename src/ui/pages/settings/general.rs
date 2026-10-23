@@ -8,6 +8,7 @@ use crate::ui::{anim, theme};
 
 #[derive(Clone, Copy)]
 pub enum Pick {
+    SteamCmd,
     Content,
     Output,
     Backup,
@@ -42,6 +43,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     let mut dirty = false;
     while let Ok((which, path)) = app.general_ui.rx.try_recv() {
         match which {
+            Pick::SteamCmd => c.steamcmd_path = path,
             Pick::Content => c.default_content = path,
             Pick::Output => c.default_output = path,
             Pick::Backup => c.backup_dir = path,
@@ -76,6 +78,24 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                 app.wizard.start();
             }
 
+            section(ui, "SteamCMD", s);
+            dirty |= path_row(
+                app,
+                ui,
+                "SteamCMD executable",
+                &c.steamcmd_path,
+                Pick::SteamCmd,
+                s,
+            );
+            let hint = alloc(ui, 24.0, s);
+            ui.painter().text(
+                Pos2::new(hint.left(), hint.top() + px(2.0)),
+                Align2::LEFT_TOP,
+                "Every project builds with this SteamCMD. The setup wizard can download it for you.",
+                FontId::new(px(11.5), theme::family_medium()),
+                theme::INK_MUTED,
+            );
+
             section(ui, "Default folders", s);
             dirty |= path_row(
                 app,
@@ -97,7 +117,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
             ui.painter().text(
                 Pos2::new(hint.left(), hint.top() + px(2.0)),
                 Align2::LEFT_TOP,
-                "Projects inherit these paths until you override them in the project editor.",
+                "Projects use these folders unless you override them in the project editor.",
                 FontId::new(px(11.5), theme::family_medium()),
                 theme::INK_MUTED,
             );
@@ -205,7 +225,11 @@ fn path_row(
         Vec2::new(r.width() - px(114.0), px(36.0)),
     );
     Input::new(&mut shown)
-        .hint("No folder set")
+        .hint(if matches!(pick, Pick::SteamCmd) {
+            "No SteamCMD set"
+        } else {
+            "No folder set"
+        })
         .readonly(true)
         .show(ui, field, s);
     let browse = Rect::from_min_size(
@@ -220,7 +244,13 @@ fn path_row(
         let tx = app.general_ui.tx.clone();
         let ctx = ui.ctx().clone();
         std::thread::spawn(move || {
-            if let Some(dir) = rfd::FileDialog::new().pick_folder() {
+            let dialog = rfd::FileDialog::new();
+            let picked = if matches!(pick, Pick::SteamCmd) {
+                dialog.pick_file()
+            } else {
+                dialog.pick_folder()
+            };
+            if let Some(dir) = picked {
                 let _ = tx.send((pick, dir.to_string_lossy().to_string()));
                 ctx.request_repaint();
             }

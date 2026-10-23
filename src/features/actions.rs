@@ -139,7 +139,7 @@ mod tests {
             ..Default::default()
         }];
         let actions = registry(&projects);
-        assert!(actions.iter().any(|a| a.id == "goto.home"));
+        assert!(actions.iter().any(|a| a.id == "goto.projects"));
         assert!(
             actions
                 .iter()
@@ -152,7 +152,10 @@ mod tests {
     #[test]
     fn nav_actions_carry_ctrl_shortcuts() {
         let actions = registry(&[]);
-        let home = actions.iter().find(|a| a.id == "goto.home").expect("home");
-        assert_eq!(home.shortcut.as_deref(), Some("Ctrl+1"));
+        let projects = actions
+            .iter()
+            .find(|a| a.id == "goto.projects")
+            .expect("projects");
+        assert_eq!(projects.shortcut.as_deref(), Some("Ctrl+1"));
     }
 }

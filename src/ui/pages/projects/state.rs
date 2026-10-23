@@ -11,8 +11,6 @@ use crate::validate::{FieldError, validate_project};
 pub enum PickField {
     ContentRoot,
     BuildOutput,
-    SteamCmd,
-    KeyArt,
     DepotLocal,
 }
 
@@ -28,10 +26,7 @@ pub struct Form {
     pub app_id: String,
     pub content_root: String,
     pub build_output: String,
-    pub steamcmd: String,
     pub username: String,
-    pub key_art: String,
-    pub password: String,
 }
 
 fn path_str(p: &Path) -> String {
@@ -45,10 +40,7 @@ impl Form {
             app_id: p.app_id.clone(),
             content_root: path_str(&p.content_root),
             build_output: path_str(&p.build_output_dir),
-            steamcmd: path_str(&p.steamcmd_path),
             username: p.steam_username.clone(),
-            key_art: path_str(&p.key_art_path),
-            password: String::new(),
         }
     }
 
@@ -58,9 +50,7 @@ impl Form {
         p.app_id = self.app_id.clone();
         p.content_root = PathBuf::from(&self.content_root);
         p.build_output_dir = PathBuf::from(&self.build_output);
-        p.steamcmd_path = PathBuf::from(&self.steamcmd);
         p.steam_username = self.username.clone();
-        p.key_art_path = PathBuf::from(&self.key_art);
         p
     }
 }
@@ -139,36 +129,11 @@ impl ProjectsState {
         self.selected = Some(project.id.clone());
         self.base = project.clone();
         self.form = Form::from_project(project);
-        self.form.password = self.load_password(&project.steam_username);
         self.saved_project = project.clone();
         self.on_disk = true;
         self.confirm_delete = false;
         self.scans = vec![ScanState::Idle; project.depots.len()];
         self.revalidate();
-    }
-
-    fn load_password(&self, username: &str) -> String {
-        let user = username.trim();
-        if user.is_empty() {
-            return String::new();
-        }
-        crate::secrets::get_password(&crate::secrets::login_key(user))
-            .ok()
-            .flatten()
-            .unwrap_or_default()
-    }
-
-    pub fn store_password(&self) {
-        let user = self.form.username.trim();
-        if user.is_empty() {
-            return;
-        }
-        let key = crate::secrets::login_key(user);
-        if self.form.password.is_empty() {
-            let _ = crate::secrets::delete_password(&key);
-        } else {
-            let _ = crate::secrets::set_password(&key, &self.form.password);
-        }
     }
 
     pub fn start_new(&mut self) {
@@ -270,8 +235,6 @@ impl ProjectsState {
             match pick.field {
                 PickField::ContentRoot => self.form.content_root = pick.path,
                 PickField::BuildOutput => self.form.build_output = pick.path,
-                PickField::SteamCmd => self.form.steamcmd = pick.path,
-                PickField::KeyArt => self.form.key_art = pick.path,
                 PickField::DepotLocal => {
                     if let Some(d) = self.base.depots.get_mut(pick.index) {
                         d.local_path = PathBuf::from(pick.path);
@@ -294,15 +257,7 @@ impl ProjectsState {
         let tx = self.tx.clone();
         let ctx = ctx.clone();
         std::thread::spawn(move || {
-            let dialog = rfd::FileDialog::new();
-            let picked = match field {
-                PickField::SteamCmd => dialog.pick_file(),
-                PickField::KeyArt => dialog
-                    .add_filter("Image", &["png", "jpg", "jpeg"])
-                    .pick_file(),
-                _ => dialog.pick_folder(),
-            };
-            if let Some(path) = picked {
+            if let Some(path) = rfd::FileDialog::new().pick_folder() {
                 let _ = tx.send(Pick {
                     field,
                     path: path.to_string_lossy().to_string(),

@@ -1,24 +1,16 @@
-use eframe::egui::{self, Align2, FontId, Key, Pos2, Rect, Vec2};
+use eframe::egui::{self, Align2, FontId, Pos2, Rect, Vec2};
 
 use crate::app::App;
-use crate::ui::kit::{self, Button, ButtonKind, Input};
+use crate::ui::kit::{self, Button, ButtonKind};
 use crate::ui::theme;
 
 #[derive(Default)]
 pub struct DeveloperState {
-    override_path: String,
-    loaded: bool,
     confirm_reset: bool,
 }
 
 impl DeveloperState {
-    pub fn reload(&mut self) {
-        self.loaded = false;
-    }
-}
-
-fn cfg() -> crate::config::Settings {
-    crate::config::load_settings().unwrap_or_default()
+    pub fn reload(&mut self) {}
 }
 
 fn save(c: &crate::config::Settings) {
@@ -29,11 +21,6 @@ fn save(c: &crate::config::Settings) {
 
 pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     let px = |v: f32| theme::px(v, s);
-    if !app.developer_ui.loaded {
-        app.developer_ui.override_path = cfg().steamcmd_override;
-        app.developer_ui.loaded = true;
-    }
-
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left(), rect.top()),
@@ -42,7 +29,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     );
     let card = Rect::from_min_size(
         Pos2::new(rect.left(), rect.top() + px(26.0)),
-        Vec2::new(rect.width().min(px(560.0)), px(170.0)),
+        Vec2::new(rect.width().min(px(560.0)), px(74.0)),
     );
     kit::bordered(
         &ui.painter().clone(),
@@ -52,46 +39,8 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         px(theme::RADIUS_PANEL_MIN),
     );
     let x = card.left() + px(20.0);
-    let w = card.width() - px(40.0);
-
-    let mut c = cfg();
-    let tog = Rect::from_min_size(
-        Pos2::new(x, card.top() + px(18.0)),
-        Vec2::new(px(44.0), px(24.0)),
-    );
-    let mut fake = c.use_fake_steamcmd;
-    if kit::toggle(ui, tog, &mut fake, s).changed() {
-        c.use_fake_steamcmd = fake;
-        save(&c);
-    }
-    ui.painter().text(
-        Pos2::new(tog.right() + px(12.0), tog.center().y),
-        Align2::LEFT_CENTER,
-        "Use the fake SteamCMD (developer testing)",
-        FontId::new(px(12.5), theme::family_semibold()),
-        theme::INK,
-    );
-
-    ui.painter().text(
-        Pos2::new(x, card.top() + px(58.0)),
-        Align2::LEFT_TOP,
-        "SteamCMD path override (blank = per-project path)",
-        FontId::new(px(11.5), theme::family_label()),
-        theme::INK_MUTED,
-    );
-    let field = Rect::from_min_size(Pos2::new(x, card.top() + px(78.0)), Vec2::new(w, px(34.0)));
-    Input::new(&mut app.developer_ui.override_path)
-        .hint("C:\\tools\\steamcmd\\steamcmd.exe")
-        .show(ui, field, s);
-    if ui.input(|i| i.key_pressed(Key::Enter) || i.pointer.any_released())
-        && app.developer_ui.override_path != c.steamcmd_override
-    {
-        c.steamcmd_override = app.developer_ui.override_path.clone();
-        save(&c);
-    }
-
     let open = Rect::from_min_size(
-        Pos2::new(x, card.bottom() - px(44.0)),
+        Pos2::new(x, card.center().y - px(17.0)),
         Vec2::new(px(200.0), px(34.0)),
     );
     if Button::new("Open app data folder", ButtonKind::Secondary)
@@ -105,7 +54,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         });
     }
     let reset = Rect::from_min_size(
-        Pos2::new(card.right() - px(160.0), card.bottom() - px(44.0)),
+        Pos2::new(card.right() - px(180.0), card.center().y - px(17.0)),
         Vec2::new(px(160.0), px(34.0)),
     );
     if Button::new("Reset settings", ButtonKind::Danger)

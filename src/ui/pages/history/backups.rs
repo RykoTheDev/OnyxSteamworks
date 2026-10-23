@@ -196,7 +196,11 @@ fn controls(
         && app
             .projects
             .get(app.backup_ui.project_sel)
-            .map(|p| p.content_root.is_dir())
+            .map(|p| {
+                crate::features::maintenance::resolve(p)
+                    .content_root
+                    .is_dir()
+            })
             .unwrap_or(false);
     if Button::new("Back up now", ButtonKind::Primary)
         .icon(theme::icon::PACKAGE)

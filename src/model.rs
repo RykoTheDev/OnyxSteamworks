@@ -84,7 +84,6 @@ pub struct Project {
     pub build_output_dir: PathBuf,
     pub steamcmd_path: PathBuf,
     pub repo_path: PathBuf,
-    pub key_art_path: PathBuf,
     pub steam_username: String,
     pub default_account: String,
     pub depots: Vec<Depot>,

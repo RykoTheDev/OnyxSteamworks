@@ -28,6 +28,7 @@ fn is_numeric(s: &str) -> bool {
 }
 
 pub fn validate_project(project: &Project) -> Vec<FieldError> {
+    let project = &crate::features::maintenance::resolve(project);
     let mut errors = Vec::new();
 
     if project.name.trim().is_empty() {
@@ -37,18 +38,15 @@ pub fn validate_project(project: &Project) -> Vec<FieldError> {
         errors.push(FieldError::new("app_id", "App ID must be a number"));
     }
     if project.content_root.as_os_str().is_empty() {
-        errors.push(FieldError::new("content_root", "Content root is required"));
+        errors.push(FieldError::new(
+            "content_root",
+            "Set a default content folder in Settings or override it here",
+        ));
     }
     if project.build_output_dir.as_os_str().is_empty() {
         errors.push(FieldError::new(
             "build_output_dir",
-            "Build output is required",
-        ));
-    }
-    if project.steamcmd_path.as_os_str().is_empty() {
-        errors.push(FieldError::new(
-            "steamcmd_path",
-            "SteamCMD path is required",
+            "Set a default build output in Settings or override it here",
         ));
     }
 
@@ -171,11 +169,12 @@ fn dir_writable(dir: &Path) -> bool {
 }
 
 pub fn preflight_checks(project: &Project) -> Vec<Issue> {
+    let project = &crate::features::maintenance::resolve(project);
     let mut issues = Vec::new();
 
     if !project.steamcmd_path.is_file() {
         issues.push(Issue::error(
-            "SteamCMD executable was not found at the configured path",
+            "SteamCMD was not found; set its path in Settings > General",
         ));
     }
 

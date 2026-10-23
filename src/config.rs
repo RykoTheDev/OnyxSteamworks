@@ -60,8 +60,8 @@ pub struct Settings {
     pub ui_scale: f32,
     pub reduce_motion: bool,
     pub log_retention_days: u32,
-    pub use_fake_steamcmd: bool,
-    pub steamcmd_override: String,
+    #[serde(alias = "steamcmd_override")]
+    pub steamcmd_path: String,
     pub wizard_done: bool,
 }
 

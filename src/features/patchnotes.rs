@@ -24,7 +24,7 @@ const GROUPS: [(&str, &str); 7] = [
 
 pub fn repo_path(project: &Project) -> PathBuf {
     if project.repo_path.as_os_str().is_empty() {
-        project.content_root.clone()
+        crate::features::maintenance::resolve(project).content_root
     } else {
         project.repo_path.clone()
     }

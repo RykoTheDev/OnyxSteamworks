@@ -89,29 +89,25 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
     changed |= labelled_text(app, ui, right, "Display name", Some("(Optional)"), false, s);
     ui.add_space(px(22.0));
 
-    changed |= labelled_path(app, ui, "Content root", PickField::ContentRoot, s, ctx);
-    changed |= labelled_path(app, ui, "Build output", PickField::BuildOutput, s, ctx);
-    changed |= labelled_path(app, ui, "SteamCMD path", PickField::SteamCmd, s, ctx);
-    changed |= labelled_path(app, ui, "Key art", PickField::KeyArt, s, ctx);
-
-    let r = row(ui, s, 64.0);
-    let uw = (r.width() - gap) * 0.5;
-    let uleft = Rect::from_min_size(r.min, Vec2::new(uw, r.height()));
-    let uright = Rect::from_min_size(
-        Pos2::new(r.left() + uw + gap, r.top()),
-        Vec2::new(uw, r.height()),
+    let settings = crate::config::load_settings().unwrap_or_default();
+    changed |= override_path(
+        app,
+        ui,
+        "Content root",
+        &settings.default_content,
+        PickField::ContentRoot,
+        s,
+        ctx,
     );
-    changed |= labelled_text(app, ui, uleft, "Steam username", None, false, s);
-    password_field(app, ui, uright, s);
-    let hint = row(ui, s, 22.0);
-    ui.painter().text(
-        hint.left_top(),
-        Align2::LEFT_TOP,
-        "Password is stored in your OS keyring and used to sign in. Leave blank to be prompted; Steam Guard is only asked if the cached sign-in expires.",
-        FontId::new(px(11.0), theme::family_medium()),
-        theme::INK_MUTED,
+    changed |= override_path(
+        app,
+        ui,
+        "Build output",
+        &settings.default_output,
+        PickField::BuildOutput,
+        s,
+        ctx,
     );
-    ui.add_space(px(8.0));
 
     template_fields(app, ui, s);
     changed
@@ -196,7 +192,6 @@ fn key_for(label: &str) -> &'static str {
         "App ID" => "app_id",
         "Content root" => "content_root",
         "Build output" => "build_output_dir",
-        "SteamCMD path" => "steamcmd_path",
         _ => "",
     }
 }
@@ -207,26 +202,7 @@ fn value_mut<'a>(app: &'a mut App, label: &str) -> &'a mut String {
         "App ID" => &mut app.projects_ui.form.app_id,
         "Content root" => &mut app.projects_ui.form.content_root,
         "Build output" => &mut app.projects_ui.form.build_output,
-        "SteamCMD path" => &mut app.projects_ui.form.steamcmd,
-        "Key art" => &mut app.projects_ui.form.key_art,
-        "Steam username" => &mut app.projects_ui.form.username,
         _ => unreachable!("unknown editor field: {label}"),
-    }
-}
-
-fn password_field(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
-    let px = |v: f32| theme::px(v, s);
-    kit::label(&ui.painter().clone(), rect.left_top(), "Steam password", s);
-    let field = Rect::from_min_size(
-        Pos2::new(rect.left(), rect.top() + px(24.0)),
-        Vec2::new(rect.width(), px(40.0)),
-    );
-    let resp = Input::new(&mut app.projects_ui.form.password)
-        .hint("Optional — saved to keyring")
-        .mask(true)
-        .show(ui, field, s);
-    if resp.lost_focus() {
-        app.projects_ui.store_password();
     }
 }
 
@@ -258,37 +234,77 @@ fn labelled_text(
     ti.show(ui, field, s).changed()
 }
 
-fn labelled_path(
+#[allow(clippy::too_many_arguments)]
+fn override_path(
     app: &mut App,
     ui: &mut egui::Ui,
     lbl: &str,
+    default: &str,
     field: PickField,
     s: f32,
     ctx: &egui::Context,
 ) -> bool {
     let px = |v: f32| theme::px(v, s);
-    label(ui, lbl, s);
+    let overridden = !value_mut(app, lbl).trim().is_empty();
+    let r = row(ui, s, 20.0);
+    let suffix = if overridden {
+        "Project override"
+    } else {
+        "From Settings"
+    };
+    kit::label_optional(&ui.painter().clone(), r.left_top(), lbl, suffix, s);
     let r = row(ui, s, 48.0);
-    let browse_w = px(104.0);
     let gap = px(8.0);
-    let input = Rect::from_min_size(r.min, Vec2::new(r.width() - browse_w - gap, px(40.0)));
-    let err = app.projects_ui.error_for(key_for(lbl));
-    let value = value_mut(app, lbl);
-    let mut ti = Input::new(value);
-    if let Some(e) = &err {
-        ti = ti.error(true).helper(e);
-    }
-    let changed = ti.show(ui, input, s).changed();
-    let browse = Rect::from_min_size(
-        Pos2::new(input.right() + gap, input.top()),
-        Vec2::new(browse_w, px(40.0)),
+    let button_w = px(104.0);
+    let buttons = if overridden { 2.0 } else { 1.0 };
+    let input = Rect::from_min_size(
+        r.min,
+        Vec2::new(r.width() - (button_w + gap) * buttons, px(40.0)),
     );
-    if Button::new("Browse", ButtonKind::Secondary)
+    let err = app.projects_ui.error_for(key_for(lbl));
+    let mut changed = false;
+    if overridden {
+        let value = value_mut(app, lbl);
+        let mut ti = Input::new(value);
+        if let Some(e) = &err {
+            ti = ti.error(true).helper(e);
+        }
+        changed |= ti.show(ui, input, s).changed();
+    } else {
+        let mut shown = default.to_string();
+        let mut ti = Input::new(&mut shown)
+            .hint("No default set in Settings > General")
+            .readonly(true);
+        if let Some(e) = &err {
+            ti = ti.error(true).helper(e);
+        }
+        ti.show(ui, input, s);
+    }
+    let pick = Rect::from_min_size(
+        Pos2::new(input.right() + gap, input.top()),
+        Vec2::new(button_w, px(40.0)),
+    );
+    let pick_label = if overridden { "Browse" } else { "Override" };
+    if Button::new(pick_label, ButtonKind::Secondary)
         .icon(theme::icon::FOLDER)
-        .show(ui, browse, s)
+        .show(ui, pick, s)
         .clicked()
     {
         app.projects_ui.spawn_pick(ctx, field, 0);
+    }
+    if overridden {
+        let reset = Rect::from_min_size(
+            Pos2::new(pick.right() + gap, input.top()),
+            Vec2::new(button_w, px(40.0)),
+        );
+        let resp = Button::new("Reset", ButtonKind::Ghost)
+            .icon(theme::icon::X)
+            .show(ui, reset, s);
+        let resp = kit::tooltip(resp, "Use the folder from Settings again");
+        if resp.clicked() {
+            value_mut(app, lbl).clear();
+            changed = true;
+        }
     }
     ui.add_space(if err.is_some() { px(34.0) } else { px(18.0) });
     changed

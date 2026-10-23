@@ -125,6 +125,7 @@ fn gen_depotbuild(depot: &Depot, content_root: &Path) -> String {
 }
 
 pub fn generate_vdfs(project: &Project, options: &BuildOptions) -> Vec<(String, String)> {
+    let project = &crate::features::maintenance::resolve(project);
     let mut out = vec![("appbuild.vdf".to_string(), gen_appbuild(project, options))];
     for depot in &project.depots {
         out.push((

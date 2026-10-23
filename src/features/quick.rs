@@ -17,6 +17,7 @@ fn quote(value: &str) -> String {
 }
 
 pub fn steamcmd_command(project: &Project) -> String {
+    let project = &crate::features::maintenance::resolve(project);
     let exe = project.steamcmd_path.to_string_lossy();
     let mut parts = vec![
         quote(&exe),

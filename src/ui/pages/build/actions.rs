@@ -47,8 +47,18 @@ pub(super) fn quick_actions(
             match i {
                 0 => open_target(quick::steamworks_builds_url(&project.app_id)),
                 1 => open_target(quick::steam_run_url(&project.app_id)),
-                2 => open_target(project.content_root.to_string_lossy().to_string()),
-                3 => open_target(project.build_output_dir.to_string_lossy().to_string()),
+                2 => open_target(
+                    crate::features::maintenance::resolve(project)
+                        .content_root
+                        .to_string_lossy()
+                        .to_string(),
+                ),
+                3 => open_target(
+                    crate::features::maintenance::resolve(project)
+                        .build_output_dir
+                        .to_string_lossy()
+                        .to_string(),
+                ),
                 _ => {
                     ui.ctx().copy_text(quick::steamcmd_command(project));
                     app.toasts

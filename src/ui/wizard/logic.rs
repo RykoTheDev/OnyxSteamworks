@@ -180,9 +180,9 @@ fn default_install_dir() -> PathBuf {
 
 fn save_override(path: &str) {
     let mut cfg = crate::config::load_settings().unwrap_or_default();
-    cfg.steamcmd_override = path.to_string();
+    cfg.steamcmd_path = path.to_string();
     if let Err(e) = crate::config::save_settings(&cfg) {
-        eprintln!("could not save steamcmd override: {e}");
+        eprintln!("could not save steamcmd path: {e}");
     }
 }
 

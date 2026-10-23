@@ -205,6 +205,7 @@ fn settings_lines(
 ) -> Vec<(String, String)> {
     let mut lines = vec![("Description".to_string(), truncate(&rec.description, 64))];
     if let Some(p) = project {
+        let p = &crate::features::maintenance::resolve(p);
         lines.push(("App ID".to_string(), p.app_id.clone()));
         lines.push((
             "Content root".to_string(),

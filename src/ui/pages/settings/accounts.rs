@@ -78,7 +78,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         }
     }
 
-    let steamcmd = accounts::resolve_steamcmd(&cfg.steamcmd_override, &app.projects);
+    let steamcmd = accounts::resolve_steamcmd(&cfg.steamcmd_path, &app.projects);
     let default_acct = app
         .projects
         .get(app.build_ui.project_sel)
@@ -216,10 +216,10 @@ fn remember_toggle(ui: &mut egui::Ui, rect: Rect, cfg: &mut crate::config::Setti
 
 fn start_authorize(app: &mut App, account: &str, ctx: &egui::Context) {
     let cfg = settings();
-    let Some(steamcmd) = accounts::resolve_steamcmd(&cfg.steamcmd_override, &app.projects) else {
+    let Some(steamcmd) = accounts::resolve_steamcmd(&cfg.steamcmd_path, &app.projects) else {
         app.toasts.push(
             kit::ToastLevel::Warning,
-            "Set up SteamCMD first (run the setup wizard)",
+            "Set the SteamCMD path in Settings > General first",
         );
         return;
     };

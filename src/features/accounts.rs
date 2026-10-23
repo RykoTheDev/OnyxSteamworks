@@ -8,10 +8,10 @@ pub fn config_vdf(steamcmd_path: &Path) -> Option<std::path::PathBuf> {
         .map(|d| d.join("config").join("config.vdf"))
 }
 
-pub fn resolve_steamcmd(override_path: &str, projects: &[Project]) -> Option<PathBuf> {
-    let over = override_path.trim();
-    if !over.is_empty() {
-        return Some(PathBuf::from(over));
+pub fn resolve_steamcmd(settings_path: &str, projects: &[Project]) -> Option<PathBuf> {
+    let path = settings_path.trim();
+    if !path.is_empty() {
+        return Some(PathBuf::from(path));
     }
     projects
         .iter()

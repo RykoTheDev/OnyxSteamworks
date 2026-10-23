@@ -147,6 +147,7 @@ fn doctor() -> i32 {
     let projects = crate::config::list_projects().unwrap_or_default();
     println!("projects: {}", projects.len());
     for p in &projects {
+        let p = &crate::features::maintenance::resolve(p);
         let steam = if p.steamcmd_path.is_file() {
             "ok"
         } else {

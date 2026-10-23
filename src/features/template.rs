@@ -30,6 +30,7 @@ pub fn expand(template: &str, vars: &Vars) -> String {
 }
 
 pub fn resolve(project: &Project, branch: &str) -> Vars {
+    let project = &crate::features::maintenance::resolve(project);
     let (date, time) = now_date_time();
     Vars {
         version: read_version(project),

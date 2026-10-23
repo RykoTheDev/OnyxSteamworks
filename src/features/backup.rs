@@ -109,7 +109,8 @@ pub fn create_backup(
     if backup_root.as_os_str().is_empty() {
         return Err(BackupError::NoBackupDir);
     }
-    let content = &project.content_root;
+    let resolved = crate::features::maintenance::resolve(project);
+    let content = &resolved.content_root;
     if content.as_os_str().is_empty() || !content.is_dir() {
         return Err(BackupError::NoContentRoot);
     }

@@ -62,7 +62,9 @@ impl DoctorState {
                 result: None,
             })
             .collect();
-        let output = project.as_ref().map(|p| p.build_output_dir.clone());
+        let output = project
+            .as_ref()
+            .map(|p| crate::features::maintenance::resolve(p).build_output_dir);
         type Check = Box<dyn FnOnce() -> CheckResult + Send>;
         let p = project;
         let checks: Vec<Check> = vec![
