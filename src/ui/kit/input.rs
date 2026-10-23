@@ -95,14 +95,22 @@ impl<'a> Input<'a> {
             } else {
                 theme::INK_DIM
             };
-            painter.text(
+            let font = FontId::new(px(13.0), theme::family_medium());
+            let text = tail_fit(painter, shown, &font, inner.width());
+            let clipped = text != shown;
+            painter.with_clip_rect(inner).text(
                 Pos2::new(inner.left(), inner.center().y),
                 Align2::LEFT_CENTER,
-                shown,
-                FontId::new(px(13.0), theme::family_medium()),
+                text,
+                font,
                 color,
             );
-            ui.interact(field, id.with("ro"), egui::Sense::hover())
+            let resp = ui.interact(field, id.with("ro"), egui::Sense::hover());
+            if clipped {
+                resp.on_hover_text(shown)
+            } else {
+                resp
+            }
         } else {
             let mut field_ui = ui.new_child(egui::UiBuilder::new().max_rect(inner).layout(
                 egui::Layout::centered_and_justified(egui::Direction::TopDown),
@@ -162,11 +170,39 @@ impl<'a> Input<'a> {
     }
 }
 
+pub(crate) fn tail_fit(painter: &egui::Painter, text: &str, font: &FontId, max_w: f32) -> String {
+    let width = |t: &str| {
+        painter
+            .layout_no_wrap(t.to_owned(), font.clone(), theme::INK)
+            .size()
+            .x
+    };
+    if width(text) <= max_w {
+        return text.to_owned();
+    }
+    let chars: Vec<char> = text.chars().collect();
+    let (mut lo, mut hi) = (0, chars.len());
+    while lo < hi {
+        let mid = (lo + hi) / 2;
+        let candidate: String = std::iter::once('\u{2026}')
+            .chain(chars[mid..].iter().copied())
+            .collect();
+        if width(&candidate) <= max_w {
+            hi = mid;
+        } else {
+            lo = mid + 1;
+        }
+    }
+    std::iter::once('\u{2026}')
+        .chain(chars[lo..].iter().copied())
+        .collect()
+}
+
 #[cfg(test)]
 mod tests {
     use eframe::egui::{self, Pos2, Rect, Vec2};
 
-    use super::Input;
+    use super::{Input, tail_fit};
 
     #[test]
     fn placing_an_input_above_the_cursor_does_not_move_it_back_up() {
@@ -184,5 +220,29 @@ mod tests {
         });
         output.textures_delta.clear();
         assert_eq!(before, after);
+    }
+
+    #[test]
+    fn long_readonly_text_keeps_its_tail_within_the_width() {
+        let ctx = egui::Context::default();
+        let long = r"C:\Users\Ryko\AppData\Roaming\steampipe\SteamPipe GUI\data\steamcmd";
+        let mut fitted = String::new();
+        let mut short = String::new();
+        let mut width = 0.0;
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let font = egui::FontId::proportional(13.0);
+            fitted = tail_fit(ui.painter(), long, &font, 160.0);
+            short = tail_fit(ui.painter(), r"C:\tools", &font, 160.0);
+            width = ui
+                .painter()
+                .layout_no_wrap(fitted.clone(), font, egui::Color32::WHITE)
+                .size()
+                .x;
+        });
+        output.textures_delta.clear();
+        assert!(fitted.starts_with('\u{2026}'));
+        assert!(fitted.ends_with(r"data\steamcmd"));
+        assert!(width <= 160.0);
+        assert_eq!(short, r"C:\tools");
     }
 }
