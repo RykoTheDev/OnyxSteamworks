@@ -64,7 +64,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left(), rect.top()),
-        "BUILD NOTIFICATIONS",
+        "Build notifications",
         s,
     );
     let mut y = rect.top() + px(32.0);
@@ -100,7 +100,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left(), y),
-        "DISCORD WEBHOOK",
+        "Discord webhook",
         s,
     );
     y += px(32.0);
@@ -117,7 +117,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     ui.painter().text(
         Pos2::new(rect.left(), y),
         Align2::LEFT_TOP,
-        "WEBHOOK URL",
+        "Webhook URL",
         FontId::new(px(11.5), theme::family_label()),
         theme::INK_MUTED,
     );
@@ -133,7 +133,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         Pos2::new(field.right() + px(10.0), field.top()),
         Vec2::new(px(90.0), px(36.0)),
     );
-    if Button::new("SAVE", ButtonKind::Primary)
+    if Button::new("Save", ButtonKind::Primary)
         .show(ui, save_btn, s)
         .clicked()
     {
@@ -143,7 +143,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         Pos2::new(save_btn.right() + px(8.0), field.top()),
         Vec2::new(px(90.0), px(36.0)),
     );
-    if Button::new("CLEAR", ButtonKind::Secondary)
+    if Button::new("Clear", ButtonKind::Secondary)
         .show(ui, clear_btn, s)
         .clicked()
     {
@@ -171,7 +171,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         Pos2::new(rect.left(), status_y + px(24.0)),
         Vec2::new(px(180.0), px(36.0)),
     );
-    if Button::new("SEND TEST MESSAGE", ButtonKind::Secondary)
+    if Button::new("Send test message", ButtonKind::Secondary)
         .show(ui, test, s)
         .clicked()
     {

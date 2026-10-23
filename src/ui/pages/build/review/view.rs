@@ -123,10 +123,10 @@ pub(super) fn controls(
     Input::new(search).hint("Search files").show(ui, field, s);
     let mut cx = field.right() + px(10.0);
     for (label, f) in [
-        ("ALL", Filter::All),
-        ("ADD", Filter::Added),
-        ("MOD", Filter::Modified),
-        ("REM", Filter::Removed),
+        ("All", Filter::All),
+        ("Add", Filter::Added),
+        ("Mod", Filter::Modified),
+        ("Rem", Filter::Removed),
     ] {
         let size = kit::chip_size(ui, label, s);
         let r = Rect::from_min_size(Pos2::new(cx, y + px(2.0)), size);
@@ -135,9 +135,9 @@ pub(super) fn controls(
         }
         cx += size.x + px(6.0);
     }
-    let sort = kit::chip_size(ui, "SIZE", s);
+    let sort = kit::chip_size(ui, "Size", s);
     let r = Rect::from_min_size(Pos2::new(x + w - sort.x, y + px(2.0)), sort);
-    if kit::chip(ui, r, "SIZE", sort_size, s).clicked() {
+    if kit::chip(ui, r, "Size", sort_size, s).clicked() {
         *act = Act::ToggleSort;
     }
 }
@@ -176,7 +176,7 @@ pub(super) fn file_list(
             ui.set_width(rect.width() - px(14.0));
             let largest = summary.largest(10);
             if !largest.is_empty() && filter == Filter::All && search.is_empty() {
-                section(ui, "TOP 10 LARGEST CHANGES", s);
+                section(ui, "Top 10 largest changes", s);
                 for entry in largest {
                     row(ui, entry, s);
                 }

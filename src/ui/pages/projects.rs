@@ -82,7 +82,6 @@ fn save_current(app: &mut App) {
 
 fn empty(app: &mut App, ui: &mut egui::Ui, content: Rect, s: f32) {
     let px = |v: f32| theme::px(v, s);
-    kit::hero(&ui.painter().clone(), content, "PROJECTS", s);
     let c = content.center();
     ui.painter().text(
         pos2(c.x, c.y - px(28.0)),
@@ -99,7 +98,7 @@ fn empty(app: &mut App, ui: &mut egui::Ui, content: Rect, s: f32) {
         theme::INK_MUTED,
     );
     let btn = Rect::from_center_size(pos2(c.x, c.y + px(56.0)), Vec2::new(px(188.0), px(44.0)));
-    if Button::new("NEW PROJECT", ButtonKind::Primary)
+    if Button::new("New project", ButtonKind::Primary)
         .icon(theme::icon::PLUS)
         .show(ui, btn, s)
         .clicked()
@@ -122,7 +121,7 @@ fn left_panel(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     ui.painter().text(
         Pos2::new(rect.left(), rect.top() + px(2.0)),
         Align2::LEFT_TOP,
-        "PROJECTS",
+        "Projects",
         FontId::new(px(13.0), theme::family_label()),
         theme::INK_MUTED,
     );
@@ -260,7 +259,7 @@ fn confirm_modal(app: &mut App, ui: &mut egui::Ui, s: f32) {
             ui.painter().text(
                 pos2(d.left() + px(26.0), d.top() + px(28.0)),
                 Align2::LEFT_TOP,
-                "DELETE PROJECT",
+                "Delete project",
                 FontId::new(px(13.0), theme::family_label()),
                 theme::INK,
             );
@@ -273,7 +272,7 @@ fn confirm_modal(app: &mut App, ui: &mut egui::Ui, s: f32) {
             );
             let bw = px(150.0);
             let by = d.bottom() - px(26.0) - px(40.0);
-            if Button::new("CANCEL", ButtonKind::Secondary)
+            if Button::new("Cancel", ButtonKind::Secondary)
                 .show(
                     ui,
                     Rect::from_min_size(pos2(d.left() + px(26.0), by), Vec2::new(bw, px(40.0))),
@@ -283,7 +282,7 @@ fn confirm_modal(app: &mut App, ui: &mut egui::Ui, s: f32) {
             {
                 close = true;
             }
-            if Button::new("DELETE", ButtonKind::Danger)
+            if Button::new("Delete", ButtonKind::Danger)
                 .icon(theme::icon::TRASH)
                 .show(
                     ui,

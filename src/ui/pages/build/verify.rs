@@ -250,7 +250,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             kit::label(
                 &ui.painter().clone(),
                 Pos2::new(x, d.top() + pad),
-                "VERIFY BUILD",
+                "Verify build",
                 s,
             );
             view::body(ui, &app.build_ui.verify_ui.phase, done, total, s);
@@ -258,7 +258,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             let by = d.bottom() - pad - px(40.0);
             let bw = px(150.0);
             if running {
-                if Button::new("CANCEL", ButtonKind::Secondary)
+                if Button::new("Cancel", ButtonKind::Secondary)
                     .show(
                         ui,
                         Rect::from_min_size(Pos2::new(x, by), Vec2::new(bw, px(40.0))),
@@ -270,7 +270,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
                 }
             } else {
                 if matches!(app.build_ui.verify_ui.phase, Phase::Done(_))
-                    && Button::new("COPY REPORT", ButtonKind::Secondary)
+                    && Button::new("Copy report", ButtonKind::Secondary)
                         .icon(theme::icon::COPY)
                         .show(
                             ui,
@@ -281,7 +281,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
                 {
                     copy = true;
                 }
-                if Button::new("CLOSE", ButtonKind::Primary)
+                if Button::new("Close", ButtonKind::Primary)
                     .show(
                         ui,
                         Rect::from_min_size(

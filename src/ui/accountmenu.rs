@@ -20,9 +20,10 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rail: Rect, s: f32) {
         .map(|p| p.default_account.clone())
         .unwrap_or_default();
     let rows = accounts.len() + 1;
-    let w = px(200.0);
-    let h = px(18.0) + rows as f32 * px(34.0);
-    let anchor = Pos2::new(rail.right() + px(8.0), rail.bottom() - px(44.0) - h);
+    let row = kit::rail::account_row(rail, s);
+    let w = row.width();
+    let h = px(40.0) + rows as f32 * px(32.0);
+    let anchor = Pos2::new(row.left(), row.top() - px(6.0) - h);
     let mut pick = None;
     let mut manage = false;
     let area = egui::Area::new(ui.make_persistent_id("account_menu"))
@@ -30,6 +31,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rail: Rect, s: f32) {
         .fixed_pos(anchor)
         .show(&ctx, |ui| {
             let rect = Rect::from_min_size(anchor, Vec2::new(w, h));
+            theme::shadow(ui.painter(), rect, px(theme::RADIUS_POPUP), 24, 140);
             kit::bordered(
                 ui.painter(),
                 rect,
@@ -40,14 +42,14 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rail: Rect, s: f32) {
             kit::label(
                 &ui.painter().clone(),
                 Pos2::new(rect.left() + px(14.0), rect.top() + px(10.0)),
-                "ACCOUNTS",
+                "Switch account",
                 s,
             );
             let mut y = rect.top() + px(32.0);
             for name in &accounts {
                 let r = Rect::from_min_size(
                     Pos2::new(rect.left() + px(6.0), y),
-                    Vec2::new(w - px(12.0), px(30.0)),
+                    Vec2::new(w - px(12.0), px(28.0)),
                 );
                 let resp = ui.interact(r, ui.make_persistent_id(("acctrow", name)), Sense::click());
                 if resp.hovered() {
@@ -77,11 +79,11 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rail: Rect, s: f32) {
                 if resp.clicked() {
                     pick = Some(name.clone());
                 }
-                y += px(34.0);
+                y += px(32.0);
             }
             let mr = Rect::from_min_size(
                 Pos2::new(rect.left() + px(6.0), y),
-                Vec2::new(w - px(12.0), px(30.0)),
+                Vec2::new(w - px(12.0), px(28.0)),
             );
             let mresp = ui.interact(mr, ui.make_persistent_id("acct_manage"), Sense::click());
             if mresp.hovered() {
@@ -99,17 +101,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rail: Rect, s: f32) {
                 manage = true;
             }
         });
-    // The avatar in the rail toggles this menu. Its opening click lands outside
-    // the menu's Area, so a bare `clicked_elsewhere()` would fire on the very
-    // frame the menu appears and close it again — making the button look dead.
-    // Ignore clicks that land on the avatar; the rail already toggles those.
     let on_avatar = ctx
         .input(|i| i.pointer.interact_pos())
-        .map(|p| {
-            let avatar_c = Pos2::new(rail.center().x, rail.bottom() - px(26.0));
-            Rect::from_center_size(avatar_c, Vec2::splat(px(40.0))).contains(p)
-        })
-        .unwrap_or(false);
+        .is_some_and(|p| row.contains(p));
     if area.response.clicked_elsewhere() && !on_avatar {
         app.account_menu = false;
     }

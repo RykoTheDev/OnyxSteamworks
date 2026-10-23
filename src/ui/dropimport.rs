@@ -149,7 +149,7 @@ fn confirm(app: &mut App, ui: &mut egui::Ui, s: f32) {
             kit::label(
                 &painter,
                 Pos2::new(x, d.top() + px(24.0)),
-                "NEW PROJECT FROM FOLDER",
+                "New project from folder",
                 s,
             );
             painter.text(
@@ -216,7 +216,7 @@ fn confirm(app: &mut App, ui: &mut egui::Ui, s: f32) {
 
             let by = d.bottom() - px(26.0) - px(40.0);
             let bw = px(160.0);
-            if Button::new("CANCEL", ButtonKind::Secondary)
+            if Button::new("Cancel", ButtonKind::Secondary)
                 .show(
                     ui,
                     Rect::from_min_size(Pos2::new(x, by), Vec2::new(bw, px(40.0))),
@@ -226,7 +226,7 @@ fn confirm(app: &mut App, ui: &mut egui::Ui, s: f32) {
             {
                 cancel = true;
             }
-            if Button::new("CREATE PROJECT", ButtonKind::Primary)
+            if Button::new("Create project", ButtonKind::Primary)
                 .icon(theme::icon::PLUS)
                 .show(
                     ui,
@@ -277,11 +277,11 @@ fn info_lines(d: &Detected) -> Vec<(&'static str, String)> {
         full.to_string()
     };
     vec![
-        ("NAME", d.name.clone()),
-        ("ENGINE", d.engine.label().to_string()),
-        ("CONTENT ROOT", root),
+        ("Name", d.name.clone()),
+        ("Engine", d.engine.label().to_string()),
+        ("Content root", root),
         (
-            "EXECUTABLES",
+            "Executables",
             if d.executables.is_empty() {
                 "none detected".to_string()
             } else {

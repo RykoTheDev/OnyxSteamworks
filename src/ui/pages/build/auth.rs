@@ -14,8 +14,8 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, s: f32) {
     let px = |v: f32| theme::px(v, s);
     let mask = matches!(kind, PromptKind::Password);
     let title = match kind {
-        PromptKind::Password => "STEAM PASSWORD",
-        PromptKind::SteamGuard => "STEAM GUARD CODE",
+        PromptKind::Password => "Steam password",
+        PromptKind::SteamGuard => "Steam guard code",
     };
     let hint = match kind {
         PromptKind::Password => "Password",
@@ -64,7 +64,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, s: f32) {
 
             let bw = px(150.0);
             let by = d.bottom() - px(26.0) - px(40.0);
-            if Button::new("CANCEL", ButtonKind::Secondary)
+            if Button::new("Cancel", ButtonKind::Secondary)
                 .show(
                     ui,
                     Rect::from_min_size(Pos2::new(x, by), Vec2::new(bw, px(40.0))),
@@ -74,7 +74,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, s: f32) {
             {
                 cancel = true;
             }
-            let send = Button::new("SUBMIT", ButtonKind::Primary)
+            let send = Button::new("Submit", ButtonKind::Primary)
                 .icon(theme::icon::CHECK)
                 .enabled(!input.is_empty())
                 .show(

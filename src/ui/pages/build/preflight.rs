@@ -111,7 +111,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             kit::label(
                 &ui.painter().clone(),
                 Pos2::new(x, d.top() + pad),
-                "PRE-FLIGHT",
+                "Pre-flight",
                 s,
             );
 
@@ -146,7 +146,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
 
             let by = d.bottom() - pad - px(40.0);
             let bw = px(150.0);
-            if Button::new("CANCEL", ButtonKind::Secondary)
+            if Button::new("Cancel", ButtonKind::Secondary)
                 .show(
                     ui,
                     Rect::from_min_size(Pos2::new(x, by), Vec2::new(bw, px(40.0))),
@@ -157,9 +157,9 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
                 act = Act::Close;
             }
             let label = if results.iter().any(|i| i.severity != Severity::Info) {
-                "BUILD ANYWAY"
+                "Build anyway"
             } else {
-                "START BUILD"
+                "Start build"
             };
             let mut go = Button::new(label, ButtonKind::Primary)
                 .icon(theme::icon::ROCKET)
@@ -231,7 +231,7 @@ fn rows(ui: &mut egui::Ui, results: &[Issue], s: f32) -> Option<Act> {
         let mut bx = rr.right() - btn_w;
         let by = rr.top() + (row_h - px(30.0)) * 0.5;
         if can_ignore
-            && Button::new("IGNORE", ButtonKind::Secondary)
+            && Button::new("Ignore", ButtonKind::Secondary)
                 .show(
                     ui,
                     Rect::from_min_size(Pos2::new(bx, by), Vec2::new(btn_w, px(30.0))),
@@ -245,7 +245,7 @@ fn rows(ui: &mut egui::Ui, results: &[Issue], s: f32) -> Option<Act> {
             bx -= btn_w + gap;
         }
         if has_fix
-            && Button::new("EXCLUDE", ButtonKind::Secondary)
+            && Button::new("Exclude", ButtonKind::Secondary)
                 .icon(theme::icon::X)
                 .show(
                     ui,
@@ -274,15 +274,7 @@ fn apply(app: &mut App, act: Act, ctx: &egui::Context) {
             let sel = app.build_ui.project_sel;
             if let Some(project) = app.projects.get(sel).cloned() {
                 let branch = app.build_ui.preflight.branch.clone();
-                if !project.pipeline.is_empty() {
-                    app.pipeline_ui.select(&project);
-                    app.pipeline_ui.start(ctx, 0);
-                    app.nav_request = Some(crate::app::Page::Pipelines);
-                    app.toasts
-                        .push(kit::ToastLevel::Success, "Running pipeline");
-                } else {
-                    super::review::begin(app, &project, &branch, ctx);
-                }
+                super::review::begin(app, &project, &branch, ctx);
             }
         }
         Act::Fix(i) => {

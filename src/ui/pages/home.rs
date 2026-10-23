@@ -17,8 +17,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     let content = layout.content;
     let ctx = ui.ctx().clone();
 
-    kit::hero(&ui.painter().clone(), content, "STEAMPIPE", s);
-    let body_top = content.top() + px(104.0);
+    let body_top = content.top();
 
     if app.projects.is_empty() {
         let body = Rect::from_min_max(Pos2::new(content.left(), body_top), content.max);
@@ -102,7 +101,7 @@ fn left_main(
     kit::label(
         &ui.painter().clone(),
         Pos2::new(x, pb.bottom() + px(20.0)),
-        "RECENT BUILDS",
+        "Recent builds",
         s,
     );
     let list = Rect::from_min_max(

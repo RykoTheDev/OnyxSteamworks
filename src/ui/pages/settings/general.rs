@@ -62,9 +62,9 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         .auto_shrink([false, false])
         .show(&mut cu, |ui| {
             ui.set_width(rect.width() - px(16.0));
-            section(ui, "GETTING STARTED", s);
+            section(ui, "Getting started", s);
             let wz = alloc(ui, 44.0, s);
-            if Button::new("RUN SETUP WIZARD", ButtonKind::Secondary)
+            if Button::new("Run setup wizard", ButtonKind::Secondary)
                 .icon(theme::icon::SPARKLE)
                 .show(
                     ui,
@@ -76,7 +76,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                 app.wizard.start();
             }
 
-            section(ui, "DEFAULT FOLDERS", s);
+            section(ui, "Default folders", s);
             dirty |= path_row(
                 app,
                 ui,
@@ -102,7 +102,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                 theme::INK_MUTED,
             );
 
-            section(ui, "DISPLAY", s);
+            section(ui, "Display", s);
             let mut scale_pct = (c.ui_scale * 100.0).round() as u32;
             if stepper(ui, "UI scale (%)", &mut scale_pct, 5, 80, 130, s) {
                 c.ui_scale = scale_pct as f32 / 100.0;
@@ -114,7 +114,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                 dirty = true;
             }
 
-            section(ui, "LOGS & BACKUPS", s);
+            section(ui, "Logs & backups", s);
             let mut days = c.log_retention_days;
             if stepper(
                 ui,
@@ -129,7 +129,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                 dirty = true;
             }
             let clean = alloc(ui, 44.0, s);
-            if Button::new("CLEAN LOGS NOW", ButtonKind::Secondary)
+            if Button::new("Clean logs now", ButtonKind::Secondary)
                 .icon(theme::icon::TRASH)
                 .show(
                     ui,
@@ -164,11 +164,11 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
 
 fn section(ui: &mut egui::Ui, title: &str, s: f32) {
     let px = |v: f32| theme::px(v, s);
-    ui.add_space(px(8.0));
-    let r = alloc(ui, 26.0, s);
-    kit::label(
+    ui.add_space(px(12.0));
+    let r = alloc(ui, 30.0, s);
+    kit::heading(
         &ui.painter().clone(),
-        Pos2::new(r.left(), r.top() + px(6.0)),
+        Pos2::new(r.left(), r.top() + px(4.0)),
         title,
         s,
     );
@@ -212,7 +212,7 @@ fn path_row(
         Pos2::new(field.right() + px(10.0), field.top()),
         Vec2::new(px(104.0), px(36.0)),
     );
-    if Button::new("BROWSE", ButtonKind::Secondary)
+    if Button::new("Browse", ButtonKind::Secondary)
         .icon(theme::icon::FOLDER)
         .show(ui, browse, s)
         .clicked()

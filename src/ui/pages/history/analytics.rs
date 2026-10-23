@@ -175,7 +175,7 @@ fn render(ui: &mut egui::Ui, rect: Rect, data: &Analytics, cfg: &crate::config::
     chart_panel(
         ui,
         Rect::from_min_size(Pos2::new(rect.left(), top), Vec2::new(col_w, ch)),
-        "BUILD SIZE",
+        "Build size",
         &sizes,
         data.points
             .last()
@@ -189,7 +189,7 @@ fn render(ui: &mut egui::Ui, rect: Rect, data: &Analytics, cfg: &crate::config::
             Pos2::new(rect.left() + col_w + gap, top),
             Vec2::new(col_w, ch),
         ),
-        "DURATION",
+        "Duration",
         &durs,
         data.points
             .last()
@@ -211,7 +211,7 @@ fn render(ui: &mut egui::Ui, rect: Rect, data: &Analytics, cfg: &crate::config::
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left(), top),
-        "LAST 10 BUILDS",
+        "Last 10 builds",
         s,
     );
     top += px(24.0);
@@ -333,7 +333,7 @@ fn success_panel(ui: &mut egui::Ui, rect: Rect, data: &Analytics, s: f32) {
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left() + px(16.0), rect.top() + px(14.0)),
-        "SUCCESS RATE",
+        "Success rate",
         s,
     );
     let center = Pos2::new(rect.center().x, rect.center().y + px(8.0));

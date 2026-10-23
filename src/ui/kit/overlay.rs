@@ -49,7 +49,7 @@ pub fn modal_with(
         .show(&ctx, |ui| {
             let scale = 0.94 + 0.06 * t;
             let prect = Rect::from_center_size(screen.center(), size * scale);
-            let dim = theme::with_alpha(Color32::BLACK, (150.0 * t.clamp(0.0, 1.0)) as u8);
+            let dim = theme::with_alpha(Color32::BLACK, (170.0 * t.clamp(0.0, 1.0)) as u8);
             ui.painter().rect_filled(screen, theme::corner(0.0), dim);
             let clicked = ui
                 .interact(screen, id.with("dim"), Sense::click())
@@ -59,14 +59,19 @@ pub fn modal_with(
                 *open = false;
             }
             ui.expand_to_include_rect(screen);
-            ui.painter().rect_filled(
+            let r = theme::px(theme::RADIUS_PANEL, s);
+            theme::shadow(
+                ui.painter(),
                 prect,
-                theme::corner(theme::px(theme::RADIUS_PANEL_MIN, s)),
-                theme::SURFACE,
+                r,
+                40,
+                (200.0 * t.clamp(0.0, 1.0)) as u8,
             );
+            ui.painter()
+                .rect_filled(prect, theme::corner(r), theme::SURFACE_2);
             ui.painter().rect_stroke(
                 prect,
-                theme::corner(theme::px(theme::RADIUS_PANEL_MIN, s)),
+                theme::corner(r),
                 Stroke::new(1.0, theme::LINE),
                 StrokeKind::Inside,
             );
@@ -140,7 +145,7 @@ impl Toasts {
         let w = px(288.0);
         let h = px(46.0);
         let gap = px(10.0);
-        let radius = px(theme::RADIUS_FIELD);
+        let radius = px(theme::RADIUS_POPUP);
         let items = &self.items;
         let area = egui::Area::new(ui.make_persistent_id("toasts"))
             .order(Order::Foreground)
@@ -152,8 +157,9 @@ impl Toasts {
                     let slide = anim::ease_out_cubic((age / 0.25).min(1.0));
                     let x = anchor.x - w + (1.0 - slide) * px(40.0);
                     let r = Rect::from_min_size(Pos2::new(x, y), Vec2::new(w, h));
+                    theme::shadow(ui.painter(), r, radius, 20, 150);
                     ui.painter()
-                        .rect_filled(r, theme::corner(radius), theme::SURFACE_2);
+                        .rect_filled(r, theme::corner(radius), theme::FIELD);
                     ui.painter().rect_stroke(
                         r,
                         theme::corner(radius),

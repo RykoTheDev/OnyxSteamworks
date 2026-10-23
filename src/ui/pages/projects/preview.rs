@@ -27,7 +27,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &e
         Pos2::new(rect.right() - px(110.0), rect.top()),
         Vec2::new(px(110.0), px(40.0)),
     );
-    if Button::new("COPY", ButtonKind::Secondary)
+    if Button::new("Copy", ButtonKind::Secondary)
         .icon(theme::icon::COPY)
         .show(ui, copy_rect, s)
         .clicked()

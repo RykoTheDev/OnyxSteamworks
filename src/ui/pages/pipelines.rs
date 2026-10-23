@@ -27,7 +27,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     let idx = nav::index(Page::Pipelines);
     let tabs = nav::ITEMS[idx].sub_tabs;
     let mut active = app.sub_tabs[idx];
-    let body = pages::hero_and_tabs(ui, layout.content, s, "PIPELINES", tabs, &mut active);
+    let body = pages::hero_and_tabs(ui, layout.content, s, "Pipelines", tabs, &mut active);
     app.sub_tabs[idx] = active;
 
     match active {
@@ -77,7 +77,7 @@ fn pipelines_tab(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egu
             FontId::new(px(12.0), theme::family_medium()),
             theme::INK_DIM,
         );
-        if Button::new("APPLY PRESET", ButtonKind::Secondary)
+        if Button::new("Apply preset", ButtonKind::Secondary)
             .show(
                 ui,
                 Rect::from_min_size(
@@ -98,14 +98,14 @@ fn pipelines_tab(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egu
         Vec2::new(px(130.0), px(40.0)),
     );
     if running {
-        if Button::new("CANCEL", ButtonKind::Danger)
+        if Button::new("Cancel", ButtonKind::Danger)
             .icon(theme::icon::X)
             .show(ui, run_rect, s)
             .clicked()
         {
             app.pipeline_ui.cancel();
         }
-    } else if Button::new("RUN", ButtonKind::Primary)
+    } else if Button::new("Run", ButtonKind::Primary)
         .icon(theme::icon::PLAY)
         .enabled(!app.pipeline_ui.draft.pipeline.is_empty())
         .show(ui, run_rect, s)
@@ -114,7 +114,7 @@ fn pipelines_tab(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egu
         app.pipeline_ui.start(ctx, 0);
     }
     let dirty = app.pipeline_ui.dirty();
-    if Button::new("SAVE", ButtonKind::Secondary)
+    if Button::new("Save", ButtonKind::Secondary)
         .enabled(dirty)
         .show(
             ui,
@@ -185,7 +185,7 @@ fn pipelines_tab(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egu
             FontId::new(px(12.5), theme::family_medium()),
             theme::INK,
         );
-        if Button::new("CONTINUE", ButtonKind::Primary)
+        if Button::new("Continue", ButtonKind::Primary)
             .show(
                 ui,
                 Rect::from_min_size(
@@ -223,7 +223,7 @@ fn run_log(app: &App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     ui.painter().text(
         Pos2::new(rect.left() + px(14.0), rect.top() + px(16.0)),
         Align2::LEFT_TOP,
-        "RUN LOG",
+        "Run log",
         FontId::new(px(11.0), theme::family_label()),
         theme::INK_MUTED,
     );

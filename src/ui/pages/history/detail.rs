@@ -39,7 +39,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             kit::label(
                 &painter,
                 Pos2::new(x, d.top() + px(24.0)),
-                "BUILD DETAIL",
+                "Build detail",
                 s,
             );
 
@@ -121,7 +121,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
 
             let by = d.bottom() - px(26.0) - px(40.0);
             let bw = px(150.0);
-            if Button::new("OPEN LOG FOLDER", ButtonKind::Secondary)
+            if Button::new("Open log folder", ButtonKind::Secondary)
                 .icon(theme::icon::FOLDER)
                 .show(
                     ui,
@@ -132,7 +132,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             {
                 folder = true;
             }
-            if Button::new("DELETE", ButtonKind::Danger)
+            if Button::new("Delete", ButtonKind::Danger)
                 .icon(theme::icon::TRASH)
                 .show(
                     ui,
@@ -147,7 +147,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
                 delete = true;
                 close = true;
             }
-            if Button::new("REBUILD", ButtonKind::Primary)
+            if Button::new("Rebuild", ButtonKind::Primary)
                 .icon(theme::icon::ROCKET)
                 .enabled(parsed.is_some())
                 .show(
@@ -203,18 +203,18 @@ fn settings_lines(
     rec: &crate::model::BuildRecord,
     project: Option<&Project>,
 ) -> Vec<(String, String)> {
-    let mut lines = vec![("DESCRIPTION".to_string(), truncate(&rec.description, 64))];
+    let mut lines = vec![("Description".to_string(), truncate(&rec.description, 64))];
     if let Some(p) = project {
-        lines.push(("APP ID".to_string(), p.app_id.clone()));
+        lines.push(("App ID".to_string(), p.app_id.clone()));
         lines.push((
-            "CONTENT ROOT".to_string(),
+            "Content root".to_string(),
             truncate(&p.content_root.to_string_lossy(), 64),
         ));
         lines.push((
-            "BUILD OUTPUT".to_string(),
+            "Build output".to_string(),
             truncate(&p.build_output_dir.to_string_lossy(), 64),
         ));
-        lines.push(("DEPOTS".to_string(), p.depots.len().to_string()));
+        lines.push(("Depots".to_string(), p.depots.len().to_string()));
     }
     lines
 }

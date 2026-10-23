@@ -37,7 +37,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left(), rect.top()),
-        "DEVELOPER",
+        "Developer",
         s,
     );
     let card = Rect::from_min_size(
@@ -94,7 +94,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         Pos2::new(x, card.bottom() - px(44.0)),
         Vec2::new(px(200.0), px(34.0)),
     );
-    if Button::new("OPEN APP DATA FOLDER", ButtonKind::Secondary)
+    if Button::new("Open app data folder", ButtonKind::Secondary)
         .icon(theme::icon::FOLDER)
         .show(ui, open, s)
         .clicked()
@@ -108,7 +108,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         Pos2::new(card.right() - px(160.0), card.bottom() - px(44.0)),
         Vec2::new(px(160.0), px(34.0)),
     );
-    if Button::new("RESET SETTINGS", ButtonKind::Danger)
+    if Button::new("Reset settings", ButtonKind::Danger)
         .icon(theme::icon::TRASH)
         .show(ui, reset, s)
         .clicked()
@@ -140,7 +140,7 @@ fn reset_modal(app: &mut App, ui: &mut egui::Ui, s: f32) {
             kit::label(
                 &ui.painter().clone(),
                 Pos2::new(x, d.top() + px(26.0)),
-                "RESET SETTINGS",
+                "Reset settings",
                 s,
             );
             ui.painter().text(
@@ -152,7 +152,7 @@ fn reset_modal(app: &mut App, ui: &mut egui::Ui, s: f32) {
             );
             let bw = px(150.0);
             let by = d.bottom() - px(26.0) - px(40.0);
-            if Button::new("CANCEL", ButtonKind::Secondary)
+            if Button::new("Cancel", ButtonKind::Secondary)
                 .show(
                     ui,
                     Rect::from_min_size(Pos2::new(x, by), Vec2::new(bw, px(40.0))),
@@ -162,7 +162,7 @@ fn reset_modal(app: &mut App, ui: &mut egui::Ui, s: f32) {
             {
                 cancel = true;
             }
-            if Button::new("RESET", ButtonKind::Danger)
+            if Button::new("Reset", ButtonKind::Danger)
                 .icon(theme::icon::TRASH)
                 .show(
                     ui,

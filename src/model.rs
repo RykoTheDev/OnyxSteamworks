@@ -57,28 +57,6 @@ pub enum StepKind {
     Confirm,
 }
 
-impl StepKind {
-    pub const ALL: [StepKind; 6] = [
-        StepKind::Upload,
-        StepKind::RunCommand,
-        StepKind::Clean,
-        StepKind::Backup,
-        StepKind::Notify,
-        StepKind::Confirm,
-    ];
-
-    pub fn label(self) -> &'static str {
-        match self {
-            StepKind::Upload => "Upload",
-            StepKind::RunCommand => "Run command",
-            StepKind::Clean => "Clean",
-            StepKind::Backup => "Backup",
-            StepKind::Notify => "Notify",
-            StepKind::Confirm => "Confirm",
-        }
-    }
-}
-
 #[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
 #[serde(default)]
 pub struct PipelineStep {

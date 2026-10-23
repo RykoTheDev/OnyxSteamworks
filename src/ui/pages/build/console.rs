@@ -30,7 +30,7 @@ pub fn show(state: &mut BuildState, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: 
     Input::new(&mut state.search)
         .hint("Filter log")
         .show(ui, search_rect, s);
-    if Button::new("COPY", ButtonKind::Secondary)
+    if Button::new("Copy", ButtonKind::Secondary)
         .icon(theme::icon::COPY)
         .show(
             ui,
@@ -109,7 +109,7 @@ pub fn show(state: &mut BuildState, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: 
             Pos2::new(log_rect.right() - px(132.0), log_rect.bottom() - px(42.0)),
             Vec2::new(px(124.0), px(32.0)),
         );
-        if Button::new("JUMP TO LATEST", ButtonKind::Secondary)
+        if Button::new("Jump to latest", ButtonKind::Secondary)
             .show(ui, pill, s)
             .clicked()
         {

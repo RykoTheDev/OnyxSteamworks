@@ -12,8 +12,8 @@ use crate::ui::theme;
 
 pub(super) fn branch_section(app: &mut App, ui: &mut egui::Ui, s: f32) {
     let px = |v: f32| theme::px(v, s);
-    let hr = header_row(ui, "BRANCHES", s);
-    if Button::new("+ BRANCH", ButtonKind::Secondary)
+    let hr = header_row(ui, "Branches", s);
+    if Button::new("+ Branch", ButtonKind::Secondary)
         .show(
             ui,
             Rect::from_min_size(
@@ -48,7 +48,7 @@ pub(super) fn branch_section(app: &mut App, ui: &mut egui::Ui, s: f32) {
                 Pos2::new(r.left() + px(210.0), r.top()),
                 Vec2::new(px(140.0), px(40.0)),
             ),
-            &["DEV", "BETA", "LIVE"],
+            &["Dev", "Beta", "Live"],
             &mut lvl,
             s,
         );
@@ -74,7 +74,7 @@ pub(super) fn branch_section(app: &mut App, ui: &mut egui::Ui, s: f32) {
     }
 
     ui.add_space(px(6.0));
-    label(ui, "SET LIVE BRANCH", s);
+    label(ui, "Set live branch", s);
     let names: Vec<String> = app
         .projects_ui
         .base

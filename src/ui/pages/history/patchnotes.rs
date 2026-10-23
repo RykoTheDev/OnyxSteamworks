@@ -217,7 +217,7 @@ fn controls(
             Pos2::new(rect.right() - px(150.0), y),
             Vec2::new(px(150.0), bh),
         );
-        if Button::new("CANCEL", ButtonKind::Secondary)
+        if Button::new("Cancel", ButtonKind::Secondary)
             .icon(theme::icon::X)
             .show(ui, cancel, s)
             .clicked()
@@ -230,7 +230,7 @@ fn controls(
         Pos2::new(rect.right() - px(150.0), y),
         Vec2::new(px(150.0), bh),
     );
-    if Button::new("GENERATE", ButtonKind::Primary)
+    if Button::new("Generate", ButtonKind::Primary)
         .icon(theme::icon::SPARKLE)
         .show(ui, git, s)
         .clicked()
@@ -242,7 +242,7 @@ fn controls(
             Pos2::new(git.left() - px(8.0) - px(130.0), y),
             Vec2::new(px(130.0), bh),
         );
-        if Button::new("AI DRAFT", ButtonKind::Secondary)
+        if Button::new("AI draft", ButtonKind::Secondary)
             .icon(theme::icon::SPARKLE)
             .show(ui, ai, s)
             .clicked()
@@ -264,7 +264,7 @@ fn editor(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left() + px(12.0), rect.top() + px(10.0)),
-        "EDITOR",
+        "Editor",
         s,
     );
     let inner = Rect::from_min_max(
@@ -302,7 +302,7 @@ fn preview(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left() + px(12.0), rect.top() + px(10.0)),
-        "PREVIEW",
+        "Preview",
         s,
     );
     let text = preview_text(&app.patchnotes_ui);
@@ -341,7 +341,7 @@ fn actions(app: &mut App, ui: &mut egui::Ui, rect: Rect, y: f32, ctx: &egui::Con
     let bh = px(38.0);
     let has_text = !app.patchnotes_ui.draft.trim().is_empty();
     let copy = Rect::from_min_size(Pos2::new(rect.left(), y), Vec2::new(px(120.0), bh));
-    if Button::new("COPY", ButtonKind::Secondary)
+    if Button::new("Copy", ButtonKind::Secondary)
         .icon(theme::icon::COPY)
         .enabled(has_text)
         .show(ui, copy, s)
@@ -356,7 +356,7 @@ fn actions(app: &mut App, ui: &mut egui::Ui, rect: Rect, y: f32, ctx: &egui::Con
         Pos2::new(copy.right() + px(8.0), y),
         Vec2::new(px(188.0), bh),
     );
-    if Button::new("USE AS DESCRIPTION", ButtonKind::Secondary)
+    if Button::new("Use as description", ButtonKind::Secondary)
         .enabled(has_text)
         .show(ui, use_desc, s)
         .clicked()
@@ -383,7 +383,7 @@ fn actions(app: &mut App, ui: &mut egui::Ui, rect: Rect, y: f32, ctx: &egui::Con
         .map(|c| c.discord_enabled)
         .unwrap_or(false);
     let can_discord = has_text && discord_on;
-    if Button::new("SEND TO DISCORD", ButtonKind::Secondary)
+    if Button::new("Send to Discord", ButtonKind::Secondary)
         .enabled(can_discord)
         .disabled_reason("Enable Discord in Settings > Notifications")
         .show(ui, discord, s)
@@ -403,7 +403,7 @@ fn actions(app: &mut App, ui: &mut egui::Ui, rect: Rect, y: f32, ctx: &egui::Con
         Pos2::new(discord.left() - px(8.0) - px(130.0), y),
         Vec2::new(px(130.0), bh),
     );
-    if Button::new("SAVE", ButtonKind::Primary)
+    if Button::new("Save", ButtonKind::Primary)
         .icon(theme::icon::CHECK)
         .enabled(has_text)
         .show(ui, save, s)

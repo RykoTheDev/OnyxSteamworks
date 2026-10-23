@@ -48,7 +48,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, s: f32) {
             kit::label(
                 &painter,
                 Pos2::new(x, d.top() + px(26.0)),
-                "BUILD IN PROGRESS",
+                "Build in progress",
                 s,
             );
             painter.text(
@@ -66,7 +66,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, s: f32) {
                 theme::INK_MUTED,
             );
             let by = d.bottom() - px(26.0) - px(42.0);
-            if Button::new("KEEP BUILDING", ButtonKind::Secondary)
+            if Button::new("Keep building", ButtonKind::Secondary)
                 .show(
                     ui,
                     Rect::from_min_size(Pos2::new(x, by), Vec2::new(px(170.0), px(42.0))),
@@ -76,7 +76,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, s: f32) {
             {
                 cancel = true;
             }
-            if Button::new("QUIT & CANCEL", ButtonKind::Danger)
+            if Button::new("Quit & cancel", ButtonKind::Danger)
                 .icon(theme::icon::WARNING)
                 .show(
                     ui,

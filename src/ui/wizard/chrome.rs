@@ -11,7 +11,7 @@ pub(super) fn chrome(ui: &mut egui::Ui, d: Rect, view: &View, intent: &mut Inten
     kit::label(
         &painter,
         Pos2::new(x, d.top() + px(26.0)),
-        "SET UP STEAMPIPE",
+        "Set up SteamPipe",
         s,
     );
     painter.text(
@@ -49,7 +49,7 @@ pub(super) fn footer(ui: &mut egui::Ui, d: Rect, view: &View, intent: &mut Inten
     let last = view.step + 1 == STEPS;
 
     if view.step > 0
-        && Button::new("BACK", ButtonKind::Secondary)
+        && Button::new("Back", ButtonKind::Secondary)
             .show(
                 ui,
                 Rect::from_min_size(Pos2::new(d.left() + px(28.0), y), Vec2::new(px(120.0), bh)),
@@ -62,7 +62,7 @@ pub(super) fn footer(ui: &mut egui::Ui, d: Rect, view: &View, intent: &mut Inten
 
     let right = d.right() - px(28.0);
     if last {
-        if Button::new("CLOSE", ButtonKind::Secondary)
+        if Button::new("Close", ButtonKind::Secondary)
             .show(
                 ui,
                 Rect::from_min_size(Pos2::new(right - px(332.0), y), Vec2::new(px(110.0), bh)),
@@ -72,7 +72,7 @@ pub(super) fn footer(ui: &mut egui::Ui, d: Rect, view: &View, intent: &mut Inten
         {
             intent.close = true;
         }
-        if Button::new("START A PREVIEW BUILD", ButtonKind::Primary)
+        if Button::new("Start a preview build", ButtonKind::Primary)
             .icon(theme::icon::ROCKET)
             .show(
                 ui,
@@ -94,7 +94,7 @@ pub(super) fn footer(ui: &mut egui::Ui, d: Rect, view: &View, intent: &mut Inten
         {
             intent.skip = true;
         }
-        if Button::new("NEXT", ButtonKind::Primary)
+        if Button::new("Next", ButtonKind::Primary)
             .show(
                 ui,
                 Rect::from_min_size(Pos2::new(right - px(120.0), y), Vec2::new(px(120.0), bh)),

@@ -170,7 +170,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             kit::label(
                 &ui.painter().clone(),
                 Pos2::new(x, d.top() + pad),
-                "REVIEW CHANGES",
+                "Review changes",
                 s,
             );
 
@@ -211,7 +211,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
                 act = Act::ToggleSkip;
             }
             let bw = px(140.0);
-            if Button::new("CANCEL", ButtonKind::Secondary)
+            if Button::new("Cancel", ButtonKind::Secondary)
                 .show(
                     ui,
                     Rect::from_min_size(
@@ -224,7 +224,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             {
                 act = Act::Cancel;
             }
-            let go = Button::new("BUILD", ButtonKind::Primary)
+            let go = Button::new("Build", ButtonKind::Primary)
                 .icon(theme::icon::ROCKET)
                 .enabled(!running)
                 .show(

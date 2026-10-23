@@ -79,7 +79,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             kit::label(
                 &ui.painter().clone(),
                 Pos2::new(x, d.top() + px(26.0)),
-                "CONFIRM LIVE BUILD",
+                "Confirm live build",
                 s,
             );
             let note = format!(
@@ -127,7 +127,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
 
             let bw = px(150.0);
             let by = d.bottom() - px(26.0) - px(40.0);
-            if Button::new("CANCEL", ButtonKind::Secondary)
+            if Button::new("Cancel", ButtonKind::Secondary)
                 .show(
                     ui,
                     Rect::from_min_size(Pos2::new(x, by), Vec2::new(bw, px(40.0))),
@@ -137,7 +137,7 @@ pub(crate) fn show(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context
             {
                 cancel = true;
             }
-            let go = Button::new("BUILD TO LIVE", ButtonKind::Danger)
+            let go = Button::new("Build to live", ButtonKind::Danger)
                 .enabled(matches)
                 .show(
                     ui,

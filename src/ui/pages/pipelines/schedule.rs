@@ -129,7 +129,7 @@ fn add_form(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         Pos2::new(card.right() - px(150.0), card.bottom() - px(48.0)),
         Vec2::new(px(132.0), px(34.0)),
     );
-    if Button::new("ADD SCHEDULE", ButtonKind::Primary)
+    if Button::new("Add schedule", ButtonKind::Primary)
         .icon(theme::icon::PLUS)
         .show(ui, add, s)
         .clicked()
@@ -238,7 +238,7 @@ fn rows(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                     Pos2::new(tz.left() - px(10.0) - px(118.0), r.center().y - px(16.0)),
                     Vec2::new(px(118.0), px(32.0)),
                 );
-                if Button::new("INSTALL TASK", ButtonKind::Secondary)
+                if Button::new("Install task", ButtonKind::Secondary)
                     .enabled(cfg!(windows))
                     .disabled_reason("Windows only")
                     .show(ui, task, s)
@@ -250,7 +250,7 @@ fn rows(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                     Pos2::new(task.left() - px(8.0) - px(110.0), r.center().y - px(16.0)),
                     Vec2::new(px(110.0), px(32.0)),
                 );
-                if Button::new("REMOVE TASK", ButtonKind::Secondary)
+                if Button::new("Remove task", ButtonKind::Secondary)
                     .enabled(cfg!(windows))
                     .disabled_reason("Windows only")
                     .show(ui, rmtask, s)

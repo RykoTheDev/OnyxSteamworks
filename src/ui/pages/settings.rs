@@ -26,7 +26,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
         ui,
         layout.content,
         layout.scale,
-        "SETTINGS",
+        "Settings",
         tabs,
         &mut active,
     );

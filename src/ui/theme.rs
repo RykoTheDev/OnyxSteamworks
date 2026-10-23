@@ -7,31 +7,37 @@ use eframe::egui::{
     Stroke, StrokeKind, TextStyle,
 };
 
-pub const BG: Color32 = Color32::from_rgb(0x12, 0x12, 0x12);
-pub const SURFACE: Color32 = Color32::from_rgb(0x1D, 0x1D, 0x1D);
-pub const SURFACE_2: Color32 = Color32::from_rgb(0x24, 0x24, 0x24);
-pub const FIELD: Color32 = Color32::from_rgb(0x2B, 0x2B, 0x2B);
-pub const FIELD_HI: Color32 = Color32::from_rgb(0x34, 0x34, 0x34);
-pub const LINE: Color32 = Color32::from_rgb(0x2E, 0x2E, 0x2E);
-pub const GHOST: Color32 = Color32::from_rgb(0x45, 0x45, 0x45);
+pub const BG: Color32 = Color32::from_rgb(0x08, 0x09, 0x0A);
+pub const SIDEBAR: Color32 = BG;
+pub const SURFACE: Color32 = Color32::from_rgb(0x0F, 0x10, 0x11);
+pub const SURFACE_2: Color32 = Color32::from_rgb(0x14, 0x15, 0x17);
+pub const FIELD: Color32 = Color32::from_rgb(0x19, 0x1A, 0x1C);
+pub const FIELD_HI: Color32 = Color32::from_rgb(0x21, 0x22, 0x25);
+pub const LINE: Color32 = Color32::from_rgb(0x23, 0x25, 0x2A);
+pub const LINE_SOFT: Color32 = Color32::from_rgb(0x1A, 0x1C, 0x1F);
+pub const GHOST: Color32 = Color32::from_rgb(0x1E, 0x1F, 0x22);
 
-pub const INK: Color32 = Color32::from_rgb(0xE8, 0xE8, 0xE8);
-pub const INK_DIM: Color32 = Color32::from_rgb(0xA6, 0xA6, 0xA6);
-pub const INK_MUTED: Color32 = Color32::from_rgb(0x8C, 0x8C, 0x8C);
-pub const INK_FAINT: Color32 = Color32::from_rgb(0x5E, 0x5E, 0x5E);
+pub const INK: Color32 = Color32::from_rgb(0xF7, 0xF8, 0xF8);
+pub const INK_DIM: Color32 = Color32::from_rgb(0xD0, 0xD6, 0xE0);
+pub const INK_MUTED: Color32 = Color32::from_rgb(0x8A, 0x8F, 0x98);
+pub const INK_FAINT: Color32 = Color32::from_rgb(0x62, 0x66, 0x6D);
 
-pub const PRIMARY: Color32 = Color32::from_rgb(0xED, 0xED, 0xED);
-pub const PRIMARY_INK: Color32 = Color32::from_rgb(0x16, 0x16, 0x16);
-pub const FOCUS: Color32 = Color32::from_rgb(0x5A, 0x5A, 0x5A);
+pub const ACCENT: Color32 = Color32::from_rgb(0x5E, 0x6A, 0xD2);
+pub const ACCENT_HI: Color32 = Color32::from_rgb(0x71, 0x7C, 0xE6);
+pub const ACCENT_SOFT: Color32 = Color32::from_rgba_premultiplied(0x17, 0x1A, 0x34, 0x40);
 
-pub const PANEL: Color32 = SURFACE;
+pub const PRIMARY: Color32 = ACCENT;
+pub const PRIMARY_INK: Color32 = Color32::from_rgb(0xFF, 0xFF, 0xFF);
+pub const FOCUS: Color32 = Color32::from_rgb(0x5E, 0x6A, 0xD2);
+
+pub const PANEL: Color32 = SURFACE_2;
 pub const PANEL_ALT: Color32 = FIELD;
-pub const SEGMENT_IDLE: Color32 = Color32::from_rgb(0x3A, 0x3A, 0x3A);
-pub const TRACK: Color32 = Color32::from_rgb(0x2E, 0x2E, 0x2E);
+pub const SEGMENT_IDLE: Color32 = Color32::from_rgb(0x26, 0x28, 0x2D);
+pub const TRACK: Color32 = Color32::from_rgb(0x1F, 0x21, 0x25);
 
-pub const SUCCESS: Color32 = Color32::from_rgb(0x5B, 0xA7, 0x72);
-pub const WARNING: Color32 = Color32::from_rgb(0xC7, 0xA2, 0x4C);
-pub const DANGER: Color32 = Color32::from_rgb(0xC8, 0x5F, 0x57);
+pub const SUCCESS: Color32 = Color32::from_rgb(0x4C, 0xB7, 0x82);
+pub const WARNING: Color32 = Color32::from_rgb(0xF2, 0xBE, 0x4C);
+pub const DANGER: Color32 = Color32::from_rgb(0xEB, 0x57, 0x57);
 
 pub const GUTTER: f32 = 24.0;
 pub const SPACE_XS: f32 = 8.0;
@@ -39,15 +45,15 @@ pub const SPACE_SM: f32 = 12.0;
 pub const SPACE_MD: f32 = 16.0;
 pub const SPACE_LG: f32 = 24.0;
 
-pub const RADIUS_APP: f32 = 22.0;
-pub const RADIUS_PANEL: f32 = 18.0;
-pub const RADIUS_PANEL_MIN: f32 = 16.0;
-pub const RADIUS_CARD: f32 = 12.0;
-pub const RADIUS_FIELD: f32 = 10.0;
-pub const RADIUS_POPUP: f32 = 12.0;
+pub const RADIUS_APP: f32 = 10.0;
+pub const RADIUS_PANEL: f32 = 10.0;
+pub const RADIUS_PANEL_MIN: f32 = 8.0;
+pub const RADIUS_CARD: f32 = 8.0;
+pub const RADIUS_FIELD: f32 = 6.0;
+pub const RADIUS_POPUP: f32 = 8.0;
 
-pub const REF_W: f32 = 1180.0;
-pub const REF_H: f32 = 830.0;
+pub const REF_W: f32 = 1320.0;
+pub const REF_H: f32 = 840.0;
 const SCALE_MIN: f32 = 0.78;
 const SCALE_MAX: f32 = 1.35;
 
@@ -101,6 +107,16 @@ pub fn focus_ring(painter: &Painter, rect: Rect, radius_px: f32, color: Color32)
     );
 }
 
+pub fn shadow(painter: &Painter, rect: Rect, radius_px: f32, blur: u8, alpha: u8) {
+    let shadow = egui::epaint::Shadow {
+        offset: [0, 6],
+        blur,
+        spread: 0,
+        color: Color32::from_black_alpha(alpha),
+    };
+    painter.add(shadow.as_shape(rect, corner(radius_px)));
+}
+
 pub fn hairline(painter: &Painter, rect: Rect, radius_px: f32, color: Color32) {
     painter.rect_stroke(
         rect,
@@ -114,9 +130,6 @@ const INTER_REGULAR: &[u8] = include_bytes!("../../assets/fonts/Inter-Regular.tt
 const INTER_MEDIUM: &[u8] = include_bytes!("../../assets/fonts/Inter-Medium.ttf");
 const INTER_SEMIBOLD: &[u8] = include_bytes!("../../assets/fonts/Inter-SemiBold.ttf");
 const INTER_BOLD: &[u8] = include_bytes!("../../assets/fonts/Inter-Bold.ttf");
-const INTER_BLACK_ITALIC: &[u8] = include_bytes!("../../assets/fonts/Inter-BlackItalic.ttf");
-const INTER_EXTRABOLD_ITALIC: &[u8] =
-    include_bytes!("../../assets/fonts/Inter-ExtraBoldItalic.ttf");
 const JETBRAINS_MONO: &[u8] = include_bytes!("../../assets/fonts/JetBrainsMono-Regular.ttf");
 const PHOSPHOR: &[u8] = include_bytes!("../../assets/fonts/Phosphor-Regular.ttf");
 const PHOSPHOR_FILL: &[u8] = include_bytes!("../../assets/fonts/Phosphor-Fill.ttf");
@@ -196,8 +209,6 @@ fn install_fonts(ctx: &egui::Context) {
     add("Inter-Medium", INTER_MEDIUM, &mut fonts);
     add("Inter-SemiBold", INTER_SEMIBOLD, &mut fonts);
     add("Inter-Bold", INTER_BOLD, &mut fonts);
-    add("Inter-BlackItalic", INTER_BLACK_ITALIC, &mut fonts);
-    add("Inter-ExtraBoldItalic", INTER_EXTRABOLD_ITALIC, &mut fonts);
     add("JetBrainsMono", JETBRAINS_MONO, &mut fonts);
     add("Phosphor", PHOSPHOR, &mut fonts);
     add("Phosphor-Fill", PHOSPHOR_FILL, &mut fonts);
@@ -217,8 +228,8 @@ fn install_fonts(ctx: &egui::Context) {
             vec!["Inter-SemiBold", "Inter", "Phosphor"],
         ),
         (family_bold(), vec!["Inter-Bold", "Inter", "Phosphor"]),
-        (family_display(), vec!["Inter-BlackItalic", "Inter"]),
-        (family_label(), vec!["Inter-ExtraBoldItalic", "Inter"]),
+        (family_display(), vec!["Inter-SemiBold", "Inter"]),
+        (family_label(), vec!["Inter-Medium", "Inter", "Phosphor"]),
         (family_icon(), vec!["Phosphor"]),
         (family_icon_fill(), vec!["Phosphor-Fill"]),
     ];
@@ -233,7 +244,7 @@ fn install_fonts(ctx: &egui::Context) {
 fn text_styles() -> std::collections::BTreeMap<TextStyle, FontId> {
     [
         (TextStyle::Heading, FontId::new(16.0, family_semibold())),
-        (TextStyle::Body, FontId::new(14.0, FontFamily::Proportional)),
+        (TextStyle::Body, FontId::new(13.0, FontFamily::Proportional)),
         (
             TextStyle::Small,
             FontId::new(12.0, FontFamily::Proportional),
@@ -242,7 +253,7 @@ fn text_styles() -> std::collections::BTreeMap<TextStyle, FontId> {
             TextStyle::Monospace,
             FontId::new(13.0, FontFamily::Monospace),
         ),
-        (TextStyle::Button, FontId::new(14.0, family_medium())),
+        (TextStyle::Button, FontId::new(13.0, family_medium())),
     ]
     .into()
 }
@@ -260,8 +271,18 @@ fn build_visuals() -> egui::Visuals {
     v.code_bg_color = FIELD;
     v.hyperlink_color = INK;
 
-    v.selection.bg_fill = with_alpha(INK, 40);
-    v.selection.stroke = Stroke::new(1.0, INK);
+    v.selection.bg_fill = with_alpha(ACCENT, 90);
+    v.selection.stroke = Stroke::new(1.0, ACCENT_HI);
+    v.text_cursor.stroke = Stroke::new(1.5, ACCENT_HI);
+    v.popup_shadow = egui::epaint::Shadow {
+        offset: [0, 8],
+        blur: 24,
+        spread: 0,
+        color: Color32::from_black_alpha(140),
+    };
+    v.window_shadow = v.popup_shadow;
+    v.window_corner_radius = corner(RADIUS_POPUP);
+    v.menu_corner_radius = corner(RADIUS_POPUP);
 
     for w in [
         &mut v.widgets.noninteractive,
@@ -272,7 +293,7 @@ fn build_visuals() -> egui::Visuals {
     ] {
         w.bg_stroke = Stroke::NONE;
         w.fg_stroke = Stroke::new(1.0, INK);
-        w.corner_radius = corner(10.0);
+        w.corner_radius = corner(RADIUS_FIELD);
         w.expansion = 0.0;
     }
     v.widgets.noninteractive.bg_fill = SURFACE;

@@ -29,7 +29,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left(), rect.top()),
-        "STEAM ACCOUNTS",
+        "Steam accounts",
         s,
     );
     ui.painter().text(
@@ -57,7 +57,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         Pos2::new(pf.right() + px(10.0), yf),
         Vec2::new(px(96.0), px(36.0)),
     );
-    if Button::new("ADD", ButtonKind::Primary)
+    if Button::new("Add", ButtonKind::Primary)
         .icon(theme::icon::PLUS)
         .show(ui, add, s)
         .clicked()
@@ -172,7 +172,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                             Vec2::new(px(120.0), px(32.0)),
                         );
                         let can = steamcmd.is_some();
-                        if Button::new("AUTHORIZE", ButtonKind::Secondary)
+                        if Button::new("Authorize", ButtonKind::Secondary)
                             .enabled(can)
                             .disabled_reason("Install SteamCMD first (run the setup wizard)")
                             .show(ui, az, s)

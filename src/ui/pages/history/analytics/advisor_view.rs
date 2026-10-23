@@ -10,7 +10,7 @@ pub fn show(ui: &mut egui::Ui, rect: Rect, report: &AdvisorReport, s: f32) {
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left(), rect.top()),
-        "PATCH-SIZE ADVISOR",
+        "Patch-size advisor",
         s,
     );
     let body = Rect::from_min_max(Pos2::new(rect.left(), rect.top() + px(24.0)), rect.max);
@@ -41,7 +41,7 @@ pub fn show(ui: &mut egui::Ui, rect: Rect, report: &AdvisorReport, s: f32) {
                 advice_row(ui, line, s);
             }
             if !report.large_churn.is_empty() {
-                section(ui, "LARGE FILES CHANGING OFTEN", s);
+                section(ui, "Large files changing often", s);
                 for c in &report.large_churn {
                     finding(
                         ui,
@@ -59,7 +59,7 @@ pub fn show(ui: &mut egui::Ui, rect: Rect, report: &AdvisorReport, s: f32) {
                 }
             }
             if !report.entropy.is_empty() {
-                section(ui, "LIKELY COMPRESSED OR ENCRYPTED", s);
+                section(ui, "Likely compressed or encrypted", s);
                 for e in &report.entropy {
                     finding(
                         ui,

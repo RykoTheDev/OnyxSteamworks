@@ -10,7 +10,6 @@ use crate::ui::theme;
 pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egui::Context) -> bool {
     let px = |v: f32| theme::px(v, s);
 
-    kit::hero(&ui.painter().clone(), rect, "PROJECTS", s);
     if app.projects_ui.dirty() {
         ui.painter().circle_filled(
             Pos2::new(rect.right() - px(14.0), rect.top() + px(14.0)),
@@ -20,13 +19,13 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egui::Co
     }
 
     let tab_rect = Rect::from_min_size(
-        Pos2::new(rect.left(), rect.top() + px(92.0)),
+        Pos2::new(rect.left(), rect.top()),
         Vec2::new(px(240.0), px(32.0)),
     );
     kit::tabs(
         ui,
         tab_rect,
-        &["EDITOR", "VDF PREVIEW"],
+        &["Editor", "VDF preview"],
         &mut app.projects_ui.editor_tab,
         s,
     );
@@ -64,7 +63,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &egui::Co
         Pos2::new(rect.right() - px(150.0), rect.bottom() - px(44.0)),
         Vec2::new(px(150.0), px(44.0)),
     );
-    let mut btn = Button::new("SAVE PROJECT", ButtonKind::Primary)
+    let mut btn = Button::new("Save project", ButtonKind::Primary)
         .icon(theme::icon::CHECK)
         .enabled(valid && dirty);
     if !valid {
@@ -86,14 +85,14 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
         Pos2::new(r.left() + left_w + gap, r.top()),
         Vec2::new(right_w, r.height()),
     );
-    changed |= labelled_text(app, ui, left, "APP ID", None, false, s);
-    changed |= labelled_text(app, ui, right, "DISPLAY NAME", Some("(Optional)"), false, s);
+    changed |= labelled_text(app, ui, left, "App ID", None, false, s);
+    changed |= labelled_text(app, ui, right, "Display name", Some("(Optional)"), false, s);
     ui.add_space(px(22.0));
 
-    changed |= labelled_path(app, ui, "CONTENT ROOT", PickField::ContentRoot, s, ctx);
-    changed |= labelled_path(app, ui, "BUILD OUTPUT", PickField::BuildOutput, s, ctx);
-    changed |= labelled_path(app, ui, "STEAMCMD PATH", PickField::SteamCmd, s, ctx);
-    changed |= labelled_path(app, ui, "KEY ART", PickField::KeyArt, s, ctx);
+    changed |= labelled_path(app, ui, "Content root", PickField::ContentRoot, s, ctx);
+    changed |= labelled_path(app, ui, "Build output", PickField::BuildOutput, s, ctx);
+    changed |= labelled_path(app, ui, "SteamCMD path", PickField::SteamCmd, s, ctx);
+    changed |= labelled_path(app, ui, "Key art", PickField::KeyArt, s, ctx);
 
     let r = row(ui, s, 64.0);
     let uw = (r.width() - gap) * 0.5;
@@ -102,7 +101,7 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
         Pos2::new(r.left() + uw + gap, r.top()),
         Vec2::new(uw, r.height()),
     );
-    changed |= labelled_text(app, ui, uleft, "STEAM USERNAME", None, false, s);
+    changed |= labelled_text(app, ui, uleft, "Steam username", None, false, s);
     password_field(app, ui, uright, s);
     let hint = row(ui, s, 22.0);
     ui.painter().text(
@@ -120,7 +119,7 @@ fn basic_fields(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) -
 
 fn template_fields(app: &mut App, ui: &mut egui::Ui, s: f32) {
     let px = |v: f32| theme::px(v, s);
-    label(ui, "DESCRIPTION TEMPLATE", s);
+    label(ui, "Description template", s);
     let r = row(ui, s, 40.0);
     Input::new(&mut app.projects_ui.base.desc_template)
         .hint("v{version} {branch} {date}.{time} #{build_number} {git_commit}")
@@ -147,7 +146,7 @@ fn template_fields(app: &mut App, ui: &mut egui::Ui, s: f32) {
     } else {
         resolved
     };
-    label(ui, "RESOLVED PREVIEW", s);
+    label(ui, "Resolved preview", s);
     let pr = row(ui, s, 36.0);
     let block = Rect::from_min_size(pr.min, Vec2::new(pr.width(), px(32.0)));
     kit::bordered(
@@ -166,7 +165,7 @@ fn template_fields(app: &mut App, ui: &mut egui::Ui, s: f32) {
     );
     ui.add_space(px(10.0));
 
-    label(ui, "VERSION FILE", s);
+    label(ui, "Version file", s);
     let vr = row(ui, s, 40.0);
     Input::new(&mut app.projects_ui.base.version_file)
         .hint("version.txt or version.json in the content root (optional)")
@@ -193,31 +192,31 @@ pub(super) fn label(ui: &mut egui::Ui, text: &str, s: f32) {
 
 fn key_for(label: &str) -> &'static str {
     match label {
-        "DISPLAY NAME" => "name",
-        "APP ID" => "app_id",
-        "CONTENT ROOT" => "content_root",
-        "BUILD OUTPUT" => "build_output_dir",
-        "STEAMCMD PATH" => "steamcmd_path",
+        "Display name" => "name",
+        "App ID" => "app_id",
+        "Content root" => "content_root",
+        "Build output" => "build_output_dir",
+        "SteamCMD path" => "steamcmd_path",
         _ => "",
     }
 }
 
 fn value_mut<'a>(app: &'a mut App, label: &str) -> &'a mut String {
     match label {
-        "DISPLAY NAME" => &mut app.projects_ui.form.name,
-        "APP ID" => &mut app.projects_ui.form.app_id,
-        "CONTENT ROOT" => &mut app.projects_ui.form.content_root,
-        "BUILD OUTPUT" => &mut app.projects_ui.form.build_output,
-        "STEAMCMD PATH" => &mut app.projects_ui.form.steamcmd,
-        "KEY ART" => &mut app.projects_ui.form.key_art,
-        "STEAM USERNAME" => &mut app.projects_ui.form.username,
+        "Display name" => &mut app.projects_ui.form.name,
+        "App ID" => &mut app.projects_ui.form.app_id,
+        "Content root" => &mut app.projects_ui.form.content_root,
+        "Build output" => &mut app.projects_ui.form.build_output,
+        "SteamCMD path" => &mut app.projects_ui.form.steamcmd,
+        "Key art" => &mut app.projects_ui.form.key_art,
+        "Steam username" => &mut app.projects_ui.form.username,
         _ => unreachable!("unknown editor field: {label}"),
     }
 }
 
 fn password_field(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     let px = |v: f32| theme::px(v, s);
-    kit::label(&ui.painter().clone(), rect.left_top(), "STEAM PASSWORD", s);
+    kit::label(&ui.painter().clone(), rect.left_top(), "Steam password", s);
     let field = Rect::from_min_size(
         Pos2::new(rect.left(), rect.top() + px(24.0)),
         Vec2::new(rect.width(), px(40.0)),
@@ -284,7 +283,7 @@ fn labelled_path(
         Pos2::new(input.right() + gap, input.top()),
         Vec2::new(browse_w, px(40.0)),
     );
-    if Button::new("BROWSE", ButtonKind::Secondary)
+    if Button::new("Browse", ButtonKind::Secondary)
         .icon(theme::icon::FOLDER)
         .show(ui, browse, s)
         .clicked()

@@ -133,7 +133,7 @@ pub(super) fn choose_branch(
     kit::label(
         &ui.painter().clone(),
         Pos2::new(x, rect.top() + pad),
-        "CHOOSE BRANCH",
+        "Choose branch",
         s,
     );
 
@@ -171,7 +171,7 @@ pub(super) fn choose_branch(
     kit::label(
         &ui.painter().clone(),
         Pos2::new(x, oy - px(22.0)),
-        "OPTIONS",
+        "Options",
         s,
     );
     let mut ox = x;
@@ -179,12 +179,12 @@ pub(super) fn choose_branch(
         ui,
         &mut ox,
         oy,
-        "PREVIEW",
+        "Preview",
         &mut app.build_ui.preview_only,
         s,
     );
-    ox = option_chip(ui, &mut ox, oy, "BACKUP", &mut app.build_ui.backup, s);
-    option_chip(ui, &mut ox, oy, "VERIFY", &mut app.build_ui.verify, s);
+    ox = option_chip(ui, &mut ox, oy, "Backup", &mut app.build_ui.backup, s);
+    option_chip(ui, &mut ox, oy, "Verify", &mut app.build_ui.verify, s);
 
     let seg = Rect::from_min_size(
         Pos2::new(x, rect.bottom() - px(24.0)),
@@ -225,7 +225,7 @@ pub(super) fn patch_notes(app: &mut App, ui: &mut egui::Ui, rect: Rect, project:
     kit::label(
         &ui.painter().clone(),
         Pos2::new(x, rect.top() + pad),
-        "PATCH NOTES",
+        "Patch notes",
         s,
     );
 

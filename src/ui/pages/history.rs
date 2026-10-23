@@ -7,7 +7,7 @@ mod table;
 
 pub use analytics::AnalyticsState;
 pub use backups::BackupState;
-pub use patchnotes::{PatchNotesState, start_gen as start_patch_notes};
+pub use patchnotes::PatchNotesState;
 pub use state::{HistoryState, RangeFilter, StatusFilter};
 
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -24,7 +24,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
     let idx = nav::index(Page::History);
     let tabs = nav::ITEMS[idx].sub_tabs;
     let mut active = app.sub_tabs[idx];
-    let body = pages::hero_and_tabs(ui, layout.content, s, "HISTORY", tabs, &mut active);
+    let body = pages::hero_and_tabs(ui, layout.content, s, "History", tabs, &mut active);
     app.sub_tabs[idx] = active;
 
     match active {

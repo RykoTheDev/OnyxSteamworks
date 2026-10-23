@@ -15,7 +15,7 @@ pub use chip::{chip, chip_size};
 pub use input::Input;
 pub use overlay::{ToastLevel, Toasts, modal, modal_with, tooltip};
 pub use progress::{line_chart, progress_bar, progress_ring, segment_progress};
-pub use rail::{RailAction, rail};
+pub use rail::{RailAction, RailState, kbd, rail};
 pub use select::{dropdown, tabs};
 pub use toggles::{checkbox, toggle};
 
@@ -51,35 +51,18 @@ pub fn separator(painter: &egui::Painter, a: Pos2, b: Pos2) {
     painter.line_segment([a, b], Stroke::new(1.0, theme::LINE));
 }
 
-pub fn hero(painter: &egui::Painter, clip: Rect, text: &str, s: f32) {
-    let size = theme::px(104.0, s);
-    let pos = Pos2::new(clip.left(), clip.top() - theme::px(18.0, s));
-    let safe = Rect::from_min_max(
-        Pos2::new(clip.left() - theme::px(10.0, s), clip.top()),
-        clip.max,
-    );
-    let p = painter.with_clip_rect(safe);
-    p.text(
-        pos,
-        Align2::LEFT_TOP,
-        text,
-        FontId::new(size, theme::family_display()),
-        theme::GHOST,
-    );
-}
-
 pub fn label(painter: &egui::Painter, pos: Pos2, text: &str, s: f32) {
     painter.text(
         pos,
         Align2::LEFT_TOP,
         text,
-        FontId::new(theme::px(13.0, s), theme::family_label()),
+        FontId::new(theme::px(12.0, s), theme::family_label()),
         theme::INK_MUTED,
     );
 }
 
 pub fn label_optional(painter: &egui::Painter, pos: Pos2, text: &str, suffix: &str, s: f32) {
-    let font = FontId::new(theme::px(13.0, s), theme::family_label());
+    let font = FontId::new(theme::px(12.0, s), theme::family_label());
     let w = painter
         .layout_no_wrap(text.to_owned(), font.clone(), theme::INK_MUTED)
         .size()
@@ -99,7 +82,7 @@ pub fn heading(painter: &egui::Painter, pos: Pos2, text: &str, s: f32) {
         pos,
         Align2::LEFT_TOP,
         text,
-        FontId::new(theme::px(15.0, s), theme::family_semibold()),
+        FontId::new(theme::px(14.0, s), theme::family_semibold()),
         theme::INK,
     );
 }

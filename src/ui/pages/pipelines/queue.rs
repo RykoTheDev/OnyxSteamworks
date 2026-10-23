@@ -269,7 +269,7 @@ fn header(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         Vec2::new(px(150.0), px(34.0)),
     );
     let can_add = !app.projects.is_empty();
-    if Button::new("ADD TO QUEUE", ButtonKind::Primary)
+    if Button::new("Add to queue", ButtonKind::Primary)
         .icon(theme::icon::PLUS)
         .enabled(can_add)
         .show(ui, add, s)
@@ -301,7 +301,7 @@ fn header(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
         Pos2::new(add.left() - px(10.0) - px(120.0), rect.top()),
         Vec2::new(px(120.0), px(34.0)),
     );
-    let label = if app.queue.paused { "RESUME" } else { "PAUSE" };
+    let label = if app.queue.paused { "Resume" } else { "Pause" };
     if Button::new(label, ButtonKind::Secondary)
         .show(ui, pause, s)
         .clicked()

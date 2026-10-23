@@ -69,7 +69,7 @@ pub(super) fn cli_actions(app: &mut App, ui: &mut egui::Ui, rect: Rect, project:
         Vec2::new(bw, rect.height()),
     );
 
-    if Button::new("COPY CLI", ButtonKind::Secondary)
+    if Button::new("Copy CLI", ButtonKind::Secondary)
         .icon(theme::icon::COPY)
         .show(ui, copy, s)
         .clicked()
@@ -91,7 +91,7 @@ pub(super) fn cli_actions(app: &mut App, ui: &mut egui::Ui, rect: Rect, project:
             .push(kit::ToastLevel::Success, "CLI command copied");
     }
 
-    if Button::new("EXPORT CI", ButtonKind::Secondary)
+    if Button::new("Export CI", ButtonKind::Secondary)
         .icon(theme::icon::UPLOAD)
         .show(ui, export, s)
         .clicked()

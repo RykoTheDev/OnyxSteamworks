@@ -25,7 +25,7 @@ fn main() -> eframe::Result {
     let native_options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("SteamPipe GUI")
-            .with_inner_size([1180.0, 830.0])
+            .with_inner_size([1320.0, 840.0])
             .with_min_inner_size([900.0, 640.0]),
         ..Default::default()
     };

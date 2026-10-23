@@ -95,7 +95,7 @@ fn ai_and_analytics(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left(), rect.top()),
-        "PATCH NOTES AI",
+        "Patch notes AI",
         s,
     );
     ui.painter().text(
@@ -183,7 +183,7 @@ fn ai_and_analytics(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     kit::label(
         &ui.painter().clone(),
         Pos2::new(rect.left(), ay),
-        "ANALYTICS",
+        "Analytics",
         s,
     );
     let acard = Rect::from_min_size(

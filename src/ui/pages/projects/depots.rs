@@ -7,9 +7,9 @@ use super::scan::{ScanState, human_size};
 use super::state::PickField;
 use crate::app::App;
 use crate::model::Depot;
-use crate::ui::kit;
 use crate::ui::kit::{Button, ButtonKind, Input};
 use crate::ui::theme;
+use crate::ui::{anim, kit};
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 enum Preset {
@@ -65,16 +65,89 @@ pub(super) fn header_row(ui: &mut egui::Ui, title: &str, s: f32) -> Rect {
     hr
 }
 
+fn collapsible_title(
+    ui: &mut egui::Ui,
+    hr: Rect,
+    right: f32,
+    title: &str,
+    count: usize,
+    open: bool,
+    s: f32,
+) -> bool {
+    let px = |v: f32| theme::px(v, s);
+    let hit = Rect::from_min_max(
+        Pos2::new(hr.left() - px(6.0), hr.top() + px(4.0)),
+        Pos2::new(right - px(12.0), hr.bottom()),
+    );
+    let id = ui.make_persistent_id(("collapsible", title));
+    let resp = ui
+        .interact(hit, id, egui::Sense::click())
+        .on_hover_cursor(egui::CursorIcon::PointingHand);
+    let hover = anim::anim_bool(
+        ui.ctx(),
+        id.with("h"),
+        resp.hovered(),
+        0.12,
+        anim::ease_out_cubic,
+    );
+    let turn = anim::anim_bool(ui.ctx(), id.with("o"), open, 0.16, anim::ease_out_cubic);
+    let painter = ui.painter();
+    let cy = hr.center().y + px(2.0);
+    let galley = painter.layout_no_wrap(
+        kit::rail::CARET_RIGHT.to_string(),
+        theme::icon_font(px(11.0), true),
+        theme::lerp_color(theme::INK_MUTED, theme::INK, hover),
+    );
+    let angle = turn * std::f32::consts::FRAC_PI_2;
+    let half = galley.size() / 2.0;
+    let center = Pos2::new(hr.left() + px(6.0), cy);
+    let pos = center - egui::emath::Rot2::from_angle(angle) * half;
+    painter.add(egui::epaint::TextShape::new(pos, galley, theme::INK).with_angle(angle));
+    let title_r = painter.text(
+        Pos2::new(hr.left() + px(18.0), cy),
+        Align2::LEFT_CENTER,
+        title,
+        FontId::new(px(13.0), theme::family_semibold()),
+        theme::INK,
+    );
+    let font = FontId::new(px(11.0), theme::family_medium());
+    let label = count.to_string();
+    let w = painter
+        .layout_no_wrap(label.clone(), font.clone(), theme::INK_MUTED)
+        .size()
+        .x;
+    let badge = Rect::from_min_size(
+        Pos2::new(title_r.right() + px(8.0), cy - px(9.0)),
+        Vec2::new(w + px(12.0), px(18.0)),
+    );
+    painter.rect_filled(badge, theme::corner(badge.height() / 2.0), theme::FIELD_HI);
+    painter.text(
+        badge.center(),
+        Align2::CENTER_CENTER,
+        label,
+        font,
+        theme::INK_MUTED,
+    );
+    resp.clicked()
+}
+
 fn depot_section(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) {
     let px = |v: f32| theme::px(v, s);
-    let hr = header_row(ui, "DEPOTS", s);
-    let bw = px(82.0);
+    let hr = header_row(ui, "", s);
+    let bw = px(86.0);
     let presets = [
-        ("+ WIN", Some(Preset::Windows)),
-        ("+ LINUX", Some(Preset::Linux)),
-        ("+ MAC", Some(Preset::Macos)),
-        ("+ EMPTY", None),
+        ("+ Windows", Some(Preset::Windows)),
+        ("+ Linux", Some(Preset::Linux)),
+        ("+ macOS", Some(Preset::Macos)),
+        ("+ Empty", None),
     ];
+    let buttons_left = hr.right() - bw * 4.0 - px(6.0) * 3.0;
+    let open_id = ui.make_persistent_id("depots_open");
+    let mut open = ctx.data(|d| d.get_temp::<bool>(open_id).unwrap_or(true));
+    let count = app.projects_ui.base.depots.len();
+    if collapsible_title(ui, hr, buttons_left, "Depots", count, open, s) {
+        open = !open;
+    }
     for (k, (lbl, preset)) in presets.iter().enumerate() {
         let r = Rect::from_min_size(
             Pos2::new(
@@ -89,7 +162,12 @@ fn depot_section(app: &mut App, ui: &mut egui::Ui, s: f32, ctx: &egui::Context) 
         {
             app.projects_ui
                 .add_depot(preset.map(preset_depot).unwrap_or_default());
+            open = true;
         }
+    }
+    ctx.data_mut(|d| d.insert_temp(open_id, open));
+    if !open {
+        return;
     }
 
     if app.projects_ui.base.depots.is_empty() {
@@ -138,8 +216,32 @@ fn depot_card(
     i: usize,
 ) -> Option<DepotAct> {
     let px = |v: f32| theme::px(v, s);
+    let n_depots = app.projects_ui.base.depots.len();
     let n_excl = app.projects_ui.base.depots[i].exclusions.len();
-    let card_h = 196.0 + n_excl as f32 * 34.0;
+    let id_err = app.projects_ui.error_for(&format!("depots[{i}].depot_id"));
+
+    const PAD: f32 = 16.0;
+    const ROW_H: f32 = 40.0;
+    const ROW_GAP: f32 = 10.0;
+    const OPT_H: f32 = 36.0;
+    const LABEL_H: f32 = 18.0;
+    const EXCL_H: f32 = 28.0;
+    const EXCL_STEP: f32 = 34.0;
+    const ADD_H: f32 = 30.0;
+    let err_h = if id_err.is_some() { 18.0 } else { 0.0 };
+    let card_h = PAD
+        + ROW_H
+        + err_h
+        + ROW_GAP
+        + ROW_H
+        + ROW_GAP
+        + OPT_H
+        + ROW_GAP
+        + 4.0
+        + LABEL_H
+        + n_excl as f32 * EXCL_STEP
+        + ADD_H
+        + PAD;
     let card = row(ui, s, card_h);
     kit::bordered(
         &ui.painter().clone(),
@@ -148,7 +250,7 @@ fn depot_card(
         theme::LINE,
         px(theme::RADIUS_CARD),
     );
-    let pad = px(14.0);
+    let pad = px(PAD);
     let x = card.left() + pad;
     let w = card.width() - pad * 2.0;
     let mut y = card.top() + pad;
@@ -157,14 +259,13 @@ fn depot_card(
     let id_w = px(110.0);
     let btn_w = px(46.0);
     let gap = px(6.0);
-    let id_err = app.projects_ui.error_for(&format!("depots[{i}].depot_id"));
     let mut tid = Input::new(&mut app.projects_ui.base.depots[i].depot_id).hint("depot id");
     if let Some(e) = &id_err {
         tid = tid.error(true).helper(e);
     }
     tid.show(
         ui,
-        Rect::from_min_size(Pos2::new(x, y), Vec2::new(id_w, px(40.0))),
+        Rect::from_min_size(Pos2::new(x, y), Vec2::new(id_w, px(ROW_H))),
         s,
     );
     let name_w = w - id_w - gap - 3.0 * (btn_w + gap);
@@ -172,19 +273,25 @@ fn depot_card(
         .hint("name")
         .show(
             ui,
-            Rect::from_min_size(Pos2::new(x + id_w + gap, y), Vec2::new(name_w, px(40.0))),
+            Rect::from_min_size(Pos2::new(x + id_w + gap, y), Vec2::new(name_w, px(ROW_H))),
             s,
         );
     let mut bx = x + w - 3.0 * btn_w - 2.0 * gap;
-    for (lbl, kind, a) in [
-        ("UP", ButtonKind::Secondary, DepotAct::Move(i, true)),
-        ("DN", ButtonKind::Secondary, DepotAct::Move(i, false)),
-        ("X", ButtonKind::Danger, DepotAct::Remove(i)),
+    for (lbl, kind, enabled, a) in [
+        ("UP", ButtonKind::Secondary, i > 0, DepotAct::Move(i, true)),
+        (
+            "DN",
+            ButtonKind::Secondary,
+            i + 1 < n_depots,
+            DepotAct::Move(i, false),
+        ),
+        ("X", ButtonKind::Danger, true, DepotAct::Remove(i)),
     ] {
         if Button::new(lbl, kind)
+            .enabled(enabled)
             .show(
                 ui,
-                Rect::from_min_size(Pos2::new(bx, y), Vec2::new(btn_w, px(40.0))),
+                Rect::from_min_size(Pos2::new(bx, y), Vec2::new(btn_w, px(ROW_H))),
                 s,
             )
             .clicked()
@@ -193,12 +300,12 @@ fn depot_card(
         }
         bx += btn_w + gap;
     }
-    y += px(50.0);
+    y += px(ROW_H + err_h + ROW_GAP);
 
     let scan_w = px(88.0);
-    let browse_w = px(96.0);
-    let path_w = w - browse_w - scan_w - px(12.0) - px(150.0);
-    let pr = Rect::from_min_size(Pos2::new(x, y), Vec2::new(path_w, px(40.0)));
+    let browse_w = px(110.0);
+    let path_w = w - browse_w - scan_w - 2.0 * gap;
+    let pr = Rect::from_min_size(Pos2::new(x, y), Vec2::new(path_w, px(ROW_H)));
     kit::bordered(
         &ui.painter().clone(),
         pr,
@@ -213,22 +320,38 @@ fn depot_card(
     let (txt, col) = if lp.is_empty() {
         ("local path".to_string(), theme::INK_FAINT)
     } else {
-        (lp, theme::INK_DIM)
+        (lp.clone(), theme::INK_DIM)
     };
-    ui.painter().text(
-        Pos2::new(pr.left() + px(14.0), pr.center().y),
-        Align2::LEFT_CENTER,
-        txt,
-        FontId::new(px(12.0), theme::family_medium()),
+    let text_clip = pr.shrink2(Vec2::new(px(14.0), 0.0));
+    let galley =
+        ui.painter()
+            .layout_no_wrap(txt, FontId::new(px(12.0), theme::family_medium()), col);
+    let overflow = galley.size().x > text_clip.width();
+    let tx = if overflow {
+        text_clip.right() - galley.size().x
+    } else {
+        text_clip.left()
+    };
+    ui.painter().with_clip_rect(text_clip).galley(
+        Pos2::new(tx, pr.center().y - galley.size().y / 2.0),
+        galley,
         col,
     );
-    if Button::new("BROWSE", ButtonKind::Secondary)
+    if overflow {
+        ui.interact(
+            pr,
+            ui.make_persistent_id(("depot_path_tip", i)),
+            egui::Sense::hover(),
+        )
+        .on_hover_text(lp);
+    }
+    if Button::new("Browse", ButtonKind::Secondary)
         .icon(theme::icon::FOLDER)
         .show(
             ui,
             Rect::from_min_size(
-                Pos2::new(x + path_w + px(6.0), y),
-                Vec2::new(browse_w, px(40.0)),
+                Pos2::new(pr.right() + gap, y),
+                Vec2::new(browse_w, px(ROW_H)),
             ),
             s,
         )
@@ -237,14 +360,11 @@ fn depot_card(
         app.projects_ui.spawn_pick(ctx, PickField::DepotLocal, i);
     }
     let running = matches!(app.projects_ui.scans.get(i), Some(ScanState::Running));
-    if Button::new("SCAN", ButtonKind::Secondary)
+    if Button::new("Scan", ButtonKind::Secondary)
         .loading(running)
         .show(
             ui,
-            Rect::from_min_size(
-                Pos2::new(x + path_w + browse_w + px(12.0), y),
-                Vec2::new(scan_w, px(40.0)),
-            ),
+            Rect::from_min_size(Pos2::new(x + w - scan_w, y), Vec2::new(scan_w, px(ROW_H))),
             s,
         )
         .clicked()
@@ -252,65 +372,65 @@ fn depot_card(
     {
         act = Some(DepotAct::Scan(i));
     }
+    y += px(ROW_H + ROW_GAP);
+
+    Input::new(&mut app.projects_ui.base.depots[i].depot_path)
+        .hint(".")
+        .show(
+            ui,
+            Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(120.0), px(OPT_H))),
+            s,
+        );
+    kit::checkbox(
+        ui,
+        Rect::from_min_size(Pos2::new(x + px(140.0), y), Vec2::new(px(160.0), px(OPT_H))),
+        &mut app.projects_ui.base.depots[i].recursive,
+        "Recursive",
+        s,
+    );
     if let Some(ScanState::Done { files, bytes }) = app.projects_ui.scans.get(i).copied() {
         ui.painter().text(
-            Pos2::new(x + w, y + px(50.0)),
+            Pos2::new(x + w, y + px(OPT_H) / 2.0),
             Align2::RIGHT_CENTER,
             format!("{files} files  {}", human_size(bytes)),
             FontId::new(px(12.0), theme::family_medium()),
             theme::INK_MUTED,
         );
     }
-    y += px(50.0);
-
-    Input::new(&mut app.projects_ui.base.depots[i].depot_path)
-        .hint(".")
-        .show(
-            ui,
-            Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(120.0), px(36.0))),
-            s,
-        );
-    kit::checkbox(
-        ui,
-        Rect::from_min_size(Pos2::new(x + px(140.0), y), Vec2::new(px(160.0), px(36.0))),
-        &mut app.projects_ui.base.depots[i].recursive,
-        "RECURSIVE",
-        s,
-    );
-    y += px(44.0);
+    y += px(OPT_H + ROW_GAP + 4.0);
 
     ui.painter().text(
         Pos2::new(x, y),
         Align2::LEFT_TOP,
-        "EXCLUSIONS",
+        "Exclusions",
         FontId::new(px(11.0), theme::family_label()),
         theme::INK_MUTED,
     );
-    y += px(18.0);
-    for j in 0..app.projects_ui.base.depots[i].exclusions.len() {
+    y += px(LABEL_H);
+    for j in 0..n_excl {
         Input::new(&mut app.projects_ui.base.depots[i].exclusions[j])
             .hint("*.pdb")
             .show(
                 ui,
-                Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(220.0), px(28.0))),
+                Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(220.0), px(EXCL_H))),
                 s,
             );
         if Button::new("X", ButtonKind::Danger)
             .show(
                 ui,
-                Rect::from_min_size(Pos2::new(x + px(228.0), y), Vec2::new(px(38.0), px(28.0))),
+                Rect::from_min_size(Pos2::new(x + px(228.0), y), Vec2::new(px(38.0), px(EXCL_H))),
                 s,
             )
             .clicked()
         {
             act = Some(DepotAct::RemoveExcl(i, j));
         }
-        y += px(34.0);
+        y += px(EXCL_STEP);
     }
-    if Button::new("+ PATTERN", ButtonKind::Secondary)
+    if Button::new("+ Pattern", ButtonKind::Secondary)
         .show(
             ui,
-            Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(128.0), px(30.0))),
+            Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(128.0), px(ADD_H))),
             s,
         )
         .clicked()

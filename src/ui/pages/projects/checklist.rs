@@ -14,7 +14,7 @@ pub(super) fn sections(app: &mut App, ui: &mut egui::Ui, s: f32) {
 
 fn default_account(app: &mut App, ui: &mut egui::Ui, s: f32) {
     let px = |v: f32| theme::px(v, s);
-    label(ui, "DEFAULT ACCOUNT", s);
+    label(ui, "Default account", s);
     let accounts = crate::config::load_settings()
         .map(|c| c.accounts)
         .unwrap_or_default();
@@ -49,11 +49,11 @@ fn default_account(app: &mut App, ui: &mut egui::Ui, s: f32) {
 
 fn checklist_section(app: &mut App, ui: &mut egui::Ui, s: f32) {
     let px = |v: f32| theme::px(v, s);
-    label(ui, "RELEASE CHECKLIST", s);
+    label(ui, "Release checklist", s);
 
     let header = row(ui, s, 40.0);
     let add = Rect::from_min_size(header.min, Vec2::new(px(120.0), px(34.0)));
-    if Button::new("ADD ITEM", ButtonKind::Secondary)
+    if Button::new("Add item", ButtonKind::Secondary)
         .icon(theme::icon::PLUS)
         .show(ui, add, s)
         .clicked()
@@ -67,7 +67,7 @@ fn checklist_section(app: &mut App, ui: &mut egui::Ui, s: f32) {
         Pos2::new(add.right() + px(10.0), header.top()),
         Vec2::new(px(140.0), px(34.0)),
     );
-    if Button::new("LOAD TEMPLATE", ButtonKind::Secondary)
+    if Button::new("Load template", ButtonKind::Secondary)
         .show(ui, tmpl, s)
         .clicked()
     {

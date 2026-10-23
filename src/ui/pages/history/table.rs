@@ -39,7 +39,7 @@ pub(super) fn show(
         .column(Column::exact(px(72.0)))
         .column(Column::remainder().at_least(px(140.0)))
         .header(px(26.0), |mut header| {
-            for title in ["DATE", "PROJECT", "BRANCH", "STATUS", "TIME", "DESCRIPTION"] {
+            for title in ["Date", "Project", "Branch", "Status", "Time", "Description"] {
                 header.col(|ui| {
                     ui.label(
                         RichText::new(title)

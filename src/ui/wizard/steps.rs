@@ -39,7 +39,7 @@ fn install(ui: &mut egui::Ui, rect: Rect, view: &View, intent: &mut Intent, s: f
     );
     y += px(18.0);
 
-    label(ui, Pos2::new(x, y), "INSTALL FOLDER", s);
+    label(ui, Pos2::new(x, y), "Install folder", s);
     let field = Rect::from_min_size(
         Pos2::new(x, y + px(18.0)),
         Vec2::new(w - px(132.0), px(36.0)),
@@ -53,7 +53,7 @@ fn install(ui: &mut egui::Ui, rect: Rect, view: &View, intent: &mut Intent, s: f
         Pos2::new(field.right() + px(10.0), field.top()),
         Vec2::new(px(122.0), px(36.0)),
     );
-    if Button::new("BROWSE", ButtonKind::Secondary)
+    if Button::new("Browse", ButtonKind::Secondary)
         .icon(theme::icon::FOLDER)
         .show(ui, browse, s)
         .clicked()
@@ -103,9 +103,9 @@ fn install(ui: &mut egui::Ui, rect: Rect, view: &View, intent: &mut Intent, s: f
     } else {
         let btn = Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(200.0), px(40.0)));
         let label = if view.dl_error.is_some() {
-            "TRY AGAIN"
+            "Try again"
         } else {
-            "DOWNLOAD STEAMCMD"
+            "Download SteamCMD"
         };
         if Button::new(label, ButtonKind::Primary)
             .icon(theme::icon::DOWNLOAD)
@@ -142,7 +142,7 @@ fn project(ui: &mut egui::Ui, rect: Rect, view: &View, intent: &mut Intent, s: f
     );
     y += px(18.0);
 
-    label(ui, Pos2::new(x, y), "GAME BUILD FOLDER", s);
+    label(ui, Pos2::new(x, y), "Game build folder", s);
     let field = Rect::from_min_size(
         Pos2::new(x, y + px(18.0)),
         Vec2::new(w - px(162.0), px(36.0)),
@@ -156,7 +156,7 @@ fn project(ui: &mut egui::Ui, rect: Rect, view: &View, intent: &mut Intent, s: f
         Pos2::new(field.right() + px(10.0), field.top()),
         Vec2::new(px(152.0), px(36.0)),
     );
-    if Button::new("CHOOSE FOLDER", ButtonKind::Secondary)
+    if Button::new("Choose folder", ButtonKind::Secondary)
         .icon(theme::icon::FOLDER)
         .show(ui, browse, s)
         .clicked()
@@ -203,9 +203,9 @@ fn project(ui: &mut egui::Ui, rect: Rect, view: &View, intent: &mut Intent, s: f
         px(theme::RADIUS_FIELD),
     );
     let lines = [
-        ("NAME", name.clone()),
-        ("ENGINE", engine.clone()),
-        ("DEPOTS", depots.to_string()),
+        ("Name", name.clone()),
+        ("Engine", engine.clone()),
+        ("Depots", depots.to_string()),
     ];
     for (i, (k, v)) in lines.iter().enumerate() {
         let ly = card.top() + px(18.0) + i as f32 * px(21.0);
@@ -230,7 +230,7 @@ fn project(ui: &mut egui::Ui, rect: Rect, view: &View, intent: &mut Intent, s: f
         check_line(ui, Pos2::new(x, y), true, &format!("Created {created}"), s);
     } else {
         let btn = Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(180.0), px(40.0)));
-        if Button::new("CREATE PROJECT", ButtonKind::Primary)
+        if Button::new("Create project", ButtonKind::Primary)
             .icon(theme::icon::PLUS)
             .show(ui, btn, s)
             .clicked()
@@ -255,7 +255,7 @@ fn authorize(ui: &mut egui::Ui, rect: Rect, view: &View, intent: &mut Intent, s:
     );
     y += px(20.0);
 
-    label(ui, Pos2::new(x, y), "ACCOUNT", s);
+    label(ui, Pos2::new(x, y), "Account", s);
     let field = Rect::from_min_size(Pos2::new(x, y + px(18.0)), Vec2::new(w, px(36.0)));
     kit::bordered(
         &ui.painter().clone(),
@@ -283,7 +283,7 @@ fn authorize(ui: &mut egui::Ui, rect: Rect, view: &View, intent: &mut Intent, s:
         );
     } else {
         let btn = Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(200.0), px(40.0)));
-        if Button::new("AUTHORIZE ACCOUNT", ButtonKind::Primary)
+        if Button::new("Authorize account", ButtonKind::Primary)
             .icon(theme::icon::CHECK)
             .show(ui, btn, s)
             .clicked()

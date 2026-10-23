@@ -82,9 +82,9 @@ fn report_body(ui: &mut egui::Ui, area: Rect, report: &VerifyReport, s: f32) {
         .show(&mut cu, |ui| {
             ui.set_width(list.width() - px(14.0));
             for (label, items, c) in [
-                ("MISSING", &report.missing, theme::DANGER),
-                ("MISMATCHED", &report.mismatched, theme::WARNING),
-                ("EXTRA", &report.extra, theme::INK_MUTED),
+                ("Missing", &report.missing, theme::DANGER),
+                ("Mismatched", &report.mismatched, theme::WARNING),
+                ("Extra", &report.extra, theme::INK_MUTED),
             ] {
                 if items.is_empty() {
                     continue;

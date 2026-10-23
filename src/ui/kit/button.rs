@@ -78,20 +78,50 @@ impl<'a> Button<'a> {
         let radius = px(theme::RADIUS_FIELD);
 
         let (base_fill, hi_fill, fg, border) = match self.kind {
-            ButtonKind::Primary => (theme::PRIMARY, theme::INK, theme::PRIMARY_INK, None),
-            ButtonKind::Secondary => (theme::FIELD, theme::FIELD_HI, theme::INK, Some(theme::LINE)),
-            ButtonKind::Danger => (
+            ButtonKind::Primary => (
+                theme::ACCENT,
+                theme::ACCENT_HI,
+                theme::PRIMARY_INK,
+                Some(theme::with_alpha(theme::ACCENT_HI, 140)),
+            ),
+            ButtonKind::Secondary => (
                 theme::FIELD,
                 theme::FIELD_HI,
-                theme::DANGER,
-                Some(theme::DANGER),
+                theme::INK_DIM,
+                Some(theme::LINE),
             ),
-            ButtonKind::Ghost => (theme::SURFACE, theme::FIELD, theme::INK_DIM, None),
+            ButtonKind::Danger => (
+                theme::with_alpha(theme::DANGER, 22),
+                theme::with_alpha(theme::DANGER, 44),
+                theme::DANGER,
+                Some(theme::with_alpha(theme::DANGER, 90)),
+            ),
+            ButtonKind::Ghost => (
+                theme::with_alpha(theme::FIELD, 0),
+                theme::FIELD,
+                theme::INK_MUTED,
+                None,
+            ),
         };
         let dim = if self.enabled { 1.0 } else { 0.4 };
-        let fill = theme::lerp_color(base_fill, hi_fill, hover * 0.6 + press * 0.4);
+        let fill = theme::lerp_color(base_fill, hi_fill, hover * 0.7 + press * 0.3);
         let painter = ui.painter();
+        if self.kind == ButtonKind::Primary && self.enabled {
+            theme::shadow(painter, rect, radius, 10, (40.0 + 40.0 * hover) as u8);
+        }
         painter.rect_filled(rect, theme::corner(radius), anim::with_opacity(fill, dim));
+        if self.kind == ButtonKind::Primary {
+            painter.line_segment(
+                [
+                    Pos2::new(rect.left() + radius, rect.top() + 0.5),
+                    Pos2::new(rect.right() - radius, rect.top() + 0.5),
+                ],
+                Stroke::new(
+                    1.0,
+                    anim::with_opacity(theme::with_alpha(theme::PRIMARY_INK, 50), dim),
+                ),
+            );
+        }
         if let Some(c) = border {
             painter.rect_stroke(
                 rect,
@@ -101,18 +131,23 @@ impl<'a> Button<'a> {
             );
         }
 
+        let fg = if matches!(self.kind, ButtonKind::Secondary | ButtonKind::Ghost) {
+            theme::lerp_color(fg, theme::INK, hover)
+        } else {
+            fg
+        };
         let color = anim::with_opacity(fg, dim);
         if self.loading {
             crate::ui::kit::spinner(painter, rect.center(), px(8.0), fg, &ctx);
         } else {
-            let fid = FontId::new(px(13.0), theme::family_semibold());
+            let fid = FontId::new(px(13.0), theme::family_medium());
             let label_w = painter
                 .layout_no_wrap(self.label.to_string(), fid.clone(), color)
                 .size()
                 .x;
             if let Some(glyph) = self.icon {
-                let icon_w = px(15.0);
-                let gap = px(7.0);
+                let icon_w = px(14.0);
+                let gap = px(6.0);
                 let start = rect.center().x - (icon_w + gap + label_w) / 2.0;
                 painter.text(
                     Pos2::new(start + icon_w / 2.0, rect.center().y),
@@ -134,7 +169,12 @@ impl<'a> Button<'a> {
         }
 
         if resp.has_focus() {
-            theme::focus_ring(painter, rect, radius, theme::FOCUS);
+            theme::focus_ring(
+                painter,
+                rect.expand(2.0),
+                radius + 2.0,
+                theme::with_alpha(theme::FOCUS, 180),
+            );
         }
         if !self.enabled
             && let Some(reason) = self.reason
@@ -163,7 +203,7 @@ pub fn icon_button(ui: &mut egui::Ui, rect: Rect, glyph: char, s: f32) -> Respon
     painter.rect_filled(
         rect,
         theme::corner(px(theme::RADIUS_FIELD)),
-        theme::lerp_color(theme::SURFACE, theme::FIELD, hover),
+        theme::with_alpha(theme::FIELD_HI, (hover * 255.0) as u8),
     );
     painter.text(
         rect.center(),

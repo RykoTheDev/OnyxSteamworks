@@ -1,6 +1,6 @@
 use std::sync::mpsc::{Receiver, Sender};
 
-use eframe::egui::{self, Align2, FontId, Pos2, Rect, Sense, Stroke, StrokeKind, UiBuilder, Vec2};
+use eframe::egui::{self, Align2, FontId, Pos2, Rect, Stroke, UiBuilder};
 
 use crate::model::Project;
 use crate::ui::kit;
@@ -11,11 +11,9 @@ use crate::ui::{anim, nav, pages, theme};
 #[derive(Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
 pub enum Page {
     #[default]
-    Home,
     Projects,
     Build,
     History,
-    Pipelines,
     Settings,
 }
 
@@ -26,17 +24,13 @@ pub struct App {
     prev_page: Option<Page>,
     transition: Option<anim::Transition>,
     pub projects: Vec<Project>,
-    pub(crate) sub_tabs: [usize; 6],
-    pub(crate) home_gen: u32,
-    pub(crate) home_ui: pages::home::HomeState,
+    pub(crate) sub_tabs: [usize; 4],
     pub(crate) projects_ui: pages::projects::ProjectsState,
     pub(crate) build_ui: pages::build::BuildState,
     pub(crate) history_ui: pages::history::HistoryState,
     pub(crate) backup_ui: pages::history::BackupState,
     pub(crate) patchnotes_ui: pages::history::PatchNotesState,
     pub(crate) analytics_ui: pages::history::AnalyticsState,
-    pub(crate) pipeline_ui: pages::pipelines::PipelineState,
-    pub(crate) queue: pages::pipelines::QueueState,
     pub(crate) notify_ui: crate::features::notify::NotifyState,
     pub(crate) doctor_ui: pages::settings::DoctorState,
     pub(crate) advanced_ui: pages::settings::AdvancedState,
@@ -84,17 +78,13 @@ impl App {
             prev_page: None,
             transition: None,
             projects,
-            sub_tabs: [0; 6],
-            home_gen: 0,
-            home_ui: pages::home::HomeState::new(),
+            sub_tabs: [0; 4],
             projects_ui: pages::projects::ProjectsState::new(),
             build_ui: pages::build::BuildState::new(),
             history_ui: pages::history::HistoryState::new(),
             backup_ui: pages::history::BackupState::new(),
             patchnotes_ui: pages::history::PatchNotesState::new(),
             analytics_ui: pages::history::AnalyticsState::new(),
-            pipeline_ui: pages::pipelines::PipelineState::new(),
-            queue: pages::pipelines::QueueState::new(),
             notify_ui: crate::features::notify::NotifyState::new(),
             doctor_ui: pages::settings::DoctorState::new(),
             advanced_ui: pages::settings::AdvancedState::new(),
@@ -122,9 +112,6 @@ impl App {
         self.prev_page = Some(self.page);
         self.page = page;
         self.transition = Some(anim::Transition::new(ctx, 0.26, anim::ease_in_out_cubic));
-        if page == Page::Home {
-            self.home_gen = self.home_gen.wrapping_add(1);
-        }
     }
 
     fn render_page(
@@ -145,60 +132,70 @@ impl App {
         pages::render(self, &mut cu, page, lay);
     }
 
-    fn search_pill(&mut self, ui: &mut egui::Ui, content: Rect, s: f32) {
+    fn header_bar(&self, ui: &mut egui::Ui, lay: &Layout) {
+        let s = lay.scale;
         let px = |v: f32| theme::px(v, s);
-        let pw = px(152.0);
-        let ph = px(32.0);
-        let r = Rect::from_min_size(
-            Pos2::new(content.right() - pw, content.top()),
-            Vec2::new(pw, ph),
-        );
-        let id = ui.make_persistent_id("search_pill");
-        let resp = ui.interact(r, id, Sense::click());
-        let ctx = ui.ctx().clone();
-        let hover = anim::anim_bool(
-            &ctx,
-            id.with("h"),
-            resp.hovered(),
-            0.12,
-            anim::ease_out_cubic,
-        );
+        let h = lay.header;
         let painter = ui.painter();
-        painter.rect_filled(
-            r,
-            theme::corner(px(theme::RADIUS_FIELD)),
-            theme::lerp_color(theme::FIELD, theme::FIELD_HI, hover),
+        painter.line_segment(
+            [
+                Pos2::new(h.left(), h.bottom()),
+                Pos2::new(h.right(), h.bottom()),
+            ],
+            Stroke::new(1.0, theme::LINE_SOFT),
         );
-        painter.rect_stroke(
-            r,
-            theme::corner(px(theme::RADIUS_FIELD)),
-            Stroke::new(1.0, theme::LINE),
-            StrokeKind::Inside,
-        );
+        let item = nav::item(self.page);
+        let mut x = h.left() + px(20.0);
         painter.text(
-            Pos2::new(r.left() + px(12.0), r.center().y),
-            Align2::LEFT_CENTER,
-            theme::icon::MAGNIFYING_GLASS.to_string(),
-            theme::icon_font(px(14.0), false),
+            Pos2::new(x + px(7.0), h.center().y),
+            Align2::CENTER_CENTER,
+            item.glyph.to_string(),
+            theme::icon_font(px(15.0), false),
             theme::INK_MUTED,
         );
-        painter.text(
-            Pos2::new(r.left() + px(32.0), r.center().y),
+        x += px(24.0);
+        let crumb = FontId::new(px(13.0), theme::family_medium());
+        let sub = item
+            .sub_tabs
+            .get(self.sub_tabs[nav::index(self.page)])
+            .copied();
+        let page_color = if sub.is_some() {
+            theme::INK_MUTED
+        } else {
+            theme::INK
+        };
+        let r = painter.text(
+            Pos2::new(x, h.center().y),
             Align2::LEFT_CENTER,
-            "Search",
-            FontId::new(px(12.5), theme::family_medium()),
-            theme::INK_DIM,
+            item.label,
+            crumb.clone(),
+            page_color,
         );
-        painter.text(
-            Pos2::new(r.right() - px(12.0), r.center().y),
-            Align2::RIGHT_CENTER,
-            "Ctrl+K",
-            FontId::new(px(11.0), theme::family_medium()),
-            theme::INK_MUTED,
-        );
-        if resp.clicked() {
-            self.palette.toggle();
+        if let Some(sub) = sub {
+            let chevron = painter.text(
+                Pos2::new(r.right() + px(8.0), h.center().y),
+                Align2::LEFT_CENTER,
+                kit::rail::CARET_RIGHT.to_string(),
+                theme::icon_font(px(11.0), false),
+                theme::INK_FAINT,
+            );
+            painter.text(
+                Pos2::new(chevron.right() + px(8.0), h.center().y),
+                Align2::LEFT_CENTER,
+                sub,
+                crumb,
+                theme::INK,
+            );
         }
+        let hint_right = Pos2::new(h.right() - px(16.0), h.center().y);
+        let cap = kit::rail::kbd(ui, hint_right, "Ctrl Enter", s);
+        ui.painter().text(
+            Pos2::new(cap.left() - px(8.0), h.center().y),
+            Align2::RIGHT_CENTER,
+            "Quick build",
+            FontId::new(px(12.0), theme::family_medium()),
+            theme::INK_FAINT,
+        );
     }
 
     #[allow(clippy::never_loop)]
@@ -210,9 +207,8 @@ impl App {
 }
 
 impl eframe::App for App {
-    fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn logic(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.pump_events();
-        self.queue.tick(&self.projects, ctx);
         for msg in self.notify_ui.drain() {
             self.toasts.push(kit::ToastLevel::Error, msg);
         }
@@ -224,39 +220,51 @@ impl eframe::App for App {
             let lay = layout::compute(ui.max_rect());
             let s = lay.scale;
 
+            ui.painter()
+                .rect_filled(ui.max_rect(), theme::corner(0.0), theme::SIDEBAR);
+            let radius = theme::px(theme::RADIUS_PANEL, s);
+            theme::shadow(ui.painter(), lay.frame, radius, 18, 90);
             kit::bordered(
                 ui.painter(),
                 lay.frame,
                 theme::SURFACE,
-                theme::LINE,
-                theme::px(theme::RADIUS_APP, s),
-            );
-            ui.painter().line_segment(
-                [
-                    Pos2::new(lay.rail.right(), lay.frame.top() + theme::px(14.0, s)),
-                    Pos2::new(lay.rail.right(), lay.frame.bottom() - theme::px(14.0, s)),
-                ],
-                Stroke::new(1.0, theme::LINE),
+                theme::LINE_SOFT,
+                radius,
             );
 
-            let avatar_letter = self
+            let account = self
                 .projects
                 .get(self.build_ui.project_sel)
                 .map(|p| {
                     if p.default_account.is_empty() {
-                        &p.steam_username
+                        p.steam_username.clone()
                     } else {
-                        &p.default_account
+                        p.default_account.clone()
                     }
                 })
-                .and_then(|a| a.chars().next())
+                .unwrap_or_default();
+            let avatar_letter = account
+                .chars()
+                .next()
                 .map(|c| c.to_ascii_uppercase())
                 .unwrap_or('S');
-            match kit::rail(ui, lay.rail, self.page, avatar_letter, s) {
+            let rail_state = kit::rail::RailState {
+                active: self.page,
+                sub_tabs: &self.sub_tabs,
+                avatar: avatar_letter,
+                account: &account,
+            };
+            match kit::rail(ui, lay.rail, rail_state, s) {
                 Some(RailAction::Navigate(page)) => self.goto(&ctx, page),
+                Some(RailAction::SubTab(page, tab)) => {
+                    self.sub_tabs[nav::index(page)] = tab;
+                    self.goto(&ctx, page);
+                }
+                Some(RailAction::Search) => self.palette.toggle(),
                 Some(RailAction::Avatar) => self.account_menu = !self.account_menu,
                 _ => {}
             }
+            self.header_bar(ui, &lay);
 
             if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::K)) {
                 self.palette.toggle();
@@ -279,8 +287,10 @@ impl eframe::App for App {
                 self.goto(&ctx, page);
             }
 
-            let clip =
-                Rect::from_min_max(Pos2::new(lay.rail.right(), lay.frame.top()), lay.frame.max);
+            let clip = Rect::from_min_max(
+                Pos2::new(lay.frame.left(), lay.header.bottom() + 1.0),
+                lay.frame.max,
+            );
             if let Some(tr) = self.transition {
                 let t = tr.progress(&ctx);
                 if let Some(prev) = self.prev_page {
@@ -295,7 +305,6 @@ impl eframe::App for App {
                 self.render_page(ui, self.page, &lay, clip, 1.0);
             }
 
-            self.search_pill(ui, lay.content, s);
             crate::ui::dropimport::show(self, ui, lay.frame, s);
             crate::ui::palette::show(self, ui, s);
             crate::ui::accountmenu::show(self, ui, lay.rail, s);
@@ -306,8 +315,7 @@ impl eframe::App for App {
                 self.goto(&ctx, page);
             }
 
-            let toast_anchor = lay.toast_anchor + Vec2::new(0.0, theme::px(42.0, s));
-            self.toasts.show(ui, toast_anchor, s);
+            self.toasts.show(ui, lay.toast_anchor, s);
         });
     }
 }

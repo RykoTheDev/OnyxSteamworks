@@ -120,7 +120,7 @@ fn controls(
         FontId::new(px(12.5), theme::family_medium()),
         theme::INK_DIM,
     );
-    if Button::new("CHOOSE FOLDER", ButtonKind::Secondary)
+    if Button::new("Choose folder", ButtonKind::Secondary)
         .icon(theme::icon::FOLDER)
         .show(
             ui,
@@ -198,7 +198,7 @@ fn controls(
             .get(app.backup_ui.project_sel)
             .map(|p| p.content_root.is_dir())
             .unwrap_or(false);
-    if Button::new("BACK UP NOW", ButtonKind::Primary)
+    if Button::new("Back up now", ButtonKind::Primary)
         .icon(theme::icon::PACKAGE)
         .enabled(can_backup)
         .show(
@@ -397,7 +397,7 @@ fn delete_modal(app: &mut App, ui: &mut egui::Ui, s: f32) {
             kit::label(
                 &ui.painter().clone(),
                 Pos2::new(x, d.top() + px(26.0)),
-                "DELETE BACKUP",
+                "Delete backup",
                 s,
             );
             ui.painter().text(
@@ -409,7 +409,7 @@ fn delete_modal(app: &mut App, ui: &mut egui::Ui, s: f32) {
             );
             let bw = px(150.0);
             let by = d.bottom() - px(26.0) - px(40.0);
-            if Button::new("CANCEL", ButtonKind::Secondary)
+            if Button::new("Cancel", ButtonKind::Secondary)
                 .show(
                     ui,
                     Rect::from_min_size(Pos2::new(x, by), Vec2::new(bw, px(40.0))),
@@ -419,7 +419,7 @@ fn delete_modal(app: &mut App, ui: &mut egui::Ui, s: f32) {
             {
                 act = 1;
             }
-            if Button::new("DELETE", ButtonKind::Danger)
+            if Button::new("Delete", ButtonKind::Danger)
                 .icon(theme::icon::TRASH)
                 .show(
                     ui,

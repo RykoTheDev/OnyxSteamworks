@@ -15,7 +15,7 @@ pub use state::BuildState;
 
 use eframe::egui::{self, Align2, FontId, Pos2, Rect, UiBuilder, Vec2};
 
-use crate::app::{App, Page};
+use crate::app::App;
 use crate::features::accounts;
 use crate::model::{BranchLevel, Project};
 use crate::steamcmd::BuildResult;
@@ -72,8 +72,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, layout: &Layout) {
         app.build_ui.inited = true;
     }
 
-    kit::hero(&ui.painter().clone(), content, "BUILD", s);
-    let body_top = content.top() + px(96.0);
+    let body_top = content.top();
 
     if app.projects.is_empty() {
         let body = Rect::from_min_max(Pos2::new(content.left(), body_top), content.max);
@@ -242,7 +241,7 @@ fn run_panel(
     kit::label(
         &ui.painter().clone(),
         Pos2::new(x, rect.top() + pad),
-        "RUN",
+        "Run",
         s,
     );
 
@@ -308,7 +307,7 @@ fn run_panel(
             Pos2::new(auth_rect.right() - rw, auth_rect.top() + px(4.0)),
             Vec2::new(rw, px(32.0)),
         );
-        if Button::new("RE-AUTHORIZE", ButtonKind::Secondary)
+        if Button::new("Re-authorize", ButtonKind::Secondary)
             .enabled(!project.steam_username.trim().is_empty())
             .show(ui, reauth, s)
             .clicked()
@@ -317,7 +316,7 @@ fn run_panel(
         }
     } else if !running {
         let auth_ok = !project.steam_username.trim().is_empty();
-        if Button::new("AUTHORIZE ACCOUNT", ButtonKind::Secondary)
+        if Button::new("Authorize account", ButtonKind::Secondary)
             .enabled(auth_ok)
             .show(ui, auth_rect, s)
             .clicked()
@@ -331,23 +330,6 @@ fn run_panel(
         Pos2::new(x, rect.bottom() - pad - px(44.0)),
         Vec2::new(w, px(44.0)),
     );
-    if !project.pipeline.is_empty() {
-        let busy = running || app.pipeline_ui.running;
-        if Button::new("RUN PIPELINE", ButtonKind::Primary)
-            .icon(theme::icon::FLOW)
-            .enabled(!busy)
-            .show(ui, btn, s)
-            .clicked()
-            && !busy
-        {
-            app.pipeline_ui.select(project);
-            app.pipeline_ui.start(ctx, 0);
-            app.nav_request = Some(Page::Pipelines);
-            app.toasts
-                .push(kit::ToastLevel::Success, "Running pipeline");
-        }
-        return;
-    }
 
     let valid_reason = build_reason(project);
     let t = anim::anim_bool(
@@ -361,7 +343,7 @@ fn run_panel(
     if t < 0.999 {
         let mut cu = ui.new_child(UiBuilder::new().max_rect(btn));
         cu.set_opacity(1.0 - t);
-        let mut start = Button::new("START BUILD", ButtonKind::Primary)
+        let mut start = Button::new("Start build", ButtonKind::Primary)
             .icon(theme::icon::ROCKET)
             .enabled(!running && valid_reason.is_none());
         if let Some(r) = &valid_reason {
@@ -379,7 +361,7 @@ fn run_panel(
     if t > 0.001 {
         let mut cu = ui.new_child(UiBuilder::new().max_rect(btn));
         cu.set_opacity(t);
-        if Button::new("CANCEL", ButtonKind::Danger)
+        if Button::new("Cancel", ButtonKind::Danger)
             .icon(theme::icon::X)
             .enabled(running)
             .show(&mut cu, btn, s)

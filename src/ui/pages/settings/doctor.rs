@@ -209,7 +209,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, body: Rect, s: f32) {
         theme::INK,
     );
 
-    if Button::new("RE-RUN", ButtonKind::Secondary)
+    if Button::new("Re-run", ButtonKind::Secondary)
         .show(
             ui,
             Rect::from_min_size(
@@ -223,7 +223,7 @@ pub fn show(app: &mut App, ui: &mut egui::Ui, body: Rect, s: f32) {
         let project = app.projects.get(app.build_ui.project_sel).cloned();
         app.doctor_ui.start(project, &ctx);
     }
-    if Button::new("COPY DIAGNOSTICS", ButtonKind::Primary)
+    if Button::new("Copy diagnostics", ButtonKind::Primary)
         .icon(theme::icon::COPY)
         .enabled(all_done)
         .show(
@@ -313,7 +313,7 @@ fn rows(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
                 Pos2::new(r.right() - px(96.0), r.center().y - px(15.0)),
                 Vec2::new(px(84.0), px(30.0)),
             );
-            if Button::new("FIX", ButtonKind::Secondary)
+            if Button::new("Fix", ButtonKind::Secondary)
                 .show(ui, btn, s)
                 .clicked()
             {

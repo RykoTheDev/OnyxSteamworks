@@ -74,7 +74,7 @@ impl<'a> Input<'a> {
             0.0
         };
         let field = rect;
-        let fill = theme::lerp_color(theme::FIELD, theme::DANGER, flash * 0.12);
+        let fill = theme::lerp_color(theme::SURFACE_2, theme::DANGER, flash * 0.12);
 
         kit::surface(&ui.painter().clone(), field, fill, radius);
 
@@ -104,8 +104,10 @@ impl<'a> Input<'a> {
             );
             ui.interact(field, id.with("ro"), egui::Sense::hover())
         } else {
-            ui.put(
-                inner,
+            let mut field_ui = ui.new_child(egui::UiBuilder::new().max_rect(inner).layout(
+                egui::Layout::centered_and_justified(egui::Direction::TopDown),
+            ));
+            field_ui.add(
                 TextEdit::singleline(self.text)
                     .frame(Frame::NONE)
                     .margin(egui::Margin::ZERO)
@@ -120,17 +122,21 @@ impl<'a> Input<'a> {
         let border = if self.error {
             theme::DANGER
         } else if resp.has_focus() {
-            theme::INK_DIM
+            theme::ACCENT
+        } else if resp.hovered() {
+            theme::FIELD_HI
         } else {
             theme::LINE
         };
-        let width = if self.error {
-            1.5 + flash * 0.75
-        } else if resp.has_focus() {
-            1.5
-        } else {
-            1.0
-        };
+        let width = if self.error { 1.0 + flash * 0.75 } else { 1.0 };
+        if resp.has_focus() && !self.error {
+            ui.painter().rect_stroke(
+                field.expand(2.0),
+                theme::corner(radius + 2.0),
+                Stroke::new(2.0, theme::with_alpha(theme::ACCENT, 60)),
+                StrokeKind::Inside,
+            );
+        }
         ui.painter().rect_stroke(
             field,
             theme::corner(radius),
@@ -153,5 +159,30 @@ impl<'a> Input<'a> {
             );
         }
         resp
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use eframe::egui::{self, Pos2, Rect, Vec2};
+
+    use super::Input;
+
+    #[test]
+    fn placing_an_input_above_the_cursor_does_not_move_it_back_up() {
+        let ctx = egui::Context::default();
+        let mut text = String::new();
+        let mut before = 0.0;
+        let mut after = 0.0;
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let (card, _) = ui.allocate_exact_size(Vec2::new(300.0, 200.0), egui::Sense::hover());
+            before = ui.cursor().top();
+            let field =
+                Rect::from_min_size(Pos2::new(card.left(), card.top()), Vec2::new(200.0, 30.0));
+            Input::new(&mut text).show(ui, field, 1.0);
+            after = ui.cursor().top();
+        });
+        output.textures_delta.clear();
+        assert_eq!(before, after);
     }
 }

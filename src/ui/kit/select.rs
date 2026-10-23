@@ -35,7 +35,14 @@ pub fn dropdown(
     painter.rect_stroke(
         rect,
         theme::corner(radius),
-        Stroke::new(1.0, theme::LINE),
+        Stroke::new(
+            1.0,
+            if open {
+                theme::with_alpha(theme::ACCENT, 200)
+            } else {
+                theme::LINE
+            },
+        ),
         StrokeKind::Inside,
     );
     let current = options.get(*selected).copied().unwrap_or("");
@@ -65,6 +72,7 @@ pub fn dropdown(
             .show(&ctx, |ui| {
                 ui.set_opacity(t);
                 let prect = Rect::from_min_size(pos, Vec2::new(rect.width(), ph));
+                theme::shadow(ui.painter(), prect, px(theme::RADIUS_POPUP), 24, 150);
                 ui.painter().rect_filled(
                     prect,
                     theme::corner(px(theme::RADIUS_POPUP)),
@@ -94,10 +102,19 @@ pub fn dropdown(
                     );
                     ui.painter().rect_filled(
                         rr,
-                        theme::corner(px(8.0)),
+                        theme::corner(px(theme::RADIUS_FIELD) - px(1.0)),
                         theme::lerp_color(theme::SURFACE_2, theme::FIELD_HI, hov),
                     );
                     let on = i == *selected;
+                    if on {
+                        ui.painter().text(
+                            Pos2::new(rr.right() - px(10.0), rr.center().y),
+                            Align2::RIGHT_CENTER,
+                            theme::icon::CHECK.to_string(),
+                            theme::icon_font(px(12.0), false),
+                            theme::INK_DIM,
+                        );
+                    }
                     ui.painter().text(
                         Pos2::new(rr.left() + px(10.0), rr.center().y),
                         Align2::LEFT_CENTER,
@@ -134,8 +151,14 @@ pub fn tabs(
 
     ui.painter().rect_filled(
         rect,
-        theme::corner(px(theme::RADIUS_FIELD)),
-        theme::SURFACE_2,
+        theme::corner(px(theme::RADIUS_FIELD) + px(1.0)),
+        theme::BG,
+    );
+    ui.painter().rect_stroke(
+        rect,
+        theme::corner(px(theme::RADIUS_FIELD) + px(1.0)),
+        Stroke::new(1.0, theme::LINE_SOFT),
+        StrokeKind::Inside,
     );
 
     let target = rect.left() + seg_w * (*active as f32);
@@ -148,8 +171,14 @@ pub fn tabs(
     );
     ui.painter().rect_filled(
         ind,
-        theme::corner(px(theme::RADIUS_FIELD) - px(2.0)),
+        theme::corner(px(theme::RADIUS_FIELD) - px(1.0)),
         theme::FIELD_HI,
+    );
+    ui.painter().rect_stroke(
+        ind,
+        theme::corner(px(theme::RADIUS_FIELD) - px(1.0)),
+        Stroke::new(1.0, theme::LINE),
+        StrokeKind::Inside,
     );
 
     for (i, lbl) in labels.iter().enumerate() {
@@ -157,7 +186,8 @@ pub fn tabs(
             Pos2::new(rect.left() + seg_w * i as f32, rect.top()),
             Vec2::new(seg_w, rect.height()),
         );
-        if ui.interact(seg, id.with(i), Sense::click()).clicked() {
+        let r = ui.interact(seg, id.with(i), Sense::click());
+        if r.clicked() {
             *active = i;
         }
         let on = i == *active;
@@ -165,8 +195,14 @@ pub fn tabs(
             seg.center(),
             Align2::CENTER_CENTER,
             *lbl,
-            FontId::new(px(12.0), theme::family_semibold()),
-            if on { theme::INK } else { theme::INK_MUTED },
+            FontId::new(px(12.5), theme::family_medium()),
+            if on {
+                theme::INK
+            } else if r.hovered() {
+                theme::INK_DIM
+            } else {
+                theme::INK_MUTED
+            },
         );
     }
     resp

@@ -28,7 +28,7 @@ pub(super) fn show(
     kit::label(
         &ui.painter().clone(),
         Pos2::new(x, rect.top() + pad),
-        "STAGES",
+        "Stages",
         s,
     );
 
@@ -102,7 +102,7 @@ pub(super) fn show(
         ui.painter().text(
             Pos2::new(x, y),
             Align2::LEFT_CENTER,
-            "LAST BUILD",
+            "Last build",
             FontId::new(px(11.0), theme::family_label()),
             theme::INK_MUTED,
         );
@@ -123,7 +123,7 @@ fn verify_offer(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32) {
     if !ready {
         return;
     }
-    if kit::Button::new("VERIFY BUILD", kit::ButtonKind::Secondary)
+    if kit::Button::new("Verify build", kit::ButtonKind::Secondary)
         .icon(theme::icon::CHECK)
         .show(ui, rect, s)
         .clicked()
@@ -144,7 +144,7 @@ fn speed_widget(app: &App, ui: &mut egui::Ui, pos: Pos2, w: f32, s: f32) {
     ui.painter().text(
         pos,
         Align2::LEFT_TOP,
-        "UPLOAD SPEED",
+        "Upload speed",
         FontId::new(px(11.0), theme::family_label()),
         theme::INK_MUTED,
     );

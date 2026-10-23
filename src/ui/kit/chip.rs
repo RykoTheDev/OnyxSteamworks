@@ -10,7 +10,7 @@ pub fn chip_size(ui: &egui::Ui, label: &str, s: f32) -> Vec2 {
         .layout_no_wrap(label.to_string(), font, theme::INK)
         .size()
         .x;
-    Vec2::new(w + px(24.0), px(30.0))
+    Vec2::new(w + px(22.0), px(28.0))
 }
 
 pub fn chip(ui: &mut egui::Ui, rect: Rect, label: &str, selected: bool, s: f32) -> Response {
@@ -27,12 +27,19 @@ pub fn chip(ui: &mut egui::Ui, rect: Rect, label: &str, selected: bool, s: f32) 
         anim::ease_out_cubic,
     );
     let fill = theme::lerp_color(
-        theme::lerp_color(theme::SURFACE_2, theme::FIELD, hover),
+        theme::lerp_color(theme::SURFACE, theme::FIELD, hover),
         theme::FIELD_HI,
         sel,
     );
+    let border = theme::lerp_color(theme::LINE_SOFT, theme::LINE, sel.max(hover));
     let painter = ui.painter();
-    painter.rect_filled(rect, theme::corner(px(8.0)), fill);
+    painter.rect_filled(rect, theme::corner(rect.height() / 2.0), fill);
+    painter.rect_stroke(
+        rect,
+        theme::corner(rect.height() / 2.0),
+        egui::Stroke::new(1.0, border),
+        egui::StrokeKind::Inside,
+    );
     let text = theme::lerp_color(theme::INK_MUTED, theme::INK, sel.max(hover * 0.6));
     painter.text(
         rect.center(),

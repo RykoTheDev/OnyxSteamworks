@@ -32,7 +32,7 @@ pub(super) fn fields(step: &mut PipelineStep, ui: &mut egui::Ui, rect: Rect, s: 
     let w = rect.width();
     let mut y = rect.top();
 
-    lbl(ui, x, y, "STEP NAME", s);
+    lbl(ui, x, y, "Step name", s);
     Input::new(&mut step.name).hint("Step name").show(
         ui,
         Rect::from_min_size(
@@ -73,7 +73,7 @@ pub(super) fn fields(step: &mut PipelineStep, ui: &mut egui::Ui, rect: Rect, s: 
         StepKind::RunCommand => run_command_fields(step, ui, x, w, y, s),
         StepKind::Clean => clean_fields(step, ui, x, w, y, s),
         StepKind::Notify | StepKind::Confirm => {
-            lbl(ui, x, y, "MESSAGE", s);
+            lbl(ui, x, y, "Message", s);
             Input::new(&mut step.message).hint("Message").show(
                 ui,
                 Rect::from_min_size(Pos2::new(x, y + px(16.0)), Vec2::new(w, px(36.0))),
@@ -100,7 +100,7 @@ fn run_command_fields(
     s: f32,
 ) {
     let px = |v: f32| theme::px(v, s);
-    lbl(ui, x, y, "EXECUTABLE", s);
+    lbl(ui, x, y, "Executable", s);
     Input::new(&mut step.exe)
         .hint("godot, Unity.exe, RunUAT.bat...")
         .show(
@@ -112,7 +112,7 @@ fn run_command_fields(
             s,
         );
     y += px(58.0);
-    lbl(ui, x, y, "ARGUMENTS", s);
+    lbl(ui, x, y, "Arguments", s);
     Input::new(&mut step.args)
         .hint("--headless --path . --export-release ...")
         .show(
@@ -121,7 +121,7 @@ fn run_command_fields(
             s,
         );
     y += px(58.0);
-    lbl(ui, x, y, "WORKING DIR", s);
+    lbl(ui, x, y, "Working dir", s);
     Input::new(&mut step.working_dir)
         .hint(". (content root)")
         .show(
@@ -188,7 +188,7 @@ fn clean_fields(step: &mut PipelineStep, ui: &mut egui::Ui, x: f32, w: f32, mut 
     if let Some(j) = remove {
         step.targets.remove(j);
     }
-    if Button::new("+ TARGET", ButtonKind::Secondary)
+    if Button::new("+ Target", ButtonKind::Secondary)
         .show(
             ui,
             Rect::from_min_size(Pos2::new(x, y), Vec2::new(px(120.0), px(28.0))),

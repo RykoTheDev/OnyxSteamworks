@@ -109,7 +109,7 @@ pub(super) fn toolbar(
     let has_sel = app.projects_ui.selected.is_some() && app.projects_ui.on_disk;
     let mut action = None;
 
-    if Button::new("NEW", ButtonKind::Primary)
+    if Button::new("New", ButtonKind::Primary)
         .icon(theme::icon::PLUS)
         .show(
             ui,
@@ -120,7 +120,7 @@ pub(super) fn toolbar(
     {
         action = Some(Action::New);
     }
-    if Button::new("DUP", ButtonKind::Secondary)
+    if Button::new("Dup", ButtonKind::Secondary)
         .enabled(has_sel)
         .show(
             ui,
@@ -135,7 +135,7 @@ pub(super) fn toolbar(
     {
         action = Some(Action::Duplicate);
     }
-    if Button::new("DEL", ButtonKind::Danger)
+    if Button::new("Del", ButtonKind::Danger)
         .enabled(has_sel)
         .show(
             ui,
@@ -153,7 +153,7 @@ pub(super) fn toolbar(
 
     let io_y = row_y + px(44.0);
     let iw = (rect.width() - px(8.0)) / 2.0;
-    if Button::new("IMPORT", ButtonKind::Secondary)
+    if Button::new("Import", ButtonKind::Secondary)
         .icon(theme::icon::DOWNLOAD)
         .show(
             ui,
@@ -164,7 +164,7 @@ pub(super) fn toolbar(
     {
         action = Some(Action::Import);
     }
-    if Button::new("EXPORT", ButtonKind::Secondary)
+    if Button::new("Export", ButtonKind::Secondary)
         .icon(theme::icon::UPLOAD)
         .enabled(has_sel)
         .show(

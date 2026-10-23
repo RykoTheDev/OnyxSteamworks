@@ -15,7 +15,11 @@ pub fn segment_progress(ui: &mut egui::Ui, rect: Rect, total: usize, filled: usi
         painter.rect_filled(
             r,
             theme::corner(rect.height() / 2.0),
-            if on { theme::INK } else { theme::SEGMENT_IDLE },
+            if on {
+                theme::ACCENT
+            } else {
+                theme::SEGMENT_IDLE
+            },
         );
     }
 }
