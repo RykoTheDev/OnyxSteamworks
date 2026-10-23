@@ -133,7 +133,7 @@ fn now_ms() -> i64 {
         .unwrap_or(0)
 }
 
-pub(super) fn rel_time(ts: i64) -> String {
+pub(crate) fn rel_time(ts: i64) -> String {
     let sec = (now_ms() - ts).max(0) / 1000;
     if sec < 60 {
         "just now".to_string()
@@ -148,7 +148,7 @@ pub(super) fn rel_time(ts: i64) -> String {
     }
 }
 
-pub(super) fn fmt_duration(ms: u64) -> String {
+pub(crate) fn fmt_duration(ms: u64) -> String {
     let sec = ms / 1000;
     format!("{:02}:{:02}", sec / 60, sec % 60)
 }

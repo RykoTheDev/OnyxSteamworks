@@ -22,7 +22,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &e
     child.set_clip_rect(rect);
     let ui = &mut child;
 
-    if app.pipeline_ui.draft.pipeline.is_empty() {
+    if app.pipeline_ui.steps().is_empty() {
         kit::empty_state(
             ui,
             rect,
@@ -39,7 +39,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &e
         .id_salt("pipeline_timeline")
         .auto_shrink([false, false])
         .show(ui, |ui| {
-            let count = app.pipeline_ui.draft.pipeline.len();
+            let count = app.pipeline_ui.steps().len();
             for i in 0..count {
                 if let Some(a) = card_row(app, ui, i, count, s) {
                     action = Some(a);
@@ -50,7 +50,7 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &e
 
     match action {
         Some(Action::Toggle(i)) => {
-            if let Some(step) = app.pipeline_ui.draft.pipeline.get_mut(i) {
+            if let Some(step) = app.pipeline_ui.steps_mut().and_then(|s| s.get_mut(i)) {
                 step.enabled = !step.enabled;
             }
         }
@@ -72,12 +72,17 @@ pub(super) fn show(app: &mut App, ui: &mut egui::Ui, rect: Rect, s: f32, ctx: &e
 fn card_row(app: &mut App, ui: &mut egui::Ui, i: usize, count: usize, s: f32) -> Option<Action> {
     let px = |v: f32| theme::px(v, s);
     let expanded = app.pipeline_ui.expanded == Some(i);
-    let status = app.pipeline_ui.statuses.get(i).copied().unwrap_or_default();
-    let kind = app.pipeline_ui.draft.pipeline[i].kind;
-    let name = app.pipeline_ui.draft.pipeline[i].name.clone();
+    let status = if app.pipeline_ui.shows_current_run() {
+        app.pipeline_ui.statuses.get(i).copied().unwrap_or_default()
+    } else {
+        StepRunStatus::Idle
+    };
+    let kind = app.pipeline_ui.steps()[i].kind;
+    let name = app.pipeline_ui.steps()[i].name.clone();
     let running = app.pipeline_ui.running;
+    let project = app.pipeline_ui.draft.clone();
     let extra = if expanded {
-        px(card::extra_height(&app.pipeline_ui.draft.pipeline[i]))
+        px(card::extra_height(&project, &app.pipeline_ui.steps()[i]))
     } else {
         0.0
     };
@@ -104,20 +109,28 @@ fn card_row(app: &mut App, ui: &mut egui::Ui, i: usize, count: usize, s: f32) ->
     }
 
     let tx = rect.left() + px(48.0);
+    let run_if = app.pipeline_ui.steps()[i].run_if;
+    let detail = match run_if {
+        crate::model::RunIf::Always => kind.label().to_string(),
+        other => format!("{}  ·  {}", kind.label(), other.label().to_lowercase()),
+    };
+    let same = detail == name;
     ui.painter().text(
-        Pos2::new(tx, rect.top() + px(18.0)),
+        Pos2::new(tx, rect.top() + if same { px(27.0) } else { px(18.0) }),
         Align2::LEFT_CENTER,
         &name,
         FontId::new(px(13.5), theme::family_semibold()),
         theme::INK,
     );
-    ui.painter().text(
-        Pos2::new(tx, rect.top() + px(36.0)),
-        Align2::LEFT_CENTER,
-        kind.label(),
-        FontId::new(px(11.5), theme::family_medium()),
-        theme::INK_MUTED,
-    );
+    if !same {
+        ui.painter().text(
+            Pos2::new(tx, rect.top() + px(36.0)),
+            Align2::LEFT_CENTER,
+            &detail,
+            FontId::new(px(11.5), theme::family_medium()),
+            theme::INK_MUTED,
+        );
+    }
 
     let mut action = None;
     let by = rect.top() + px(10.0);
@@ -180,11 +193,12 @@ fn card_row(app: &mut App, ui: &mut egui::Ui, i: usize, count: usize, s: f32) ->
     )
     .clicked()
         && !running
+        && !app.scheduler.busy()
     {
         action = Some(Action::RunFrom(i));
     }
     rx -= px(46.0) + gap;
-    let mut enabled = app.pipeline_ui.draft.pipeline[i].enabled;
+    let mut enabled = app.pipeline_ui.steps()[i].enabled;
     if kit::toggle(
         ui,
         Rect::from_min_size(Pos2::new(rx, by + px(5.0)), Vec2::new(px(42.0), px(22.0))),
@@ -201,12 +215,14 @@ fn card_row(app: &mut App, ui: &mut egui::Ui, i: usize, count: usize, s: f32) ->
             Pos2::new(rect.left() + px(48.0), rect.top() + px(56.0)),
             Pos2::new(rect.right() - px(16.0), rect.bottom() - px(10.0)),
         );
-        card::fields(&mut app.pipeline_ui.draft.pipeline[i], ui, inner, s);
+        if let Some(step) = app.pipeline_ui.steps_mut().and_then(|s| s.get_mut(i)) {
+            card::fields(step, &project, ui, inner, s);
+        }
     }
     action
 }
 
-fn status_icon(ui: &mut egui::Ui, c: Pos2, r: f32, status: StepRunStatus) {
+pub(super) fn status_icon(ui: &mut egui::Ui, c: Pos2, r: f32, status: StepRunStatus) {
     let painter = ui.painter();
     match status {
         StepRunStatus::Idle | StepRunStatus::Pending => {

@@ -8,6 +8,7 @@ pub struct Layout {
     pub scale: f32,
     pub frame: Rect,
     pub rail: Rect,
+    pub titlebar: Rect,
     pub header: Rect,
     pub content: Rect,
     pub toast_anchor: Pos2,
@@ -16,11 +17,18 @@ pub struct Layout {
 pub fn compute(window: Rect) -> Layout {
     let s = theme::scale(window.size());
     let px = |v: f32| v * s;
+    let titlebar = Rect::from_min_size(
+        window.min,
+        vec2(window.width(), px(crate::ui::window::TITLEBAR_H)),
+    );
     let rail_w = px(228.0);
-    let rail = Rect::from_min_size(window.min, vec2(rail_w, window.height()));
+    let rail = Rect::from_min_max(
+        pos2(window.left(), titlebar.bottom()),
+        pos2(window.left() + rail_w, window.bottom()),
+    );
     let inset = px(8.0);
     let frame = Rect::from_min_max(
-        pos2(rail.right(), window.top() + inset),
+        pos2(rail.right(), titlebar.bottom()),
         pos2(window.right() - inset, window.bottom() - inset),
     );
     let header = Rect::from_min_size(frame.min, vec2(frame.width(), px(46.0)));
@@ -34,6 +42,7 @@ pub fn compute(window: Rect) -> Layout {
         scale: s,
         frame,
         rail,
+        titlebar,
         header,
         content,
         toast_anchor,
@@ -46,6 +55,7 @@ impl Layout {
             scale: self.scale,
             frame: self.frame,
             rail: self.rail,
+            titlebar: self.titlebar,
             header: self.header,
             content: self.content.translate(d),
             toast_anchor: self.toast_anchor + d,

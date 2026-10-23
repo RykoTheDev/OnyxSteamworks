@@ -25,11 +25,32 @@ pub(super) fn run_command(
         emit(tx, ctx, i, "No executable set for this step.", true);
         return StepStatus::Failed;
     }
-    let mut cmd = Command::new(step.exe.trim());
-    for arg in split_args(&step.args) {
-        cmd.arg(arg);
-    }
-    cmd.current_dir(base_dir(project, step));
+    run_process(
+        step.exe.trim(),
+        &split_args(&step.args),
+        &base_dir(project, step),
+        step,
+        i,
+        control,
+        ctx,
+        tx,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+pub(super) fn run_process(
+    exe: &str,
+    args: &[String],
+    dir: &Path,
+    step: &PipelineStep,
+    i: usize,
+    control: &Control,
+    ctx: &egui::Context,
+    tx: &Sender<PipelineEvent>,
+) -> StepStatus {
+    let mut cmd = Command::new(exe);
+    cmd.args(args);
+    cmd.current_dir(dir);
     for (k, v) in parse_env(&step.env) {
         cmd.env(k, v);
     }
@@ -44,13 +65,7 @@ pub(super) fn run_command(
     let mut child = match cmd.spawn() {
         Ok(c) => c,
         Err(e) => {
-            emit(
-                tx,
-                ctx,
-                i,
-                format!("Could not launch {}: {e}", step.exe),
-                true,
-            );
+            emit(tx, ctx, i, format!("Could not launch {exe}: {e}"), true);
             return StepStatus::Failed;
         }
     };
@@ -294,7 +309,25 @@ pub(super) fn run_upload(
             }
             Ok(BuildEvent::Finished(res)) => {
                 return match res {
-                    BuildResult::Success { .. } => StepStatus::Success,
+                    BuildResult::Success { .. } => {
+                        match super::changes::record_baseline(project) {
+                            Ok(()) => emit(
+                                tx,
+                                ctx,
+                                i,
+                                "Saved a file snapshot for change detection.",
+                                false,
+                            ),
+                            Err(e) => emit(
+                                tx,
+                                ctx,
+                                i,
+                                format!("Could not save a file snapshot: {e}"),
+                                true,
+                            ),
+                        }
+                        StepStatus::Success
+                    }
                     _ => StepStatus::Failed,
                 };
             }

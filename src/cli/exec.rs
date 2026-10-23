@@ -60,7 +60,55 @@ fn drive(rx: Receiver<BuildEvent>, mut cancel: impl FnMut()) -> i32 {
     FAILURE
 }
 
-fn drive_pipeline(rx: Receiver<PipelineEvent>, handle: &PipelineHandle) -> i32 {
+fn await_approval(
+    project: &Project,
+    pipe: &crate::model::Pipeline,
+    message: &str,
+    handle: &PipelineHandle,
+) {
+    use crate::features::{approvals, notify};
+    let request = approvals::Approval::new(&project.name, &pipe.name, message);
+    approvals::insert(request.clone());
+    for e in notify::broadcast("Approval needed", &request.body()) {
+        eprintln!("{e}");
+    }
+    println!("Waiting for approval in Onyx (up to 2 hours)...");
+    let decision = approvals::wait_for_decision(
+        &request.id,
+        approvals::TIMEOUT,
+        std::time::Duration::from_secs(3),
+        approvals::decision,
+    );
+    approvals::remove(&request.id);
+    match decision {
+        Some(true) => {
+            println!("Approved.");
+            handle.confirm();
+        }
+        Some(false) => {
+            eprintln!("Rejected; cancelling the run.");
+            handle.cancel();
+        }
+        None => {
+            eprintln!("No decision within 2 hours; cancelling the run.");
+            let body = format!(
+                "{} for {} was cancelled because nobody approved it within 2 hours.",
+                pipe.name, project.name
+            );
+            for e in notify::broadcast("Approval timed out", &body) {
+                eprintln!("{e}");
+            }
+            handle.cancel();
+        }
+    }
+}
+
+fn drive_pipeline(
+    rx: Receiver<PipelineEvent>,
+    handle: &PipelineHandle,
+    project: &Project,
+    pipe: &crate::model::Pipeline,
+) -> i32 {
     while let Ok(event) = rx.recv() {
         match event {
             PipelineEvent::StepStarted(i) => println!("» step {}", i + 1),
@@ -69,10 +117,7 @@ fn drive_pipeline(rx: Receiver<PipelineEvent>, handle: &PipelineHandle) -> i32 {
                 println!("  step {} {}", i + 1, step_label(status))
             }
             PipelineEvent::AwaitConfirm(_, message) => {
-                eprintln!(
-                    "Confirmation step '{message}' needs interaction; not available in CLI mode."
-                );
-                handle.cancel();
+                await_approval(project, pipe, &message, handle);
             }
             PipelineEvent::Notify(line) => println!("{line}"),
             PipelineEvent::Finished(outcome) => {
@@ -85,6 +130,25 @@ fn drive_pipeline(rx: Receiver<PipelineEvent>, handle: &PipelineHandle) -> i32 {
         }
     }
     FAILURE
+}
+
+pub fn execute_pipeline(project: &Project, pipe: &crate::model::Pipeline) -> i32 {
+    if pipe.steps.is_empty() {
+        eprintln!("pipeline '{}' has no steps", pipe.name);
+        return VALIDATION;
+    }
+    let ctx = egui::Context::default();
+    let (tx, rx) = channel();
+    let handle = pipeline::start(project, pipe, 0, &ctx, tx);
+    drive_pipeline(rx, &handle, project, pipe)
+}
+
+pub fn outcome_for(code: i32) -> crate::model::RunOutcome {
+    match code {
+        SUCCESS => crate::model::RunOutcome::Completed,
+        CANCELLED => crate::model::RunOutcome::Cancelled,
+        _ => crate::model::RunOutcome::Failed,
+    }
 }
 
 fn last_manifest_path(project: &Project, branch: &str) -> Option<PathBuf> {
@@ -141,11 +205,6 @@ pub fn execute_build(
     }
 
     let ctx = egui::Context::default();
-    if !project.pipeline.is_empty() {
-        let (tx, rx) = channel();
-        let handle = pipeline::start(project, 0, &ctx, tx);
-        return drive_pipeline(rx, &handle);
-    }
 
     let work = match crate::config::build_dir() {
         Ok(w) => w,

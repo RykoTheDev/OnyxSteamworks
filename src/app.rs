@@ -14,6 +14,7 @@ pub enum Page {
     Projects,
     Build,
     History,
+    Automation,
     Settings,
 }
 
@@ -24,13 +25,16 @@ pub struct App {
     prev_page: Option<Page>,
     transition: Option<anim::Transition>,
     pub projects: Vec<Project>,
-    pub(crate) sub_tabs: [usize; 4],
+    pub(crate) sub_tabs: [usize; 5],
     pub(crate) projects_ui: pages::projects::ProjectsState,
     pub(crate) build_ui: pages::build::BuildState,
     pub(crate) history_ui: pages::history::HistoryState,
     pub(crate) backup_ui: pages::history::BackupState,
     pub(crate) patchnotes_ui: pages::history::PatchNotesState,
     pub(crate) analytics_ui: pages::history::AnalyticsState,
+    pub(crate) pipeline_ui: pages::automation::PipelineState,
+    pub(crate) runs_ui: pages::automation::RunsState,
+    pub(crate) scheduler: pages::automation::SchedulerState,
     pub(crate) notify_ui: crate::features::notify::NotifyState,
     pub(crate) doctor_ui: pages::settings::DoctorState,
     pub(crate) advanced_ui: pages::settings::AdvancedState,
@@ -54,6 +58,7 @@ pub struct App {
 impl App {
     pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
         theme::apply_theme(&cc.egui_ctx);
+        crate::ui::window::round_corners(cc);
         egui_extras::install_image_loaders(&cc.egui_ctx);
 
         let startup = crate::config::load_settings().unwrap_or_default();
@@ -78,13 +83,16 @@ impl App {
             prev_page: None,
             transition: None,
             projects,
-            sub_tabs: [0; 4],
+            sub_tabs: [0; 5],
             projects_ui: pages::projects::ProjectsState::new(),
             build_ui: pages::build::BuildState::new(),
             history_ui: pages::history::HistoryState::new(),
             backup_ui: pages::history::BackupState::new(),
             patchnotes_ui: pages::history::PatchNotesState::new(),
             analytics_ui: pages::history::AnalyticsState::new(),
+            pipeline_ui: pages::automation::PipelineState::new(),
+            runs_ui: pages::automation::RunsState::default(),
+            scheduler: pages::automation::SchedulerState::new(),
             notify_ui: crate::features::notify::NotifyState::new(),
             doctor_ui: pages::settings::DoctorState::new(),
             advanced_ui: pages::settings::AdvancedState::new(),
@@ -207,8 +215,15 @@ impl App {
 }
 
 impl eframe::App for App {
-    fn logic(&mut self, _ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn logic(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.pump_events();
+        for (level, msg) in self.pipeline_ui.drain(ctx) {
+            self.toasts.push(level, msg);
+        }
+        let pipeline_busy = self.pipeline_ui.running;
+        for (level, msg) in self.scheduler.tick(&self.projects, pipeline_busy, ctx) {
+            self.toasts.push(level, msg);
+        }
         for msg in self.notify_ui.drain() {
             self.toasts.push(kit::ToastLevel::Error, msg);
         }
@@ -265,6 +280,7 @@ impl eframe::App for App {
                 _ => {}
             }
             self.header_bar(ui, &lay);
+            crate::ui::window::titlebar(ui, lay.titlebar, s);
 
             if ctx.input(|i| i.modifiers.command && i.key_pressed(egui::Key::K)) {
                 self.palette.toggle();
@@ -316,6 +332,7 @@ impl eframe::App for App {
             }
 
             self.toasts.show(ui, lay.toast_anchor, s);
+            crate::ui::window::resize_edges(ui, ui.max_rect(), s);
         });
     }
 }

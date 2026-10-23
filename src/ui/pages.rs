@@ -1,3 +1,4 @@
+pub mod automation;
 pub mod build;
 pub mod history;
 pub mod projects;
@@ -13,6 +14,7 @@ pub fn render(app: &mut App, ui: &mut egui::Ui, page: Page, layout: &Layout) {
         Page::Projects => projects::show(app, ui, layout),
         Page::Build => build::show(app, ui, layout),
         Page::History => history::show(app, ui, layout),
+        Page::Automation => automation::show(app, ui, layout),
         Page::Settings => settings::show(app, ui, layout),
     }
 }

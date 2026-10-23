@@ -5,7 +5,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::{Connection, params};
 
-use crate::model::{BuildRecord, BuildStatus, Project};
+use crate::model::{BuildRecord, BuildStatus, PipelineRun, Project};
 
 #[derive(Debug, thiserror::Error)]
 pub enum HistoryError {
@@ -51,6 +51,11 @@ fn now_ms() -> i64 {
 
 pub fn connect() -> Result<Connection> {
     let conn = Connection::open(db_path()?)?;
+    init(&conn)?;
+    Ok(conn)
+}
+
+fn init(conn: &Connection) -> Result<()> {
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS builds (
             id TEXT PRIMARY KEY,
@@ -66,9 +71,44 @@ pub fn connect() -> Result<Connection> {
             manifest_path TEXT,
             notes TEXT
         );
-        CREATE INDEX IF NOT EXISTS idx_builds_timestamp ON builds(timestamp);",
+        CREATE INDEX IF NOT EXISTS idx_builds_timestamp ON builds(timestamp);
+        CREATE TABLE IF NOT EXISTS pipeline_runs (
+            id TEXT PRIMARY KEY,
+            project_id TEXT NOT NULL,
+            started_ms INTEGER NOT NULL,
+            run_json TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_runs_started ON pipeline_runs(started_ms);",
     )?;
-    Ok(conn)
+    Ok(())
+}
+
+pub fn insert_run(conn: &Connection, run: &PipelineRun) -> Result<()> {
+    let json = serde_json::to_string(run).unwrap_or_default();
+    conn.execute(
+        "INSERT OR REPLACE INTO pipeline_runs (id, project_id, started_ms, run_json)
+         VALUES (?1, ?2, ?3, ?4)",
+        params![run.id, run.project_id, run.started_ms, json],
+    )?;
+    Ok(())
+}
+
+pub fn runs(conn: &Connection, limit: usize) -> Result<Vec<PipelineRun>> {
+    let mut stmt =
+        conn.prepare("SELECT run_json FROM pipeline_runs ORDER BY started_ms DESC LIMIT ?1")?;
+    let rows = stmt.query_map(params![limit as i64], |row| row.get::<_, String>(0))?;
+    let mut out = Vec::new();
+    for json in rows {
+        if let Ok(run) = serde_json::from_str::<PipelineRun>(&json?) {
+            out.push(run);
+        }
+    }
+    Ok(out)
+}
+
+pub fn delete_run(conn: &Connection, id: &str) -> Result<()> {
+    conn.execute("DELETE FROM pipeline_runs WHERE id = ?1", params![id])?;
+    Ok(())
 }
 
 pub fn insert(conn: &Connection, record: &BuildRecord) -> Result<()> {
@@ -161,6 +201,36 @@ pub fn make_record(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::model::{RunOutcome, StepRecord};
+
+    #[test]
+    fn pipeline_runs_round_trip_newest_first() {
+        let conn = Connection::open_in_memory().expect("db");
+        init(&conn).expect("schema");
+        for (id, started) in [("old", 1_000), ("new", 2_000)] {
+            let run = PipelineRun {
+                id: id.into(),
+                project_id: "p1".into(),
+                pipeline_name: "Nightly".into(),
+                started_ms: started,
+                outcome: RunOutcome::Failed,
+                steps: vec![StepRecord {
+                    name: "Build".into(),
+                    log: vec!["line".into()],
+                    ..Default::default()
+                }],
+                ..Default::default()
+            };
+            insert_run(&conn, &run).expect("insert");
+        }
+        let loaded = runs(&conn, 10).expect("runs");
+        assert_eq!(loaded.len(), 2);
+        assert_eq!(loaded[0].id, "new");
+        assert_eq!(loaded[0].outcome, RunOutcome::Failed);
+        assert_eq!(loaded[0].steps[0].log, vec!["line".to_string()]);
+        delete_run(&conn, "new").expect("delete");
+        assert_eq!(runs(&conn, 10).expect("runs").len(), 1);
+    }
 
     fn record(id: &str, ts: i64, status: BuildStatus) -> BuildRecord {
         BuildRecord {

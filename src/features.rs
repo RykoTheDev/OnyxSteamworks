@@ -1,6 +1,7 @@
 pub mod accounts;
 pub mod actions;
 pub mod advisor;
+pub mod approvals;
 pub mod backup;
 pub mod checklist;
 pub mod doctor;
@@ -15,6 +16,9 @@ pub mod presets;
 pub mod profile;
 pub mod quick;
 pub mod scanner;
+pub mod schedule;
+pub mod store;
 pub mod template;
+pub mod triggers;
 pub mod verify;
 pub mod wizard;

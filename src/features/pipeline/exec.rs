@@ -6,9 +6,10 @@ use eframe::egui;
 
 use super::actions;
 use super::{Control, PipelineEvent, StepStatus};
+use crate::features::{presets, template};
 use crate::model::{PipelineStep, Project, StepKind};
 
-pub(super) fn emit(
+pub fn emit(
     tx: &Sender<PipelineEvent>,
     ctx: &egui::Context,
     i: usize,
@@ -27,7 +28,10 @@ pub(super) fn run_step(
     ctx: &egui::Context,
     tx: &Sender<PipelineEvent>,
 ) -> StepStatus {
+    let expanded = expand_step(project, step);
+    let step = &expanded;
     match step.kind {
+        StepKind::BuildGame => run_build_game(project, i, step, control, ctx, tx),
         StepKind::RunCommand => actions::run_command(project, i, step, control, ctx, tx),
         StepKind::Clean => actions::run_clean(project, i, step, ctx, tx),
         StepKind::Upload => actions::run_upload(project, i, control, ctx, tx),
@@ -50,6 +54,46 @@ pub(super) fn run_step(
     }
 }
 
+pub(super) fn expand_step(project: &Project, step: &PipelineStep) -> PipelineStep {
+    let branch = if project.set_live_branch.trim().is_empty() {
+        "default"
+    } else {
+        project.set_live_branch.trim()
+    };
+    let vars = template::resolve(project, branch);
+    let fill = |text: &str| template::expand(text, &vars);
+    let mut out = step.clone();
+    out.exe = fill(&step.exe);
+    out.args = fill(&step.args);
+    out.working_dir = fill(&step.working_dir);
+    out.env = fill(&step.env);
+    out.message = fill(&step.message);
+    out.output = fill(&step.output);
+    out.export_preset = fill(&step.export_preset);
+    out.targets = step.targets.iter().map(|t| fill(t)).collect();
+    out
+}
+
+fn run_build_game(
+    project: &Project,
+    i: usize,
+    step: &PipelineStep,
+    control: &Control,
+    ctx: &egui::Context,
+    tx: &Sender<PipelineEvent>,
+) -> StepStatus {
+    match presets::build_command(project, step) {
+        Ok(cmd) => {
+            emit(tx, ctx, i, format!("$ {}", cmd.display()), false);
+            actions::run_process(&cmd.exe, &cmd.args, &cmd.dir, step, i, control, ctx, tx)
+        }
+        Err(e) => {
+            emit(tx, ctx, i, e, true);
+            StepStatus::Failed
+        }
+    }
+}
+
 fn run_notify(
     project: &Project,
     i: usize,
@@ -57,32 +101,16 @@ fn run_notify(
     ctx: &egui::Context,
     tx: &Sender<PipelineEvent>,
 ) -> StepStatus {
-    use crate::features::notify;
     let message = step.message.trim();
     emit(tx, ctx, i, format!("Notify: {message}"), false);
     let _ = tx.send(PipelineEvent::Notify(step.message.clone()));
-
-    let cfg = crate::config::load_settings().unwrap_or_default();
     let title = if project.name.is_empty() {
-        "SteamPipe GUI".to_string()
+        "Onyx".to_string()
     } else {
         project.name.clone()
     };
-    if cfg.notify_toast
-        && let Err(e) = notify::os_toast_message(&title, message)
-    {
-        emit(tx, ctx, i, format!("Toast failed: {e}"), true);
-    }
-    if cfg.discord_enabled {
-        let webhook = crate::secrets::get_password(notify::WEBHOOK_KEY)
-            .ok()
-            .flatten()
-            .unwrap_or_default();
-        let content = format!("**{title}**\n{message}");
-        match notify::post_discord_text(&webhook, &content) {
-            Ok(()) => emit(tx, ctx, i, "Discord message sent.", false),
-            Err(e) => emit(tx, ctx, i, format!("Discord failed: {e}"), true),
-        }
+    for e in crate::features::notify::broadcast(&title, message) {
+        emit(tx, ctx, i, e, true);
     }
     StepStatus::Success
 }
@@ -164,7 +192,7 @@ pub(super) fn base_dir(project: &Project, step: &PipelineStep) -> PathBuf {
     }
 }
 
-pub(super) fn split_args(input: &str) -> Vec<String> {
+pub fn split_args(input: &str) -> Vec<String> {
     let mut out = Vec::new();
     let mut cur = String::new();
     let mut quoted = false;

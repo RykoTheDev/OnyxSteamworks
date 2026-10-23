@@ -8,4 +8,5 @@ pub mod pages;
 pub mod palette;
 pub mod quitguard;
 pub mod theme;
+pub mod window;
 pub mod wizard;

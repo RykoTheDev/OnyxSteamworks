@@ -129,7 +129,8 @@ fn load_project_in(dir: &Path, id: &str) -> Result<Project> {
         return Err(ConfigError::NotFound(id.to_string()));
     }
     let bytes = fs::read(&path)?;
-    let file: ProjectFile = serde_json::from_slice(&bytes)?;
+    let mut file: ProjectFile = serde_json::from_slice(&bytes)?;
+    file.project.migrate();
     Ok(file.project)
 }
 
@@ -144,7 +145,10 @@ fn list_projects_in(dir: &Path) -> Result<Vec<Project>> {
             .map_err(ConfigError::from)
             .and_then(|b| serde_json::from_slice::<ProjectFile>(&b).map_err(ConfigError::from))
         {
-            Ok(file) => projects.push(file.project),
+            Ok(mut file) => {
+                file.project.migrate();
+                projects.push(file.project);
+            }
             Err(e) => eprintln!("skipping unreadable project {}: {e}", path.display()),
         }
     }

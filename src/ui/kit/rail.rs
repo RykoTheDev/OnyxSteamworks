@@ -7,7 +7,6 @@ pub enum RailAction {
     Navigate(Page),
     SubTab(Page, usize),
     Search,
-    Logo,
     Avatar,
 }
 
@@ -47,47 +46,8 @@ pub fn rail(ui: &mut egui::Ui, rect: Rect, st: RailState<'_>, s: f32) -> Option<
     let width = rect.width() - px(20.0);
     let row_h = px(30.0);
 
-    let ws = Rect::from_min_size(
-        Pos2::new(left, rect.top() + px(12.0)),
-        Vec2::new(width, px(34.0)),
-    );
-    let ws_id = ui.make_persistent_id("rail_logo");
-    let ws_resp = ui.interact(ws, ws_id, Sense::click());
-    let ws_hover = anim::anim_bool(&ctx, ws_id, ws_resp.hovered(), 0.12, anim::ease_out_cubic);
-    row_fill(ui, ws, 0.0, ws_hover, s);
-    let mark = Rect::from_center_size(
-        Pos2::new(ws.left() + px(18.0), ws.center().y),
-        Vec2::splat(px(22.0)),
-    );
-    ui.painter()
-        .rect_filled(mark, theme::corner(px(6.0)), theme::ACCENT);
-    ui.painter().text(
-        mark.center(),
-        Align2::CENTER_CENTER,
-        theme::icon::SPARKLE.to_string(),
-        theme::icon_font(px(13.0), true),
-        theme::PRIMARY_INK,
-    );
-    ui.painter().text(
-        Pos2::new(mark.right() + px(10.0), ws.center().y),
-        Align2::LEFT_CENTER,
-        "Onyx",
-        FontId::new(px(14.0), theme::family_semibold()),
-        theme::INK,
-    );
-    ui.painter().text(
-        Pos2::new(ws.right() - px(10.0), ws.center().y),
-        Align2::RIGHT_CENTER,
-        theme::icon::CARET_DOWN.to_string(),
-        theme::icon_font(px(11.0), false),
-        theme::INK_FAINT,
-    );
-    if ws_resp.clicked() {
-        action = Some(RailAction::Logo);
-    }
-
     let search = Rect::from_min_size(
-        Pos2::new(left, ws.bottom() + px(10.0)),
+        Pos2::new(left, rect.top() + px(6.0)),
         Vec2::new(width, row_h),
     );
     let sid = ui.make_persistent_id("search_pill");

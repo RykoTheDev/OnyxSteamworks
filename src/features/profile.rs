@@ -12,6 +12,7 @@ pub fn export_json(project: &Project) -> anyhow::Result<String> {
 pub fn import_json(text: &str) -> anyhow::Result<Project> {
     let mut project: Project =
         serde_json::from_str(text).map_err(|e| anyhow!("not a valid project profile: {e}"))?;
+    project.migrate();
     project.id = uuid::Uuid::new_v4().to_string();
     project.steam_username = String::new();
     project.default_account = String::new();

@@ -18,6 +18,7 @@ globset = "0.4.20"
 image = { version = "0.25.10", default-features = false, features = ["png", "jpeg"] }
 keyring = "3.6.3"
 open = "5.3.2"
+raw-window-handle = "0.6.2"
 rayon = "1.10.0"
 rfd = "0.17.2"
 ureq = { version = "2.12.1", features = ["json"] }
@@ -35,7 +36,7 @@ libc = "0.2.175"
 [target.'cfg(windows)'.dependencies]
 keyring = { version = "3.6.3", features = ["windows-native"] }
 notify-rust = "4.11"
-windows-sys = { version = "0.59.0", features = ["Win32_System_Console", "Win32_Storage_FileSystem", "Win32_System_Power", "Win32_Foundation"] }
+windows-sys = { version = "0.59.0", features = ["Win32_System_Console", "Win32_Storage_FileSystem", "Win32_System_Power", "Win32_System_Time", "Win32_Graphics_Dwm", "Win32_Foundation"] }
 
 [profile.release]
 opt-level = 3

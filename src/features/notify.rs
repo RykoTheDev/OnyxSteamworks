@@ -128,6 +128,26 @@ pub fn os_toast_message(_summary: &str, _body: &str) -> anyhow::Result<()> {
     Ok(())
 }
 
+pub fn broadcast(title: &str, message: &str) -> Vec<String> {
+    let cfg = crate::config::load_settings().unwrap_or_default();
+    let mut errors = Vec::new();
+    if cfg.notify_toast
+        && let Err(e) = os_toast_message(title, message)
+    {
+        errors.push(format!("Desktop notification failed: {e}"));
+    }
+    if cfg.discord_enabled {
+        let webhook = crate::secrets::get_password(WEBHOOK_KEY)
+            .ok()
+            .flatten()
+            .unwrap_or_default();
+        if let Err(e) = post_discord_text(&webhook, &format!("**{title}**\n{message}")) {
+            errors.push(format!("Discord failed: {e}"));
+        }
+    }
+    errors
+}
+
 pub fn os_toast(info: &BuildInfo) -> anyhow::Result<()> {
     os_toast_message(&info.summary(), &info.body())
 }

@@ -26,7 +26,8 @@ fn main() -> eframe::Result {
         viewport: egui::ViewportBuilder::default()
             .with_title("SteamPipe GUI")
             .with_inner_size([1320.0, 840.0])
-            .with_min_inner_size([900.0, 640.0]),
+            .with_min_inner_size([900.0, 640.0])
+            .with_decorations(false),
         ..Default::default()
     };
 

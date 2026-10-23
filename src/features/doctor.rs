@@ -258,8 +258,9 @@ pub fn check_tools(project: Option<Project>) -> CheckResult {
     }
     if let Some(project) = project {
         for step in project
-            .pipeline
+            .pipelines
             .iter()
+            .flat_map(|p| p.steps.iter())
             .filter(|s| s.kind == StepKind::RunCommand)
         {
             let exe = step.exe.trim();

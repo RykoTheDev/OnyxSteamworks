@@ -170,6 +170,31 @@ impl<'a> Input<'a> {
     }
 }
 
+pub(crate) fn head_fit(painter: &egui::Painter, text: &str, font: &FontId, max_w: f32) -> String {
+    let width = |t: &str| {
+        painter
+            .layout_no_wrap(t.to_owned(), font.clone(), theme::INK)
+            .size()
+            .x
+    };
+    if width(text) <= max_w {
+        return text.to_owned();
+    }
+    let chars: Vec<char> = text.chars().collect();
+    let (mut lo, mut hi) = (0, chars.len());
+    while lo < hi {
+        let mid = (lo + hi).div_ceil(2);
+        let candidate: String = chars[..mid].iter().copied().chain(['\u{2026}']).collect();
+        if width(&candidate) <= max_w {
+            lo = mid;
+        } else {
+            hi = mid - 1;
+        }
+    }
+    let kept: String = chars[..lo].iter().collect();
+    format!("{}\u{2026}", kept.trim_end())
+}
+
 pub(crate) fn tail_fit(painter: &egui::Painter, text: &str, font: &FontId, max_w: f32) -> String {
     let width = |t: &str| {
         painter
@@ -202,7 +227,7 @@ pub(crate) fn tail_fit(painter: &egui::Painter, text: &str, font: &FontId, max_w
 mod tests {
     use eframe::egui::{self, Pos2, Rect, Vec2};
 
-    use super::{Input, tail_fit};
+    use super::{Input, head_fit, tail_fit};
 
     #[test]
     fn placing_an_input_above_the_cursor_does_not_move_it_back_up() {
@@ -220,6 +245,31 @@ mod tests {
         });
         output.textures_delta.clear();
         assert_eq!(before, after);
+    }
+
+    #[test]
+    fn long_text_keeps_its_start_within_the_width() {
+        let ctx = egui::Context::default();
+        let mut fitted = String::new();
+        let mut width = 0.0;
+        let mut output = ctx.run_ui(egui::RawInput::default(), |ui| {
+            let font = egui::FontId::proportional(12.0);
+            fitted = head_fit(
+                ui.painter(),
+                "When files change in D:\\Storage\\SteamSDK\\tools\\ContentBuilder\\content",
+                &font,
+                120.0,
+            );
+            width = ui
+                .painter()
+                .layout_no_wrap(fitted.clone(), font, egui::Color32::WHITE)
+                .size()
+                .x;
+        });
+        output.textures_delta.clear();
+        assert!(fitted.starts_with("When files"));
+        assert!(fitted.ends_with('\u{2026}'));
+        assert!(width <= 120.0);
     }
 
     #[test]

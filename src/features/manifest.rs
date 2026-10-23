@@ -248,14 +248,23 @@ pub fn save_manifest(manifest: &Manifest) -> Result<PathBuf, ManifestError> {
     let dir = crate::config::data_dir()
         .map_err(|_| ManifestError::DataDir)?
         .join("manifests");
-    std::fs::create_dir_all(&dir)?;
     let path = dir.join(format!("{}.mf.gz", uuid::Uuid::new_v4()));
+    save_manifest_to(manifest, &path)?;
+    Ok(path)
+}
+
+pub fn save_manifest_to(manifest: &Manifest, path: &Path) -> Result<(), ManifestError> {
+    if let Some(dir) = path.parent() {
+        std::fs::create_dir_all(dir)?;
+    }
     let json = serde_json::to_vec(manifest)?;
-    let file = std::fs::File::create(&path)?;
+    let tmp = path.with_extension("tmp");
+    let file = std::fs::File::create(&tmp)?;
     let mut encoder = flate2::write::GzEncoder::new(file, flate2::Compression::default());
     encoder.write_all(&json)?;
     encoder.finish()?;
-    Ok(path)
+    std::fs::rename(&tmp, path)?;
+    Ok(())
 }
 
 pub fn load_manifest(path: &Path) -> Result<Manifest, ManifestError> {

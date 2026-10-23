@@ -21,6 +21,26 @@ pub enum Command {
     ListProjects,
     Validate(ValidateArgs),
     Doctor,
+    #[command(subcommand)]
+    Pipeline(PipelineCommand),
+}
+
+#[derive(Subcommand)]
+pub enum PipelineCommand {
+    Run(PipelineRunArgs),
+    List(ValidateArgs),
+}
+
+#[derive(Args)]
+pub struct PipelineRunArgs {
+    #[arg(long)]
+    pub project: Option<String>,
+    #[arg(long)]
+    pub pipeline: Option<String>,
+    #[arg(long)]
+    pub schedule: Option<String>,
+    #[arg(long = "if-triggered")]
+    pub if_triggered: bool,
 }
 
 #[derive(Args)]
@@ -68,7 +88,119 @@ pub fn run() -> i32 {
         Command::ListProjects => list_projects(),
         Command::Validate(args) => validate_cmd(&args.project),
         Command::Doctor => doctor(),
+        Command::Pipeline(PipelineCommand::Run(args)) => pipeline_run(args),
+        Command::Pipeline(PipelineCommand::List(args)) => pipeline_list(&args.project),
     }
+}
+
+fn find_pipeline<'a>(
+    project: &'a Project,
+    reference: Option<&str>,
+) -> Option<&'a crate::model::Pipeline> {
+    match reference {
+        None => project.pipelines.first(),
+        Some(r) => project.pipelines.iter().find(|p| p.id == r).or_else(|| {
+            project
+                .pipelines
+                .iter()
+                .find(|p| p.name.eq_ignore_ascii_case(r))
+        }),
+    }
+}
+
+fn pipeline_run(args: PipelineRunArgs) -> i32 {
+    use crate::features::schedule;
+    let projects = match load_projects() {
+        Ok(p) => p,
+        Err(code) => return code,
+    };
+    let mut event_schedule = None;
+    let (project_ref, pipeline_ref) = match &args.schedule {
+        Some(id) => {
+            let Some(s) = schedule::load().into_iter().find(|s| &s.id == id) else {
+                eprintln!("no schedule with id '{id}'");
+                return VALIDATION;
+            };
+            if !s.enabled {
+                println!("schedule '{id}' is paused; nothing to run");
+                return SUCCESS;
+            }
+            if s.is_event() {
+                event_schedule = Some(s.clone());
+            }
+            (s.project_id, Some(s.pipeline_id))
+        }
+        None => match &args.project {
+            Some(p) => (p.clone(), args.pipeline.clone()),
+            None => {
+                eprintln!("pass --project (and optionally --pipeline), or --schedule");
+                return VALIDATION;
+            }
+        },
+    };
+    let Some(project) = find_project(&projects, &project_ref) else {
+        eprintln!("no project matching '{project_ref}'");
+        return VALIDATION;
+    };
+    let Some(pipeline) = find_pipeline(project, pipeline_ref.as_deref()) else {
+        eprintln!(
+            "project '{}' has no pipeline matching '{}'",
+            project.name,
+            pipeline_ref.as_deref().unwrap_or("(first)")
+        );
+        return VALIDATION;
+    };
+    if let (Some(s), true) = (&event_schedule, args.if_triggered) {
+        let now = schedule::now_ms();
+        let observed = match crate::features::triggers::observe(s, project) {
+            Ok(v) => v,
+            Err(e) => {
+                eprintln!("could not check the trigger: {e}");
+                return FAILURE;
+            }
+        };
+        let mut fire = false;
+        schedule::update(&s.id, |sch| {
+            fire = crate::features::triggers::step(sch, &observed, now);
+            if fire {
+                crate::features::triggers::fired(sch, &observed);
+            }
+        });
+        if !fire {
+            println!("trigger not met; nothing to run");
+            return SUCCESS;
+        }
+    }
+    if let Some(id) = &args.schedule {
+        schedule::update(id, |s| s.last_started_ms = schedule::now_ms());
+    }
+    println!("Running pipeline '{}' for {}", pipeline.name, project.name);
+    let code = exec::execute_pipeline(project, pipeline);
+    if let Some(id) = &args.schedule {
+        let now = schedule::now_ms();
+        schedule::update(id, |s| {
+            s.last_finished_ms = now;
+            s.last_outcome = Some(exec::outcome_for(code));
+            schedule::advance(s, now);
+            crate::features::triggers::rebaseline_after_run(s, project);
+        });
+    }
+    code
+}
+
+fn pipeline_list(reference: &str) -> i32 {
+    let projects = match load_projects() {
+        Ok(p) => p,
+        Err(code) => return code,
+    };
+    let Some(project) = find_project(&projects, reference) else {
+        eprintln!("no project matching '{reference}'");
+        return VALIDATION;
+    };
+    for p in &project.pipelines {
+        println!("{}\t{}\t{} steps", p.name, p.id, p.steps.len());
+    }
+    SUCCESS
 }
 
 fn find_project<'a>(projects: &'a [Project], reference: &str) -> Option<&'a Project> {
@@ -296,6 +428,55 @@ mod tests {
                 .command,
             Command::Validate(_)
         ));
+    }
+
+    #[test]
+    fn parses_pipeline_run_by_schedule_or_project() {
+        let cli = Cli::try_parse_from(["onyx", "pipeline", "run", "--schedule", "abc"]).unwrap();
+        match cli.command {
+            Command::Pipeline(PipelineCommand::Run(a)) => {
+                assert_eq!(a.schedule.as_deref(), Some("abc"));
+                assert!(a.project.is_none());
+            }
+            _ => panic!("expected pipeline run"),
+        }
+        let cli = Cli::try_parse_from([
+            "onyx",
+            "pipeline",
+            "run",
+            "--project",
+            "Game",
+            "--pipeline",
+            "Nightly",
+        ])
+        .unwrap();
+        match cli.command {
+            Command::Pipeline(PipelineCommand::Run(a)) => {
+                assert_eq!(a.project.as_deref(), Some("Game"));
+                assert_eq!(a.pipeline.as_deref(), Some("Nightly"));
+            }
+            _ => panic!("expected pipeline run"),
+        }
+    }
+
+    #[test]
+    fn finds_pipelines_by_id_name_or_first() {
+        use crate::model::Pipeline;
+        let project = Project {
+            pipelines: vec![
+                Pipeline::new("Default", Vec::new()),
+                Pipeline::new("Nightly", Vec::new()),
+            ],
+            ..Default::default()
+        };
+        assert_eq!(find_pipeline(&project, None).unwrap().name, "Default");
+        assert_eq!(
+            find_pipeline(&project, Some("nightly")).unwrap().name,
+            "Nightly"
+        );
+        let id = project.pipelines[1].id.clone();
+        assert_eq!(find_pipeline(&project, Some(&id)).unwrap().name, "Nightly");
+        assert!(find_pipeline(&project, Some("missing")).is_none());
     }
 
     #[test]
